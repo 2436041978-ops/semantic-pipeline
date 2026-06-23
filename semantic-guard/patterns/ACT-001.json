@@ -1,0 +1,33 @@
+{
+  "id": "ACT-001",
+  "version": "1.0.0",
+  "componentType": "Button",
+  "componentLibrary": "Ant Design",
+  "symptoms": {
+    "description": "AI 把不可逆的高危操作（如删除账户）设计为普通蓝色实心按钮，缺少二次确认弹窗和后果说明，导致用户误触即执行不可逆操作",
+    "evidence": [
+      "截图：v0 生成的删除账户弹窗，按钮为蓝色实心，文案为确认",
+      "截图：Framer AI 生成的退出组织界面，无数据归属说明"
+    ],
+    "products": [
+      "v0",
+      "Framer AI",
+      "Claude Design"
+    ]
+  },
+  "rootCause": {
+    "missingToken": "destructive_action",
+    "description": "缺少 destructive_action 语义约束，系统无法将不可逆操作绑定到危险样式 + 二次确认"
+  },
+  "componentSpec": {
+    "props": [
+      "type",
+      "danger",
+      "ghost"
+    ],
+    "semanticExtension": "semantic_domain: destructive"
+  },
+  "contractRef": "contracts/ACT-001.yaml",
+  "validationMethod": "高危操作语义检查器",
+  "status": "published"
+}

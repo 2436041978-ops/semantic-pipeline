@@ -1,0 +1,54 @@
+intent_id: "PRO-001"
+schema_version: "1.0.0"
+semantic_domain: "observational"
+description: "AI 推理过程状态语义显化规范"
+
+component_spec:
+  component: "Progress"
+  component_library: "Ant Design"
+  props_reference:
+    - percent: "number"
+    - status: "active / success / exception / normal"
+    - steps: "Step[]"
+    - type: "line / circle / dashboard"
+
+semantic_tokens:
+  process_phase:
+    retrieval:
+      description: "从外部来源获取原始信息"
+      trigger_keywords: ["Searching", "搜索中", "检索中", "查找中", "fetching"]
+      visual_mapping:
+        color_token: "phase.research"
+        icon_token: "search.magnifier"
+        motion_token: "spinner.blue"
+      llm_constraints:
+        - "必须显示已检索到的来源数量"
+        - "禁止跳过此阶段直接显示答案"
+      user_perception: "AI 正在查资料，内容是'找出来的'"
+
+    synthesis:
+      description: "对比多源信息，识别共识与分歧"
+      trigger_keywords: ["Reading", "阅读中", "分析中", "综合中", "synthesizing"]
+      visual_mapping:
+        color_token: "phase.analysis"
+        icon_token: "brain.neural"
+        motion_token: "wave.pulse"
+      llm_constraints:
+        - "必须显化'共识度'指标（如 5/7 来源一致）"
+        - "禁止隐藏来源冲突"
+      user_perception: "AI 正在对比不同来源，开始主观推理"
+
+    verification:
+      description: "核对引用锚点与原文一致性"
+      trigger_keywords: ["Verifying", "验证中", "核对中", "checking sources", "cross-referencing"]
+      visual_mapping:
+        color_token: "phase.check"
+        icon_token: "shield.check"
+        motion_token: "checkmark.sequence"
+      llm_constraints:
+        - "必须验证每个引用链接可访问"
+        - "禁止引用已失效或 404 的来源"
+      user_perception: "AI 在验证来源可信度，我可以信任接下来的答案"
+
+    generation:
+      description: "基于验证后的信息生成

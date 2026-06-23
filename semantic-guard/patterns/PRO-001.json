@@ -1,59 +1,37 @@
-# contracts/PRO-001.yaml
-intent_id: "PRO-001"
-schema_version: "1.0.0"
-semantic_domain: "observational"
-description: "AI 产品过程状态语义规范"
-
-semantic_tokens:
-  process_phase:
-    retrieval:
-      description: "从外部来源获取原始信息（客观事实获取）"
-      trigger_keywords: ["Searching...", "检索中", "搜索中"]
-      visual_mapping:
-        color_token: "phase.research"
-        motion_token: "spinner.blue"
-        icon_token: "search.magnifier"
-      llm_constraints:
-        - "必须显示已检索到的来源数量"
-        - "禁止跳过此阶段直接显示答案"
-    
-    synthesis:
-      description: "对比多源信息，识别共识与分歧（主观推理开始）"
-      trigger_keywords: ["Reading...", "阅读中", "分析中"]
-      visual_mapping:
-        color_token: "phase.analysis"
-        motion_token: "wave.pulse"
-        icon_token: "brain.neural"
-      llm_constraints:
-        - "必须显化'共识度'指标（如 5/7 来源一致）"
-        - "禁止隐藏来源冲突"
-    
-    verification:
-      description: "核对引用锚点与原文一致性（可信度校验）"
-      trigger_keywords: ["Verifying...", "验证中", "核对中"]
-      visual_mapping:
-        color_token: "phase.check"
-        motion_token: "checkmark.sequence"
-        icon_token: "shield.check"
-      llm_constraints:
-        - "必须验证每个引用链接可访问"
-        - "禁止引用已失效或 404 的来源"
-    
-    generation:
-      description: "基于验证后的信息生成最终答案（概率性输出）"
-      trigger_keywords: ["Wrapping up...", "总结中", "生成中"]
-      visual_mapping:
-        color_token: "phase.output"
-        motion_token: "none"
-        icon_token: "document.sparkle"
-      llm_constraints:
-        - "必须附带完整引用索引"
-        - "禁止生成无来源支撑的结论"
-
-immutable_boundaries:
-  - boundary_type: "semantic"
-    rule: "禁止将四个认知阶段压缩为同一种视觉表达（如全部用蓝色加载动画）"
-    violation_action: "block"
-  - boundary_type: "transparency"
-    rule: "禁止在过程状态中隐藏来源数量和共识度"
-    violation_action: "block"
+{
+  "id": "PRO-001",
+  "version": "1.0.0",
+  "componentType": "Progress",
+  "componentLibrary": "Ant Design",
+  "symptoms": {
+    "description": "过程状态标签模糊，用户无法判断 AI 是在检索事实还是开始综合推理",
+    "evidence": [
+      "Perplexity Pro Search 显示 Searching... / Reading... / Wrapping up...，用户不知道 AI 是在查资料还是编答案",
+      "缺少认知阶段显化，信任度无法事中积累"
+    ],
+    "products": [
+      "Perplexity",
+      "ChatGPT Search",
+      "文心一言深度搜索"
+    ]
+  },
+  "rootCause": {
+    "missingToken": "process_phase",
+    "description": "缺少过程阶段语义令牌，没有区分 retrieval / synthesis / verification / generation"
+  },
+  "componentSpec": {
+    "props": [
+      "status",
+      "percent",
+      "steps"
+    ],
+    "missingProps": [
+      "phase_label",
+      "source_count",
+      "consensus_score"
+    ]
+  },
+  "contractRef": "contracts/PRO-001.yaml",
+  "validationMethod": "过程状态语义分级器",
+  "status": "published"
+}

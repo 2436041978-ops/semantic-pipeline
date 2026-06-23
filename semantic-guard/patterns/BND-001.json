@@ -1,0 +1,25 @@
+{
+  "id": "BND-001",
+  "version": "1.0.0",
+  "componentType": "Modal",
+  "componentLibrary": "Ant Design",
+  "symptoms": {
+    "description": "拒绝和终止混为一谈，用户不知道对话还在不在、历史丢没丢",
+    "evidence": [
+      "Claude 'I can't help with that' 截图（拒绝请求，对话继续）",
+      "Claude 'Claude has ended this chat' 截图（终止会话，上下文清空）"
+    ],
+    "products": ["Claude"]
+  },
+  "rootCause": {
+    "missingToken": "boundary_action",
+    "description": "缺少边界动作语义令牌，没有区分 refusal / termination / escalation"
+  },
+  "componentSpec": {
+    "modalType": ["confirm", "info", "success", "error"],
+    "props": ["title", "content", "okText", "cancelText", "onOk", "onCancel"]
+  },
+  "contractRef": "contracts/BND-001.yaml",
+  "validationMethod": "边界动作语义分级器",
+  "status": "published"
+}

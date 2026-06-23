@@ -1,0 +1,107 @@
+intent_id: "BND-001"
+schema_version: "1.0.0"
+semantic_domain: "transactional"
+description: "AI 对话边界动作权利差异语义区分规范"
+
+component_spec:
+  component: "Modal"
+  component_library: "Ant Design"
+  props_reference:
+    - type: "confirm / info / success / error"
+    - title: "string"
+    - content: "string"
+    - okText: "string"
+    - cancelText: "string"
+    - onOk: "function"
+    - onCancel: "function"
+
+semantic_tokens:
+  boundary_action:
+    refusal:
+      description: "基于安全策略拒绝特定请求，但保留会话上下文"
+      trigger_keywords: ["I can't help", "无法协助", "不能回答", "拒绝执行", "此请求不符合", "policy violation"]
+      visual_mapping:
+        color_token: "boundary.soft"
+        icon_token: "hand.stop"
+        motion_token: "none"
+        background: "yellow.500/10"
+      user_impact:
+        session_state: "active"
+        history_retention: "full"
+        retry_allowed: true
+      user_action:
+        - label: "继续其他话题"
+          action: "continue_chat"
+          priority: 1
+      llm_constraints:
+        - "必须明确说明拒绝原因（引用具体策略条款）"
+        - "必须提供替代建议或合法路径"
+        - "禁止终止整个会话"
+
+    termination:
+      description: "检测到严重违规，强制终止会话并清空上下文"
+      trigger_keywords: ["Chat ended", "会话已终止", "对话已关闭", "terminated", "session closed", "blocked"]
+      visual_mapping:
+        color_token: "boundary.hard"
+        icon_token: "door.exit"
+        motion_token: "fade.out"
+        background: "red.500/10"
+      user_impact:
+        session_state: "terminated"
+        history_retention: "partial"
+        retry_allowed: false
+        new_session_required: true
+      user_action:
+        - label: "开始新会话"
+          action: "new_session"
+          priority: 1
+        - label: "申诉或反馈"
+          action: "appeal"
+          priority: 2
+      llm_constraints:
+        - "必须明确告知用户会话已终止且不可恢复"
+        - "必须说明数据保留政策（如：是否上报审核）"
+        - "禁止仅显示'Chat ended by Claude'等模糊文案"
+
+    escalation:
+      description: "触发人工审核机制，会话进入待审状态"
+      trigger_keywords: ["Under review", "审核中", "人工复核", "escalated", "submitted for review"]
+      visual_mapping:
+        color_token: "boundary.escalation"
+        icon_token: "shield.check"
+        motion_token: "none"
+        background: "blue.500/10"
+      user_impact:
+        session_state: "pending_review"
+        history_retention: "frozen"
+        retry_allowed: false
+      user_action:
+        - label: "查看审核进度"
+          action: "check_status"
+          priority: 1
+      llm_constraints:
+        - "必须说明预计审核时间"
+        - "必须提供审核结果通知方式"
+
+immutable_boundaries:
+  - boundary_type: "safety"
+    rule: "禁止在终止会话时不说明数据保留政策"
+    violation_action: "escalate"
+  - boundary_type: "compliance"
+    rule: "禁止将软性拒绝与硬性终止使用相同视觉表达"
+    violation_action: "block"
+  - boundary_type: "user_rights"
+    rule: "禁止在终止后不提供申诉或反馈入口"
+    violation_action: "block"
+
+applicable_products:
+  - "Claude"
+  - "ChatGPT"
+  - "Kimi"
+  - "文心一言"
+  - "通义千问"
+
+version_history:
+  - version: "1.0.0"
+    date: "2026-06-23"
+    change: "初始发布，定义边界动作三级语义区分"

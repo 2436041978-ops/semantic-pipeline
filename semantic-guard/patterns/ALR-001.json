@@ -1,0 +1,44 @@
+{
+  "id": "ALR-001",
+  "version": "1.0.0",
+  "componentType": "Alert",
+  "componentLibrary": "Ant Design",
+  "symptoms": {
+    "description": "AI 把高情绪权重的词汇（如 Critical）替换为低情绪权重的同义词（如“严重”），导致用户低估风险，延迟响应",
+    "evidence": [
+      "AI 生成告警卡片时，将 Critical 写成“严重”",
+      "AI 生成系统故障提示时，将“系统级故障”写成“出了点问题”"
+    ],
+    "products": [
+      "通用（所有 AI 生成告警文案的场景）",
+      "AI 运维助手",
+      "AI 客服系统"
+    ]
+  },
+  "rootCause": {
+    "missingToken": "synonym_firewall",
+    "description": "缺少同义词拦截器（Synonym Firewall），没有禁止低情绪权重词汇替代高情绪权重词汇"
+  },
+  "componentSpec": {
+    "props": [
+      "message",
+      "description",
+      "type"
+    ],
+    "semanticExtension": {
+      "alert_severity": {
+        "critical": {
+          "requiredKeywords": ["Critical", "系统级故障", "致命"],
+          "prohibitedSynonyms": ["严重", "出了点问题", "有点小毛病"]
+        },
+        "warning": {
+          "requiredKeywords": ["Warning", "警告"],
+          "prohibitedSynonyms": ["注意一下", "稍微留意"]
+        }
+      }
+    }
+  },
+  "contractRef": "contracts/ALR-001.yaml",
+  "validationMethod": "同义词拦截器",
+  "status": "published"
+}

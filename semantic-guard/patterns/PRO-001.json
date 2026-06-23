@@ -1,0 +1,38 @@
+{
+  "id": "PRO-001",
+  "version": "1.0.0",
+  "componentType": "Progress",
+  "componentLibrary": "Ant Design",
+  "symptoms": {
+    "description": "过程状态标签模糊，用户无法判断 AI 是在检索事实还是开始综合推理，导致信任度下降",
+    "evidence": [
+      "Perplexity Pro Search 显示 'Searching...' → 'Reading...' → 'Wrapping up...'，用户不知道 AI 在查资料还是编答案",
+      "用户反馈：'AI 说在 Reading，但我不知道它在读什么、读完了没有'"
+    ],
+    "products": [
+      "Perplexity",
+      "ChatGPT (Code Interpreter 执行过程)",
+      "Claude (Artifacts 生成过程)"
+    ]
+  },
+  "rootCause": {
+    "missingToken": "process_phase",
+    "description": "缺少过程阶段语义令牌，系统无法区分 retrieval（客观检索）vs synthesis（主观推理）vs verification（来源核对）vs generation（概率生成）"
+  },
+  "componentSpec": {
+    "props": [
+      "status: wait / process / finish / error",
+      "percent: number",
+      "steps: StepItem[]"
+    ],
+    "missingSemanticProps": [
+      "process_phase: retrieval / synthesis / verification / generation",
+      "source_count: number",
+      "consensus_score: number",
+      "citation_validity: boolean"
+    ]
+  },
+  "contractRef": "contracts/PRO-001.yaml",
+  "validationMethod": "过程状态语义分级器",
+  "status": "published"
+}

@@ -1,0 +1,71 @@
+intent_id: "ACT-001"
+schema_version: "1.0.0"
+semantic_domain: "transactional"
+description: "不可逆高危操作语义约束规范"
+
+component_spec:
+  component: "Button"
+  component_library: "Ant Design"
+  props_reference:
+    - type: "primary / default / dashed / link / text"
+    - danger: "true / false"
+    - ghost: "true / false"
+    - disabled: "true / false"
+  required_composition:
+    - component: "Modal"
+      props:
+        - type: "confirm"
+        - okType: "danger"
+
+semantic_tokens:
+  destructive_action:
+    description: "不可逆的数据销毁操作，用户误触后无法恢复"
+    trigger_keywords: ["删除", "销毁", "清空", "注销", "移除", "delete", "remove", "destroy", "purge"]
+    visual_mapping:
+      color_token: "status.critical"
+      button_style: "outline_danger"
+      icon_token: "trash"
+      background: "transparent"
+    user_impact:
+      reversibility: "irreversible"
+      data_loss_scope: "user_account / user_data / system_data"
+      recovery_path: "none_or_contact_admin"
+    user_action:
+      - label: "取消"
+        action: "cancel"
+        priority: 1
+        visual_weight: "equal_or_higher_than_confirm"
+      - label: "确认删除"
+        action: "confirm_destructive"
+        priority: 2
+        requires: "secondary_confirmation_input"
+    llm_constraints:
+      - "禁止将删除按钮设计为普通主按钮样式（contained primary）"
+      - "禁止将删除按钮颜色设为蓝色、绿色或中性色"
+      - "必须包含二次确认弹窗（Modal.confirm）"
+      - "二次确认弹窗必须包含'此操作不可恢复'的明确警告"
+      - "必须提供取消选项，且取消按钮的视觉权重不低于确认按钮"
+      - "禁止在二次确认前使用默认勾选（如默认选中'我已知晓'）"
+
+immutable_boundaries:
+  - boundary_type: "safety"
+    rule: "禁止直接执行删除操作而不显示二次确认"
+    violation_action: "block"
+  - boundary_type: "safety"
+    rule: "禁止将高危操作按钮设计为普通主按钮样式"
+    violation_action: "block"
+  - boundary_type: "safety"
+    rule: "禁止在文案中省略操作后果说明"
+    violation_action: "block"
+  - boundary_type: "accessibility"
+    rule: "禁止仅依赖颜色区分高危操作，必须有文案或图标辅助"
+    violation_action: "warn"
+
+applicable_products:
+  - "通用"
+  - "所有含不可逆操作的 AI 生成界面"
+
+version_history:
+  - version: "1.0.0"
+    date: "2026-06-23"
+    change: "初始发布，定义不可逆高危操作语义约束"

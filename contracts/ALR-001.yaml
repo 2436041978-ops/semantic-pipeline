@@ -1,0 +1,98 @@
+intent_id: "ALR-001"
+schema_version: "1.0.0"
+semantic_domain: "observational"
+description: "告警文案语义降级拦截规范"
+
+component_spec:
+  component: "Alert"
+  component_library: "Ant Design"
+  props_reference:
+    - type: "success / info / warning / error"
+    - message: "string"
+    - description: "string"
+
+semantic_tokens:
+  synonym_firewall:
+    prohibited:
+      - term: "严重"
+        standard_token: "Critical"
+        context: "system_alert"
+        reason: "情绪权重降级，用户可能低估故障严重性"
+        severity_delta: "high_to_medium"
+      - term: "紧急"
+        standard_token: "Critical"
+        context: "system_alert"
+        reason: "与 P1 告警级别混淆，边界模糊"
+        severity_delta: "high_to_medium"
+      - term: "危急"
+        standard_token: "Critical"
+        context: "system_alert"
+        reason: "非标准运维术语，不同团队理解不一致"
+        severity_delta: "high_to_medium"
+      - term: "重大"
+        standard_token: "Critical"
+        context: "system_alert"
+        reason: "情绪权重低于 Critical，延迟响应风险"
+        severity_delta: "high_to_medium"
+      - term: "重要"
+        standard_token: "Warning"
+        context: "system_alert"
+        reason: "与 Info 级别边界模糊"
+        severity_delta: "medium_to_low"
+      - term: "一般"
+        standard_token: "Info"
+        context: "system_alert"
+        reason: "与 Warning 级别边界模糊"
+        severity_delta: "low_to_none"
+
+    standard_vocabulary:
+      critical:
+        description: "系统级故障，需立即响应"
+        emotional_weight: "highest"
+        response_sla: "5_minutes"
+        visual_mapping:
+          color_token: "status.critical"
+          icon_token: "alert.octagon"
+      warning:
+        description: "潜在风险，需关注"
+        emotional_weight: "medium"
+        response_sla: "30_minutes"
+        visual_mapping:
+          color_token: "status.warning"
+          icon_token: "alert.triangle"
+      info:
+        description: "信息通知，无需立即行动"
+        emotional_weight: "low"
+        response_sla: "none"
+        visual_mapping:
+          color_token: "status.info"
+          icon_token: "info.circle"
+
+    llm_constraints:
+      - "禁止在系统告警场景使用'严重'替代'Critical'"
+      - "禁止在系统告警场景使用'紧急'替代'Critical'"
+      - "禁止在系统告警场景使用'危急'替代'Critical'"
+      - "禁止在系统告警场景使用'重大'替代'Critical'"
+      - "禁止在系统告警场景使用'重要'替代'Warning'"
+      - "禁止在系统告警场景使用'一般'替代'Info'"
+      - "必须保持标准词汇与视觉映射的一致性"
+
+immutable_boundaries:
+  - boundary_type: "safety"
+    rule: "禁止在告警文案中使用同义词替换导致语义降级"
+    violation_action: "block"
+  - boundary_type: "safety"
+    rule: "禁止在告警文案中使用非标准运维术语"
+    violation_action: "block"
+  - boundary_type: "consistency"
+    rule: "禁止同一告警级别在不同界面使用不同词汇"
+    violation_action: "block"
+
+applicable_products:
+  - "通用"
+  - "所有含告警文案的 AI 生成界面"
+
+version_history:
+  - version: "1.0.0"
+    date: "2026-06-23"
+    change: "初始发布，定义告警文案同义词防火墙"

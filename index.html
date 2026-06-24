@@ -1,0 +1,112 @@
+S
+Semantic Pipeline
+Overview Pipeline Impact API 术语表 洞察 工具 订阅 资源
+
+GitHub
+
+Schema-As-Code 工程实现 · 三阶段流水线
+当 AI 生成界面时，设计意图在偏离
+Semantic Pipeline 是一条三阶段流水线：发现问题（Guard）→ 写契约（Contract）→ 证明有效（Verify）。 不是三个工具，是一个工作流。让 AI 生成的内容在到达视觉层和工程层之前，先过一遍语义审查。
+🔍
+ALL
+Error
+Process
+Boundary
+Action
+Alert
+🎨 语义分级器 📋 JSON 输入 📄 快照模板
+ACT-001
+Destructive
+高危操作风险未约束
+AI 把不可逆操作做成普通按钮，没有二次确认
+确认删除账户
+危险操作：红色空心 + 二次确认
+产品实例
+通用
+ERR-001
+Error
+错误状态后果差异未分级
+多种错误共用红色，用户无法判断后果严重程度
+⚠️ 消息流中断 ⏳ 网络连接不稳定 ⏱️ 请求频率已达上限
+产品实例
+ChatGPT 文心一言 通义千问
+ALR-001
+Synonym
+告警文案语义降级
+AI 把 Critical 写成严重，情绪权重降低
+严重
+→
+Critical
+同义词拦截：禁止情绪权重降级
+产品实例
+通用
+PRO-001
+Process
+过程状态认知阶段未显化
+Searching/Reading 模糊，用户不知道 AI 在干什么
+正在检索信息
+65%
+
+Searching → Reading → Wrapping up
+产品实例
+Perplexity
+BND-001
+Boundary
+边界动作权利差异未区分
+拒绝和终止混为一谈，用户不知道权利还在不在
+Claude has ended this chat
+会话已终止，上下文已清空
+反馈
+开启新会话
+产品实例
+Claude
+ACT-001
+Destructive
+高危操作确认强度不足
+不可逆操作，必须输入账户名确认
+删除账户
+此操作不可恢复。请输入账户名确认。
+取消
+确认删除
+产品实例
+通用
+Overview
+Pipeline
+Impact
+API
+术语表
+洞察
+工具
+订阅
+资源
+GitHub
+Semantic Pipeline · Schema-As-Code 工程实现 · 不是替代任何工具，是所有 AI 工具的上游约束
+ACT-001
+高危操作风险未约束
+×
+语义断层地图
+设计意图
+高危操作，不可逆，必须二次确认
+设计稿表现
+红色空心"删除账户" + 二次确认弹窗
+工程实现（断裂）
+蓝色实心"确认"按钮
+❌ 缺少二次确认
+模式诊断
+组件类型：
+Button + Modal
+根因：
+缺少 destructive_action 语义约束
+产品实例：
+通用（所有 AI 生成高危操作的场景）
+契约库
+验证工具集
+semantic_domain: destructive
+visual_mapping:
+  Button: { type: "primary", danger: true, ghost: true }
+  Modal: { type: "confirm", okType: "danger" }
+llm_constraints:
+  - "禁止蓝色实心按钮"
+  - "必须包含二次确认弹窗"
+  - "文案必须说明'此操作不可恢复'"
+复制 Prompt 前缀

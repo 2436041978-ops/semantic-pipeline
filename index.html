@@ -1222,28 +1222,27 @@
     .modal-content { max-width: 95vw; }
   }
 </style>
+<base target="_blank">
 </head>
 <body>
 
 <!-- Nav -->
 <div class="top-nav">
   <div class="top-nav-inner">
-    <div class="nav-brand" onclick="switchPage('overview')">
+    <div class="nav-brand" onclick="location.reload()" style="cursor:pointer;">
       <div class="nav-brand-icon">S</div>
-      <span>Semantic Pipeline</span>
+      <span>Schema-As-Code</span>
     </div>
     <div class="nav-center">
-      <a onclick="switchNav('overview')" data-nav="overview" class="active">Overview</a>
-      <a onclick="switchNav('pipeline')" data-nav="pipeline">Pipeline</a>
-      <a onclick="switchNav('impact')" data-nav="impact">Impact</a>
-      <a onclick="switchNav('api')" data-nav="api">API</a>
-      <a onclick="switchNav('glossary')" data-nav="glossary">术语表</a>
-      <a onclick="switchNav('insights')" data-nav="insights">洞察</a>
-      <a onclick="switchNav('tool')" data-nav="tool">工具</a>
-      <a onclick="switchNav('newsletter')" data-nav="newsletter">订阅</a>
-      <a onclick="switchNav('resources')" data-nav="resources">资源</a>
+      <a onclick="switchNav('overview')" data-nav="overview" class="active">Semantic Pipeline</a>
+      <a onclick="switchNav('contract')" data-nav="contract">Contract Library</a>
+      <a onclick="switchNav('tool')" data-nav="tool">Validation Toolkit</a>
     </div>
     <div class="nav-right">
+      <a onclick="switchNav('api')" data-nav="api" class="nav-github" style="margin-right:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
       <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
         GitHub
@@ -1259,9 +1258,9 @@
       <span class="dot"></span>
       <span>Schema-As-Code 工程实现 · 三阶段流水线</span>
     </div>
-    <h1 class="hero-title">当 AI 生成界面时，<span class="gradient">设计意图在偏离</span></h1>
+    <h1 class="hero-title"><span style="background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Schema-As-Code</span></h1>
     <p class="hero-desc">
-      Semantic Pipeline 是一条三阶段流水线：发现问题（Guard）→ 写契约（Contract）→ 证明有效（Verify）。<br>
+      Schema-As-Code 是一条三阶段流水线：发现问题（Guard）→ 写契约（Contract）→ 证明有效（Verify）。<br>
       不是三个工具，是一个工作流。让 AI 生成的内容在到达视觉层和工程层之前，先过一遍语义审查。
     </p>
 
@@ -1281,12 +1280,7 @@
       </div>
     </div>
 
-    <!-- Tool Buttons -->
-    <div class="tool-buttons-row">
-      <button class="tool-btn" onclick="openClassifierModal()">🎨 语义分级器</button>
-      <button class="tool-btn" onclick="openJsonModal()">📋 JSON 输入</button>
-      <button class="tool-btn" onclick="openTemplateModal()">📄 快照模板</button>
-    </div>
+
   </div>
 
   <!-- 6 Cards Grid -->
@@ -1294,7 +1288,7 @@
     <div class="cards-grid" id="cardsGrid">
 
       <!-- Button -->
-      <div class="card-item" data-category="action" data-id="ACT-001" data-search="Button 按钮 删除账户 高危操作 蓝色实心 二次确认 ACT-001" onclick="openDrawer('act001')">
+      <div class="card-item" data-category="action" data-id="ACT-001" data-search="Button 按钮 删除账户 高危操作 蓝色实心 二次确认 ACT-001" onclick="showPatternDetail('act001')">
         <div class="card-header">
           <div class="card-id">ACT-001</div>
           <span class="card-tag tag-purple">Destructive</span>
@@ -1314,7 +1308,7 @@
       </div>
 
       <!-- Alert -->
-      <div class="card-item" data-category="error" data-id="ERR-001" data-search="Alert 告警 错误状态 红色 多种错误 后果差异 ERR-001" onclick="openDrawer('err001')">
+      <div class="card-item" data-category="error" data-id="ERR-001" data-search="Alert 告警 错误状态 红色 多种错误 后果差异 ERR-001" onclick="showPatternDetail('err001')">
         <div class="card-header">
           <div class="card-id">ERR-001</div>
           <span class="card-tag tag-red">Error</span>
@@ -1337,7 +1331,7 @@
       </div>
 
       <!-- Message -->
-      <div class="card-item" data-category="alert" data-id="ALR-001" data-search="Message 消息 告警文案 Critical 严重 同义词 ALR-001" onclick="openDrawer('alr001')">
+      <div class="card-item" data-category="alert" data-id="ALR-001" data-search="Message 消息 告警文案 Critical 严重 同义词 ALR-001" onclick="showPatternDetail('alr001')">
         <div class="card-header">
           <div class="card-id">ALR-001</div>
           <span class="card-tag tag-purple">Synonym</span>
@@ -1361,7 +1355,7 @@
       </div>
 
       <!-- Progress -->
-      <div class="card-item" data-category="process" data-id="PRO-001" data-search="Progress 进度 过程状态 Searching Reading Wrapping up 认知阶段 PRO-001" onclick="openDrawer('pro001')">
+      <div class="card-item" data-category="process" data-id="PRO-001" data-search="Progress 进度 过程状态 Searching Reading Wrapping up 认知阶段 PRO-001" onclick="showPatternDetail('pro001')">
         <div class="card-header">
           <div class="card-id">PRO-001</div>
           <span class="card-tag tag-amber">Process</span>
@@ -1389,7 +1383,7 @@
       </div>
 
       <!-- Modal -->
-      <div class="card-item" data-category="boundary" data-id="BND-001" data-search="Modal 弹窗 边界动作 拒绝 终止 权利差异 BND-001" onclick="openDrawer('bnd001')">
+      <div class="card-item" data-category="boundary" data-id="BND-001" data-search="Modal 弹窗 边界动作 拒绝 终止 权利差异 BND-001" onclick="showPatternDetail('bnd001')">
         <div class="card-header">
           <div class="card-id">BND-001</div>
           <span class="card-tag tag-blue">Boundary</span>
@@ -1415,7 +1409,7 @@
       </div>
 
       <!-- Popconfirm -->
-      <div class="card-item" data-category="action" data-id="ACT-001-pop" data-search="Popconfirm 确认 删除 高危操作 二次确认 ACT-001" onclick="openDrawer('act001')">
+      <div class="card-item" data-category="action" data-id="ACT-001-pop" data-search="Popconfirm 确认 删除 高危操作 二次确认 ACT-001" onclick="showPatternDetail('act001')">
         <div class="card-header">
           <div class="card-id">ACT-001</div>
           <span class="card-tag tag-purple">Destructive</span>
@@ -1440,6 +1434,144 @@
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: Detail ==================== -->
+<div class="page" id="page-detail">
+  <div class="cards-section" style="padding-top:80px;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom:24px;">
+      <button onclick="switchNav('overview')" style="background:none;border:none;color:var(--primary);font-size:14px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+        <span>←</span> 模式库
+      </button>
+      <span style="color:var(--text-tertiary);margin:0 8px;font-weight:600;">/</span>
+      <span id="detailBreadcrumbId" style="font-size:14px;color:var(--text-primary);font-weight:700;">ERR-001</span>
+    </div>
+
+    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-bottom:16px;">
+      <div style="display:flex;align-items:start;gap:16px;margin-bottom:20px;">
+        <div id="detailPageIcon" style="width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;background:#fff2f0;color:#cf1322;">E</div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span id="detailPageTag" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#fff2f0;color:#cf1322;border:1px solid #ffccc7;">ERR-001</span>
+            <span id="detailPageType" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#f5f5f5;color:#595959;border:1px solid #d9d9d9;">Error</span>
+          </div>
+          <h2 id="detailPageTitle" style="font-size:22px;font-weight:700;color:var(--text-primary);">错误状态后果差异未分级</h2>
+        </div>
+      </div>
+
+      <p id="detailPageDesc" style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:24px;font-weight:500;">多种错误共用红色，用户无法判断后果严重程度</p>
+
+      <!-- Tabs -->
+      <div style="border-bottom:1px solid var(--border);margin-bottom:20px;">
+        <div style="display:flex;">
+          <button onclick="switchDetailTab('symptom', this)" id="dt-symptom" class="tab-btn active" style="padding:10px 20px;font-size:14px;">语义断层地图</button>
+          <button onclick="switchDetailTab('rootcause', this)" id="dt-rootcause" class="tab-btn" style="padding:10px 20px;font-size:14px;">模式诊断</button>
+          <button onclick="switchDetailTab('contract', this)" id="dt-contract" class="tab-btn" style="padding:10px 20px;font-size:14px;">契约库</button>
+          <button onclick="switchDetailTab('verify', this)" id="dt-verify" class="tab-btn" style="padding:10px 20px;font-size:14px;">验证工具集</button>
+        </div>
+      </div>
+
+      <!-- Tab: 语义断层地图 -->
+      <div id="detail-tab-symptom" class="tab-content active">
+        <p style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">语义断层地图</p>
+        <div id="detailSymptomContent" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;"></div>
+      </div>
+
+      <!-- Tab: 模式诊断 -->
+      <div id="detail-tab-rootcause" class="tab-content" style="display:none;">
+        <p style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">模式诊断</p>
+        <div id="detailRootcauseContent" style="font-size:14px;color:var(--text-secondary);line-height:1.8;font-weight:500;"></div>
+      </div>
+
+      <!-- Tab: 契约库 -->
+      <div id="detail-tab-contract" class="tab-content" style="display:none;">
+        <p style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">契约库</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button onclick="switchContractFormat('yaml', this)" id="ct-yaml" style="padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer;">YAML</button>
+          <button onclick="switchContractFormat('prompt', this)" id="ct-prompt" style="padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);cursor:pointer;">Prompt 前缀</button>
+          <button onclick="switchContractFormat('checklist', this)" id="ct-checklist" style="padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);cursor:pointer;">Checklist</button>
+        </div>
+        <div class="yaml-block" id="detailContractContent" style="margin-bottom:12px;"></div>
+        <button onclick="copyDetailContract()" style="padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer;">复制</button>
+      </div>
+
+      <!-- Tab: 验证工具集 -->
+      <div id="detail-tab-verify" class="tab-content" style="display:none;">
+        <p style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">验证工具集</p>
+        <div id="detailVerifyContent" style="font-size:14px;color:var(--text-secondary);line-height:1.8;font-weight:500;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: Detail ==================== -->
+<div class="page" id="page-detail">
+  <div class="cards-section" style="padding-top:80px;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom:24px;">
+      <button onclick="switchNav('overview')" style="background:none;border:none;color:var(--primary);font-size:14px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+        <span>←</span> 模式库
+      </button>
+      <span style="color:var(--text-tertiary);margin:0 8px;font-weight:600;">/</span>
+      <span id="detailBreadcrumbId" style="font-size:14px;color:var(--text-primary);font-weight:700;">ERR-001</span>
+    </div>
+
+    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-bottom:16px;">
+      <div style="display:flex;align-items:start;gap:16px;margin-bottom:20px;">
+        <div id="detailPageIcon" style="width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;background:#fff2f0;color:#cf1322;">E</div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span id="detailPageTag" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#fff2f0;color:#cf1322;border:1px solid #ffccc7;">ERR-001</span>
+            <span id="detailPageType" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#f5f5f5;color:#595959;border:1px solid #d9d9d9;">Error</span>
+          </div>
+          <h2 id="detailPageTitle" style="font-size:22px;font-weight:700;color:var(--text-primary);">错误状态后果差异未分级</h2>
+        </div>
+      </div>
+
+      <p id="detailPageDesc" style="font-size:14px;color:var(--text-secondary);line-height:1.7;margin-bottom:24px;font-weight:500;">多种错误共用红色，用户无法判断后果严重程度</p>
+
+      <!-- Tabs -->
+      <div style="border-bottom:1px solid var(--border);margin-bottom:20px;">
+        <div style="display:flex;">
+          <button onclick="switchDetailTab('symptom', this)" id="dt-symptom" class="tab-btn active" style="padding:10px 20px;font-size:14px;">语义断层地图</button>
+          <button onclick="switchDetailTab('rootcause', this)" id="dt-rootcause" class="tab-btn" style="padding:10px 20px;font-size:14px;">模式诊断</button>
+          <button onclick="switchDetailTab('contract', this)" id="dt-contract" class="tab-btn" style="padding:10px 20px;font-size:14px;">契约库</button>
+          <button onclick="switchDetailTab('verify', this)" id="dt-verify" class="tab-btn" style="padding:10px 20px;font-size:14px;">验证工具集</button>
+        </div>
+      </div>
+
+      <!-- Tab: 语义断层地图 -->
+      <div id="detail-tab-symptom" class="tab-content active">
+        <p style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">语义断层地图</p>
+        <div id="detailSymptomContent" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;"></div>
+      </div>
+
+      <!-- Tab: 模式诊断 -->
+      <div id="detail-tab-rootcause" class="tab-content" style="display:none;">
+        <p style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">模式诊断</p>
+        <div id="detailRootcauseContent" style="font-size:14px;color:var(--text-secondary);line-height:1.8;font-weight:500;"></div>
+      </div>
+
+      <!-- Tab: 契约库 -->
+      <div id="detail-tab-contract" class="tab-content" style="display:none;">
+        <p style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">契约库</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button onclick="switchContractFormat('yaml', this)" id="ct-yaml" style="padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer;">YAML</button>
+          <button onclick="switchContractFormat('prompt', this)" id="ct-prompt" style="padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);cursor:pointer;">Prompt 前缀</button>
+          <button onclick="switchContractFormat('checklist', this)" id="ct-checklist" style="padding:6px 14px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);cursor:pointer;">Checklist</button>
+        </div>
+        <div class="yaml-block" id="detailContractContent" style="margin-bottom:12px;"></div>
+        <button onclick="copyDetailContract()" style="padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid var(--primary);background:var(--primary);color:#fff;cursor:pointer;">复制</button>
+      </div>
+
+      <!-- Tab: 验证工具集 -->
+      <div id="detail-tab-verify" class="tab-content" style="display:none;">
+        <p style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;">验证工具集</p>
+        <div id="detailVerifyContent" style="font-size:14px;color:var(--text-secondary);line-height:1.8;font-weight:500;"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1531,6 +1663,14 @@
 <!-- ==================== PAGE: API ==================== -->
 <div class="page" id="page-api">
   <div class="api-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom:24px;">
+      <button onclick="switchNav('overview')" style="background:none;border:none;color:var(--primary);font-size:14px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+        <span>←</span> Schema-As-Code
+      </button>
+      <span style="color:var(--text-tertiary);margin:0 8px;font-weight:600;">/</span>
+      <span style="font-size:14px;color:var(--text-primary);font-weight:700;">API</span>
+    </div>
     <div class="section-header">
       <div class="section-label">API</div>
       <div class="section-title">搜索接口规范</div>
@@ -1627,48 +1767,148 @@
 </div>
 
 <!-- ==================== PAGE: Tool ==================== -->
+
+<!-- ==================== PAGE: Contract Library ==================== -->
+<div class="page" id="page-contract">
+  <div class="cards-section" style="padding-top:80px;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom:24px;">
+      <button onclick="switchNav('overview')" style="background:none;border:none;color:var(--primary);font-size:14px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+        <span>←</span> Schema-As-Code
+      </button>
+      <span style="color:var(--text-tertiary);margin:0 8px;font-weight:600;">/</span>
+      <span style="font-size:14px;color:var(--text-primary);font-weight:700;">Contract Library</span>
+    </div>
+    <h2 class="page-title">Contract Library</h2>
+    <p class="page-subtitle">浏览所有语义契约，一键复制 YAML / Prompt 前缀 / Checklist</p>
+
+    <div class="cards-grid" id="contractLibraryGrid">
+      <!-- 动态填充 -->
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: Validation Toolkit ==================== -->
 <div class="page" id="page-tool">
-  <div class="tool-section">
-    <div class="section-header">
-      <div class="section-label">Tool</div>
-      <div class="section-title">错误状态语义分级器</div>
-      <div class="section-desc">输入任意错误文案，自动诊断语义分级并给出约束建议</div>
+  <div class="tool-section" style="padding-top:80px;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom:24px;">
+      <button onclick="switchNav('overview')" style="background:none;border:none;color:var(--primary);font-size:14px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px;">
+        <span>←</span> Schema-As-Code
+      </button>
+      <span style="color:var(--text-tertiary);margin:0 8px;font-weight:600;">/</span>
+      <span style="font-size:14px;color:var(--text-primary);font-weight:700;">Validation Toolkit</span>
+    </div>
+    <h2 class="page-title">Validation Toolkit</h2>
+    <p class="page-subtitle">三层验证工具：语义分级器 · JSON 输入 · 快照模板</p>
+
+    <!-- 工具切换标签 -->
+    <div style="display:flex;gap:8px;margin-bottom:24px;border-bottom:1px solid var(--border);">
+      <button onclick="switchToolkitTab('classifier', this)" class="tk-tab active" style="padding:10px 20px;font-size:14px;font-weight:600;background:none;border:none;border-bottom:2px solid var(--primary);color:var(--primary);cursor:pointer;">🎨 语义分级器</button>
+      <button onclick="switchToolkitTab('json', this)" class="tk-tab" style="padding:10px 20px;font-size:14px;font-weight:600;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;">📋 JSON 输入</button>
+      <button onclick="switchToolkitTab('snapshot', this)" class="tk-tab" style="padding:10px 20px;font-size:14px;font-weight:600;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;">📄 快照模板</button>
     </div>
 
-    <div class="tool-input-wrap">
-      <input type="text" id="errorInput" class="tool-input" placeholder="输入错误文案（如：请求过于频繁，请稍后再试）">
-      <div class="quick-tags">
-        <span class="quick-tag" onclick="setToolInput('Error in message stream')">Error in message stream</span>
-        <span class="quick-tag" onclick="setToolInput('network error')">network error</span>
-        <span class="quick-tag" onclick="setToolInput('请求过于频繁，请稍后再试')">请求过于频繁</span>
-        <span class="quick-tag" onclick="setToolInput('Something went wrong')">Something went wrong</span>
-        <span class="quick-tag" onclick="setToolInput('429')">429</span>
-        <span class="quick-tag" onclick="setToolInput('服务繁忙，请稍后重试')">服务繁忙</span>
-        <span class="quick-tag" onclick="setToolInput('连接断开')">连接断开</span>
+    <!-- 语义分级器 -->
+    <div id="tk-content-classifier" class="tk-content">
+      <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:24px;">
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;font-weight:500;">输入任意错误文案，自动诊断语义分级并给出约束建议</p>
+        <div style="display:flex;gap:12px;margin-bottom:16px;">
+          <input type="text" id="vtInput" placeholder="输入错误文案（如：请求过于频繁，请稍后再试）" style="flex:1;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;font-weight:500;outline:none;">
+          <button onclick="runVTClassifier()" style="padding:10px 20px;border-radius:8px;background:var(--primary);color:#fff;font-size:14px;font-weight:600;border:none;cursor:pointer;">语义分级</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+          <span style="font-size:13px;color:var(--text-tertiary);font-weight:600;">快速测试：</span>
+          <button onclick="setVTInput('Error in message stream')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer;">Error in message stream</button>
+          <button onclick="setVTInput('network error')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer;">network error</button>
+          <button onclick="setVTInput('请求过于频繁，请稍后再试')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer;">请求过于频繁</button>
+          <button onclick="setVTInput('Something went wrong')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer;">Something went wrong</button>
+        </div>
+        <div id="vtResult" style="display:none;">
+          <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;" id="vtResultCard"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-left:3px solid #ff4d4f;border-radius:var(--radius);padding:16px;">
+              <p style="font-size:14px;color:#ff4d4f;font-weight:700;margin-bottom:8px;">当前界面（语义混乱）</p>
+              <div id="vtCurrentUI"></div>
+            </div>
+            <div style="background:var(--card-bg);border:1px solid var(--border);border-left:3px solid #52c41a;border-radius:var(--radius);padding:16px;">
+              <p style="font-size:14px;color:#52c41a;font-weight:700;margin-bottom:8px;">语义分级后（约束显化）</p>
+              <div id="vtOptimizedUI"></div>
+            </div>
+          </div>
+          <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <span style="font-size:14px;font-weight:700;color:var(--text-primary);">YAML 契约片段</span>
+              <button onclick="copyVTYAML()" style="padding:6px 14px;border-radius:6px;background:var(--primary);color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;">复制</button>
+            </div>
+            <div class="yaml-block" id="vtYaml"></div>
+          </div>
+        </div>
       </div>
-      <button class="search-tag active" style="display:inline-block;" onclick="analyzeError()">语义分级</button>
     </div>
 
-    <div id="toolResult" style="display:none;">
-      <div class="result-card" id="resultCard"></div>
-
-      <div class="ab-compare">
-        <div class="ab-box bad">
-          <p style="font-size:14px;color:#ef4444;text-transform:uppercase;margin-bottom:8px;font-weight:700;">当前界面（语义混乱）</p>
-          <div id="currentUI"></div>
+    <!-- JSON 输入 -->
+    <div id="tk-content-json" class="tk-content" style="display:none;">
+      <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:24px;">
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;font-weight:500;">粘贴组件语义快照 JSON，系统自动匹配已知模式</p>
+        <textarea id="vtJsonInput" style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-weight:500;font-family:'SF Mono',monospace;outline:none;resize:vertical;min-height:200px;" placeholder='粘贴组件语义快照 JSON，例如：&#10;{&#10;  "component_type": "Alert",&#10;  "visual": { "color": "red", "background": "solid" },&#10;  "copy": { "title": "Error", "description": "Something went wrong" },&#10;  "context": "system_error"&#10;}'></textarea>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button onclick="loadVTJsonExample()" style="padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);font-size:13px;font-weight:600;cursor:pointer;">加载示例</button>
+          <button onclick="parseVTJson()" style="padding:8px 16px;border-radius:6px;background:var(--primary);color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;">解析匹配</button>
         </div>
-        <div class="ab-box good">
-          <p style="font-size:14px;color:#22c55e;text-transform:uppercase;margin-bottom:8px;font-weight:700;">语义分级后（约束显化）</p>
-          <div id="optimizedUI"></div>
+        <div id="vtJsonResult" style="display:none;margin-top:16px;">
+          <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;" id="vtJsonResultContent"></div>
         </div>
       </div>
+    </div>
 
-      <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <span style="font-size:14px;font-weight:700;color:var(--text-primary);">生成的 YAML 契约片段</span>
-          <button class="search-tag active" style="display:inline-block;" onclick="copyToolYAML()">复制</button>
+    <!-- 快照模板 -->
+    <div id="tk-content-snapshot" class="tk-content" style="display:none;">
+      <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:24px;">
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;font-weight:500;">组件语义快照（Semantic Snapshot）是一种结构化的组件描述格式，用于精确描述一个组件的语义特征，便于机器自动匹配模式。</p>
+        <div style="background:#0d0d0d;border-radius:8px;padding:16px;font-family:'SF Mono',monospace;font-size:14px;line-height:1.6;color:#e5e5e5;overflow-x:auto;margin-bottom:16px;">
+          <pre style="white-space:pre-wrap;">{
+  "component_type": "Alert",
+  "visual": {
+    "color": "red",
+    "background": "solid",
+    "icon": "warning"
+  },
+  "copy": {
+    "title": "Error",
+    "description": "Something went wrong",
+    "tone": "urgent"
+  },
+  "interaction": {
+    "dismissible": true,
+    "actions": ["retry", "contact_support"]
+  },
+  "context": "system_error"
+}</pre>
         </div>
-        <div class="yaml-block" id="toolYaml"></div>
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;align-items:start;gap:12px;margin-bottom:8px;">
+            <span style="font-size:13px;color:var(--primary);font-weight:700;min-width:120px;">component_type</span>
+            <span style="font-size:13px;color:var(--text-secondary);font-weight:500;">组件类型（Alert / Button / Modal / Progress 等）</span>
+          </div>
+          <div style="display:flex;align-items:start;gap:12px;margin-bottom:8px;">
+            <span style="font-size:13px;color:var(--primary);font-weight:700;min-width:120px;">visual</span>
+            <span style="font-size:13px;color:var(--text-secondary);font-weight:500;">视觉特征（颜色、背景、图标）</span>
+          </div>
+          <div style="display:flex;align-items:start;gap:12px;margin-bottom:8px;">
+            <span style="font-size:13px;color:var(--primary);font-weight:700;min-width:120px;">copy</span>
+            <span style="font-size:13px;color:var(--text-secondary);font-weight:500;">文案内容（标题、描述、语气）</span>
+          </div>
+          <div style="display:flex;align-items:start;gap:12px;margin-bottom:8px;">
+            <span style="font-size:13px;color:var(--primary);font-weight:700;min-width:120px;">interaction</span>
+            <span style="font-size:13px;color:var(--text-secondary);font-weight:500;">交互特征（是否可关闭、可用操作）</span>
+          </div>
+          <div style="display:flex;align-items:start;gap:12px;">
+            <span style="font-size:13px;color:var(--primary);font-weight:700;min-width:120px;">context</span>
+            <span style="font-size:13px;color:var(--text-secondary);font-weight:500;">使用场景（system_error / user_action / notification）</span>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text-tertiary);font-weight:500;">粘贴 JSON 到"JSON 输入"工具，即可自动匹配模式。</p>
       </div>
     </div>
   </div>
@@ -2129,7 +2369,21 @@ function switchNav(nav) {
   document.querySelectorAll('.nav-center a').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-center a[data-nav="' + nav + '"]').forEach(el => el.classList.add('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + nav).classList.add('active');
+
+  if (nav === 'overview') {
+    document.getElementById('page-overview').classList.add('active');
+    document.getElementById('heroArea').classList.add('collapsed');
+  } else if (nav === 'contract') {
+    document.getElementById('page-contract').classList.add('active');
+    renderContractLibrary();
+  } else if (nav === 'tool') {
+    document.getElementById('page-tool').classList.add('active');
+  } else if (nav === 'api') {
+    document.getElementById('page-api').classList.add('active');
+  } else {
+    document.getElementById('page-' + nav).classList.add('active');
+  }
+
   window.scrollTo(0, 0);
 }
 function switchPage(page) {
@@ -2420,6 +2674,7 @@ function closeTemplateModal(e) {
 // ===== Drawer =====
 const patternData = {
   act001: {
+    type: 'Action',
     tag: 'ACT-001', tagStyle: 'border-color:rgba(168,85,247,0.3);color:#a855f7;background:rgba(168,85,247,0.1);',
     title: '高危操作风险未约束',
     intent: '高危操作，不可逆，必须二次确认',
@@ -2439,6 +2694,7 @@ llm_constraints:
     unit: 6, integration: 2, regression: 3
   },
   err001: {
+    type: 'Error',
     tag: 'ERR-001', tagStyle: 'border-color:rgba(239,68,68,0.3);color:#cf1322;background:#fff2f0;',
     title: '错误状态后果差异未分级',
     intent: '按错误性质分级，用户知道多严重',
@@ -2463,6 +2719,7 @@ llm_constraints:
     unit: 10, integration: 3, regression: 5
   },
   pro001: {
+    type: 'Process',
     tag: 'PRO-001', tagStyle: 'border-color:rgba(245,158,11,0.3);color:#d48806;background:#fffbe6;',
     title: '过程状态认知阶段未显化',
     intent: '让用户知道 AI 在查资料还是编答案',
@@ -2487,6 +2744,7 @@ llm_constraints:
     unit: 4, integration: 1, regression: 2
   },
   bnd001: {
+    type: 'Boundary',
     tag: 'BND-001', tagStyle: 'border-color:rgba(59,130,246,0.3);color:#0958d9;background:#e6f4ff;',
     title: '边界动作权利差异未区分',
     intent: '拒绝请求（继续聊）vs 终止会话（清空）',
@@ -2510,6 +2768,7 @@ llm_constraints:
     unit: 3, integration: 1, regression: 2
   },
   alr001: {
+    type: 'Alert',
     tag: 'ALR-001', tagStyle: 'border-color:rgba(6,182,212,0.3);color:#06b6d4;background:rgba(6,182,212,0.1);',
     title: '告警文案语义降级',
     intent: '系统级故障，必须立即响应，用 Critical',
@@ -2531,6 +2790,414 @@ llm_constraints:
     unit: 4, integration: 1, regression: 2
   }
 };
+
+// ===== Detail Page Functions =====
+let currentDetailId = null;
+
+function showPatternDetail(id) {
+  currentDetailId = id;
+  const data = patternData[id];
+  if (!data) return;
+
+  // 隐藏所有 page
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
+
+  // 填充面包屑
+  document.getElementById('detailBreadcrumbId').textContent = data.tag;
+
+  // 填充头部
+  document.getElementById('detailPageTag').textContent = data.tag;
+  document.getElementById('detailPageTag').style.cssText = data.tagStyle;
+  document.getElementById('detailPageType').textContent = data.type || 'Pattern';
+  document.getElementById('detailPageTitle').textContent = data.title;
+  document.getElementById('detailPageDesc').textContent = data.desc || data.intent;
+  document.getElementById('detailPageIcon').textContent = data.tag.split('-')[0];
+
+  // 填充语义断层地图（兼容无 symptom 字段的情况）
+  const symptoms = data.symptom || [
+    { label: '设计意图', text: data.intent },
+    { label: '设计稿表现', text: data.design },
+    { label: '工程实现（断裂）', text: data.engineering }
+  ];
+  const symptomHTML = symptoms.map(s => `
+    <div style="background:#fafafa;border:1px solid var(--border);padding:12px;border-radius:8px;">
+      <div style="font-size:12px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">${s.label}</div>
+      <div style="font-size:14px;color:var(--text-primary);font-weight:500;">${s.text}</div>
+    </div>
+  `).join('');
+  document.getElementById('detailSymptomContent').innerHTML = symptomHTML;
+
+  // 填充模式诊断
+  document.getElementById('detailRootcauseContent').innerHTML = `
+    <div style="margin-bottom:8px;"><span style="color:var(--text-tertiary);font-weight:600;">组件类型：</span><span style="color:var(--text-primary);font-weight:500;">${data.component}</span></div>
+    <div style="margin-bottom:8px;"><span style="color:var(--text-tertiary);font-weight:600;">根因：</span><span style="color:var(--text-primary);font-weight:500;">${data.rootCause}</span></div>
+    <div style="margin-bottom:8px;"><span style="color:var(--text-tertiary);font-weight:600;">产品实例：</span><span style="color:var(--text-primary);font-weight:500;">${data.products}</span></div>
+  `;
+
+  // 填充契约库
+  document.getElementById('detailContractContent').innerHTML = `<pre style="white-space:pre-wrap;font-family:'SF Mono',monospace;font-size:13px;line-height:1.6;color:#e5e5e5;">${data.yaml}</pre>`;
+
+  // 填充验证工具集
+  document.getElementById('detailVerifyContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:16px;">
+      <div style="background:#fafafa;border:1px solid var(--border);padding:12px;text-align:center;border-radius:8px;">
+        <div style="font-size:28px;font-weight:800;color:var(--text-primary);">${data.unit}</div>
+        <div style="font-size:13px;color:var(--text-tertiary);font-weight:600;">单元测试用例</div>
+      </div>
+      <div style="background:#fafafa;border:1px solid var(--border);padding:12px;text-align:center;border-radius:8px;">
+        <div style="font-size:28px;font-weight:800;color:var(--text-primary);">${data.integration}</div>
+        <div style="font-size:13px;color:var(--text-tertiary);font-weight:600;">集成测试用例</div>
+      </div>
+      <div style="background:#fafafa;border:1px solid var(--border);padding:12px;text-align:center;border-radius:8px;">
+        <div style="font-size:28px;font-weight:800;color:var(--text-primary);">${data.regression}</div>
+        <div style="font-size:13px;color:var(--text-tertiary);font-weight:600;">回归测试案例</div>
+      </div>
+    </div>
+    <div style="background:#fafafa;border:1px solid var(--border);padding:12px;border-radius:8px;">
+      <div style="font-size:13px;color:var(--text-tertiary);font-weight:600;margin-bottom:8px;">通过准则</div>
+      <div style="font-size:14px;color:var(--text-secondary);font-weight:500;line-height:1.8;">
+        <div>• 单元测试：100% 通过</div>
+        <div>• 集成测试：100% 通过</div>
+        <div>• 回归测试：100% 通过</div>
+      </div>
+    </div>
+  `;
+
+  // 重置 tab
+  switchDetailTab('symptom', document.getElementById('dt-symptom'));
+  switchContractFormat('yaml', document.getElementById('ct-yaml'));
+
+  window.scrollTo(0, 0);
+}
+
+function backToOverview() {
+  switchNav('overview');
+}
+
+function switchDetailTab(tab, el) {
+  if (!el) el = document.getElementById('dt-' + tab);
+  document.querySelectorAll('#page-detail .tab-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.color = 'var(--text-secondary)';
+    b.style.borderBottomColor = 'transparent';
+  });
+  el.classList.add('active');
+  el.style.color = 'var(--primary)';
+  el.style.borderBottomColor = 'var(--primary)';
+
+  document.querySelectorAll('#page-detail .tab-content').forEach(c => c.style.display = 'none');
+  document.getElementById('detail-tab-' + tab).style.display = 'block';
+}
+
+function switchContractFormat(format, el) {
+  if (!el) el = document.getElementById('ct-' + format);
+  document.querySelectorAll('#ct-yaml, #ct-prompt, #ct-checklist').forEach(btn => {
+    btn.style.background = 'var(--card-bg)';
+    btn.style.color = 'var(--text-secondary)';
+    btn.style.borderColor = 'var(--border)';
+  });
+  el.style.background = 'var(--primary)';
+  el.style.color = '#fff';
+  el.style.borderColor = 'var(--primary)';
+
+  const data = patternData[currentDetailId];
+  if (!data) return;
+  let content = data.yaml;
+  if (format === 'prompt') {
+    content = data.prompt || data.yaml;
+  } else if (format === 'checklist') {
+    content = data.checklist || data.yaml;
+  }
+  document.getElementById('detailContractContent').innerHTML = `<pre style="white-space:pre-wrap;font-family:'SF Mono',monospace;font-size:13px;line-height:1.6;color:#e5e5e5;">${content}</pre>`;
+}
+
+function copyDetailContract() {
+  const yaml = document.getElementById('detailContractContent').innerText;
+  navigator.clipboard.writeText(yaml);
+  alert('已复制到剪贴板');
+}
+
+// ===== Contract Library =====
+function renderContractLibrary() {
+  const grid = document.getElementById('contractLibraryGrid');
+  if (!grid) return;
+
+  let html = '';
+  for (const [key, pattern] of Object.entries(patternData)) {
+    html += `
+      <div class="card-item" onclick="showPatternDetail('${key}')">
+        <div class="card-header">
+          <div class="card-id">${pattern.id}</div>
+          <span class="card-tag" style="${pattern.tagStyle}">${pattern.type}</span>
+        </div>
+        <div class="card-name">${pattern.title}</div>
+        <div class="card-desc">${pattern.desc}</div>
+        <div class="card-preview" style="padding:16px;">
+          <div style="display:flex;gap:8px;">
+            <button onclick="event.stopPropagation(); copyContractById('${key}', 'yaml')" style="padding:6px 12px;border-radius:6px;border:1px solid var(--primary);background:var(--primary);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">YAML</button>
+            <button onclick="event.stopPropagation(); copyContractById('${key}', 'prompt')" style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;">Prompt</button>
+            <button onclick="event.stopPropagation(); copyContractById('${key}', 'checklist')" style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;">Checklist</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  grid.innerHTML = html;
+}
+
+function copyContractById(id, format) {
+  const pattern = patternData[id];
+  if (!pattern) return;
+  const content = pattern[format] || pattern.yaml;
+  navigator.clipboard.writeText(content);
+  alert(format.toUpperCase() + ' 已复制到剪贴板');
+}
+
+// ===== Validation Toolkit =====
+function switchToolkitTab(tab, el) {
+  if (!el) {
+    const tabs = document.querySelectorAll('.tk-tab');
+    tabs.forEach(t => {
+      t.style.borderBottomColor = 'transparent';
+      t.style.color = 'var(--text-secondary)';
+    });
+    document.querySelectorAll('.tk-content').forEach(c => c.style.display = 'none');
+    document.getElementById('tk-content-' + tab).style.display = 'block';
+    return;
+  }
+
+  document.querySelectorAll('.tk-tab').forEach(t => {
+    t.style.borderBottomColor = 'transparent';
+    t.style.color = 'var(--text-secondary)';
+  });
+  el.style.borderBottomColor = 'var(--primary)';
+  el.style.color = 'var(--primary)';
+
+  document.querySelectorAll('.tk-content').forEach(c => c.style.display = 'none');
+  document.getElementById('tk-content-' + tab).style.display = 'block';
+}
+
+function setVTInput(text) {
+  document.getElementById('vtInput').value = text;
+  runVTClassifier();
+}
+
+function runVTClassifier() {
+  const input = document.getElementById('vtInput').value.trim().toLowerCase();
+  if (!input) return;
+  document.getElementById('vtResult').style.display = 'block';
+
+  let matched = null;
+  const rules = {
+    fatal: {
+      keywords: ['stream', 'message stream', '连接断开', '输出中断', 'interrupted', 'context lost'],
+      label: 'FATAL', labelClass: 'bg-red-500/10 text-red-400',
+      title: '系统级故障，对话上下文可能丢失',
+      visual: '红色脉冲 + 八边形警告图标',
+      actions: ['刷新页面', '导出历史'],
+      yaml: `error_severity:
+  fatal:
+    description: "系统级故障，对话上下文可能丢失"
+    visual_mapping:
+      color_token: "status.critical"
+      motion_token: "pulse.red.urgent"
+      icon_token: "alert.octagon"
+    user_action:
+      - label: "刷新页面"
+        action: "refresh"
+      - label: "导出历史"
+        action: "export_history"`
+    },
+    transient: {
+      keywords: ['network', '网络错误', 'network error', '加载失败', 'connection lost', '连接失败'],
+      label: 'TRANSIENT', labelClass: 'bg-neutral-700 text-neutral-400',
+      title: '网络层故障，系统可自动恢复',
+      visual: '灰色加载动画 + 旋转图标',
+      actions: ['等待自动恢复', '手动重试'],
+      yaml: `error_severity:
+  transient:
+    description: "网络抖动，系统可自动恢复"
+    visual_mapping:
+      color_token: "status.neutral"
+      motion_token: "spinner"
+      icon_token: "loader"
+    user_action:
+      - label: "等待自动恢复"
+        action: "wait"
+      - label: "手动重试"
+        action: "retry"`
+    },
+    retryable: {
+      keywords: ['too many', '429', 'throttling', '请求过于频繁', '服务繁忙', '限流', 'rate limit'],
+      label: 'RETRYABLE', labelClass: 'bg-amber-500/10 text-amber-400',
+      title: '限流/流控，用户可自助恢复',
+      visual: '黄色提示 + 时钟图标',
+      actions: ['等待倒计时', '升级套餐'],
+      yaml: `error_severity:
+  retryable:
+    description: "请求频率已达上限"
+    visual_mapping:
+      color_token: "status.warning"
+      motion_token: "none"
+      icon_token: "clock"
+    user_action:
+      - label: "等待倒计时"
+        action: "wait_countdown"
+      - label: "升级套餐"
+        action: "upgrade"`
+    },
+    degraded: {
+      keywords: ['something went wrong', 'something wrong', '创造失败', '服务异常', '部分失败', 'degraded'],
+      label: 'DEGRADED', labelClass: 'bg-blue-500/10 text-blue-400',
+      title: '服务端兜底，部分功能可用',
+      visual: '蓝色提示 + 信息图标',
+      actions: ['继续生成', '简化问题重试'],
+      yaml: `error_severity:
+  degraded:
+    description: "部分功能可用，可继续生成"
+    visual_mapping:
+      color_token: "status.info"
+      motion_token: "none"
+      icon_token: "info.circle"
+    user_action:
+      - label: "继续生成"
+        action: "continue"
+      - label: "简化问题重试"
+        action: "retry_simplified"`
+    }
+  };
+
+  for (const [key, rule] of Object.entries(rules)) {
+    if (rule.keywords.some(k => input.includes(k.toLowerCase()))) {
+      matched = { key, ...rule };
+      break;
+    }
+  }
+
+  if (!matched) {
+    matched = {
+      key: 'unknown', label: 'UNKNOWN', labelClass: 'bg-neutral-700 text-neutral-400',
+      title: '未匹配到已知语义分级',
+      visual: '灰色中性提示',
+      actions: ['人工审核'],
+      yaml: `# 未匹配到已知模式
+# 建议补充到模式库：ERR-001 扩展
+# 输入文案："${input}"`
+    };
+  }
+
+  const resultHTML = `
+    <div style="display:flex;align-items:start;gap:12px;">
+      <span class="tag ${matched.labelClass} px-2 py-1 rounded font-bold">${matched.label}</span>
+      <div>
+        <p style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">${matched.title}</p>
+        <p style="font-size:14px;color:var(--text-secondary);font-weight:500;">建议视觉：${matched.visual}</p>
+        <p style="font-size:14px;color:var(--text-secondary);font-weight:500;">用户行动：${matched.actions.join(' / ')}</p>
+      </div>
+    </div>
+  `;
+  document.getElementById('vtResultCard').innerHTML = resultHTML;
+
+  const currentUI = `<div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);padding:10px;border-radius:6px;">
+    <p style="font-size:14px;color:#ef4444;font-weight:600;">${input}</p>
+    <p style="font-size:14px;color:var(--text-tertiary);margin-top:4px;font-weight:500;">❌ 用户不知道：这是刷新一下就好，还是对话已经丢了？</p>
+  </div>`;
+  document.getElementById('vtCurrentUI').innerHTML = currentUI;
+
+  let optimizedUI = '';
+  if (matched.key === 'fatal') {
+    optimizedUI = `<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);padding:10px;border-radius:6px;">
+      <p style="font-size:14px;color:#ef4444;font-weight:700;">消息流中断</p>
+      <p style="font-size:14px;color:#ef4444;margin-top:4px;font-weight:500;">对话上下文可能已丢失，建议刷新页面重新开始。</p>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <span style="font-size:14px;background:#ef4444;color:#fff;padding:3px 8px;border-radius:4px;font-weight:600;">刷新页面</span>
+        <span style="font-size:14px;border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:3px 8px;border-radius:4px;font-weight:600;">导出历史</span>
+      </div>
+    </div>`;
+  } else if (matched.key === 'transient') {
+    optimizedUI = `<div style="background:#f5f5f5;border:1px solid #d9d9d9;padding:10px;border-radius:6px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:12px;height:12px;border:2px solid #666;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>
+        <span style="font-size:14px;color:#595959;font-weight:600;">网络连接不稳定</span>
+      </div>
+      <p style="font-size:14px;color:var(--text-tertiary);margin-top:4px;font-weight:500;">正在自动重试（第 2/3 次）...</p>
+    </div>`;
+  } else if (matched.key === 'retryable') {
+    optimizedUI = `<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);padding:10px;border-radius:6px;">
+      <p style="font-size:14px;color:#d48806;font-weight:700;">请求频率已达上限</p>
+      <p style="font-size:14px;color:#d48806;margin-top:4px;font-weight:500;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <span style="font-size:14px;background:#f59e0b;color:#1e1e1e;padding:3px 8px;border-radius:4px;font-weight:600;">升级 Plus</span>
+        <span style="font-size:14px;border:1px solid rgba(245,158,11,0.3);color:#d48806;padding:3px 8px;border-radius:4px;font-weight:600;">设置提醒</span>
+      </div>
+    </div>`;
+  } else if (matched.key === 'degraded') {
+    optimizedUI = `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);padding:10px;border-radius:6px;">
+      <p style="font-size:14px;color:#0958d9;font-weight:700;">部分响应生成失败</p>
+      <p style="font-size:14px;color:#0958d9;margin-top:4px;font-weight:500;">已生成的内容仍然有效，可继续生成剩余部分。</p>
+      <div style="margin-top:8px;">
+        <span style="font-size:14px;background:#3b82f6;color:#fff;padding:3px 8px;border-radius:4px;font-weight:600;">继续生成</span>
+      </div>
+    </div>`;
+  } else {
+    optimizedUI = `<p style="font-size:14px;color:var(--text-tertiary);font-weight:500;">需要人工定义语义分级...</p>`;
+  }
+  document.getElementById('vtOptimizedUI').innerHTML = optimizedUI;
+  document.getElementById('vtYaml').innerHTML = `<pre style="white-space:pre-wrap;font-family:'SF Mono',monospace;font-size:13px;line-height:1.6;color:#e5e5e5;">${matched.yaml}</pre>`;
+}
+
+function copyVTYAML() {
+  const yaml = document.getElementById('vtYaml').innerText;
+  navigator.clipboard.writeText(yaml);
+  alert('YAML 已复制到剪贴板');
+}
+
+function loadVTJsonExample() {
+  document.getElementById('vtJsonInput').value = JSON.stringify({
+    "component_type": "Alert",
+    "visual": { "color": "red", "background": "solid", "icon": "warning" },
+    "copy": { "title": "Error", "description": "Something went wrong", "tone": "urgent" },
+    "interaction": { "dismissible": true, "actions": ["retry", "contact_support"] },
+    "context": "system_error"
+  }, null, 2);
+}
+
+function parseVTJson() {
+  try {
+    const json = JSON.parse(document.getElementById('vtJsonInput').value);
+    let matchedId = null;
+    if (json.component_type === 'Alert' && json.visual?.color === 'red') {
+      matchedId = 'ERR-001';
+    } else if (json.component_type === 'Button' && json.visual?.color === 'red') {
+      matchedId = 'ACT-001';
+    } else if (json.component_type === 'Progress') {
+      matchedId = 'PRO-001';
+    } else if (json.component_type === 'Modal') {
+      matchedId = 'BND-001';
+    }
+
+    if (matchedId) {
+      const result = document.getElementById('vtJsonResult');
+      result.style.display = 'block';
+      document.getElementById('vtJsonResultContent').innerHTML = `
+        <div style="display:flex;align-items:start;gap:12px;">
+          <span style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#e6f4ff;color:#0958d9;border:1px solid #91caff;">匹配成功</span>
+          <div>
+            <p style="font-size:14px;color:var(--text-primary);font-weight:700;">匹配到模式：${matchedId}</p>
+            <p style="font-size:14px;color:var(--text-secondary);font-weight:500;">${patternData[matchedId].title}</p>
+            <button onclick="showPatternDetail('${matchedId}')" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;margin-top:8px;">查看详情 →</button>
+          </div>
+        </div>
+      `;
+    } else {
+      alert('未匹配到已知模式，请检查组件类型和视觉特征');
+    }
+  } catch (e) {
+    alert('JSON 格式错误，请检查输入');
+  }
+}
+
 
 function openDrawer(id) {
   const data = patternData[id];

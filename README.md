@@ -1,33 +1,32 @@
 <div align="center">
 
-<!-- Banner -->
-<h1>Semantic Pipeline</h1>
-<p><strong>当 AI 生成界面时，谁在守住设计意图？</strong></p>
+<!-- 标题 -->
+<h1>Schema-As-Code</h1>
+<p><strong>当 AI 生成界面时，设计意图在偏离。</strong></p>
 
 <!-- 按钮行 -->
 <p>
-  <a href="https://2436041978-ops.github.io/semantic-pipeline/">
-    <img src="https://img.shields.io/badge/🌐_在线交互式总览-点击进入-1677ff?style=for-the-badge&logoColor=white" alt="在线交互式总览">
+  <a href="https://www.yuque.com/u222739/lxcrw1">
+    <img src="https://img.shields.io/badge/📖_语雀文档-阅读-1677ff?style=for-the-badge" alt="语雀文档">
   </a>
   <a href="https://2436041978-ops.github.io/semantic-pipeline/">
-    <img src="https://img.shields.io/badge/📋_模式库-Schema--As--Code-52c41a?style=for-the-badge" alt="模式库">
+    <img src="https://img.shields.io/badge/🌐_在线交互式总览-点击进入-52c41a?style=for-the-badge" alt="在线交互式总览">
   </a>
-  <a href="https://2436041978-ops.github.io/semantic-pipeline/">
-    <img src="https://img.shields.io/badge/📜_契约库-Contract_Library-faad14?style=for-the-badge" alt="契约库">
-  </a>
-  <a href="https://2436041978-ops.github.io/semantic-pipeline/">
-    <img src="https://img.shields.io/badge/✅_验证工具集-Validation_Toolkit-722ed1?style=for-the-badge" alt="验证工具集">
-  </a>
-</p>
-
-<p>
   <a href="https://github.com/2436041978-ops/semantic-pipeline">
     <img src="https://img.shields.io/badge/⭐_GitHub-STAR-181717?style=for-the-badge&logo=github" alt="GitHub">
+  </a>
+  <a href="https://github.com/2436041978-ops/semantic-pipeline/releases">
+    <img src="https://img.shields.io/badge/📦_Releases-版本-faad14?style=for-the-badge" alt="Releases">
   </a>
   <a href="https://github.com/2436041978-ops/semantic-pipeline/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/LICENSE-MIT-999999?style=for-the-badge" alt="License">
   </a>
 </p>
+
+<!-- BANNER：点击跳转到在线页面 -->
+<a href="https://2436041978-ops.github.io/semantic-pipeline/">
+  <img src="./banner.png" alt="Schema-As-Code 在线交互式总览" width="100%">
+</a>
 
 </div>
 
@@ -105,11 +104,11 @@
 ## 相关链接
 
 - 📖 [语雀文档](https://www.yuque.com/u222739/lxcrw1)
-- 🎨 [在线交互式总览](https://2436041978-ops.github.io/semantic-pipeline/)
+- 🌐 [在线交互式总览](https://2436041978-ops.github.io/semantic-pipeline/)
 - ⭐ [GitHub 仓库](https://github.com/2436041978-ops/semantic-pipeline)
 
 ---
 
 <div align="center">
-  <p><sub>Semantic Pipeline · Schema-As-Code 工程实现 · 不是替代任何工具，是所有 AI 工具的上游约束</sub></p>
+  <p><sub>Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束</sub></p>
 </div>

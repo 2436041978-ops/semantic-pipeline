@@ -1,209 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8"><!DOCTYPE html>
-<html lang="zh-CN">
-<head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>谁在用 Schema-As-Code · 角色路径图</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #EBEBEB; color: #1a1a1a; }
-  .role-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 20px; transition: all 0.3s ease; }
-  .role-card:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.08); transform: translateY(-2px); }
-  .step-pill { background: #ffffff; border: 1.5px solid #e5e5e5; border-radius: 12px; padding: 10px 18px; font-size: 15px; color: #374151; white-space: nowrap; }
-  .arrow-h { color: #9ca3af; font-size: 20px; margin: 0 4px; }
-  .tag-tool { background: #f3f4f6; color: #6b7280; font-size: 14px; padding: 4px 12px; border-radius: 8px; }
-  .result-box { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1.5px solid #a7f3d0; border-radius: 14px; }
-  .path-bg { background: #f9fafb; border-radius: 16px; }
-</style>
-<base target="_blank">
-</head>
-<body class="min-h-screen antialiased">
-
-<!-- Header -->
-<div class="pt-14 pb-10 px-6 text-center">
-  <div class="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-4 py-2 rounded-full mb-5">
-    <span class="text-lg text-indigo-600 font-medium">🗺️ 角色路径图</span>
-  </div>
-  <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-    谁在用 Schema-As-Code
-  </h1>
-  <p class="text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
-    四个角色，四条路径，同一个目标：<strong class="text-gray-900">让 AI 生成的界面不偏离设计意图</strong>
-  </p>
-</div>
-
-<div class="max-w-3xl mx-auto px-4 md:px-6 pb-20 space-y-6">
-
-  <!-- Role 1: 设计师 -->
-  <div class="role-card p-8">
-    <div class="flex items-center gap-5 mb-6">
-      <div class="text-5xl">🎨</div>
-      <div>
-        <h3 class="text-2xl font-bold text-gray-900">设计师</h3>
-        <p class="text-lg text-gray-500 mt-1">不会写代码，但能定义规矩</p>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap items-center gap-3 mb-6">
-      <span class="text-lg text-gray-400">日常工具</span>
-      <span class="tag-tool">Figma</span>
-      <span class="tag-tool">语雀</span>
-      <span class="mx-2 text-gray-300">|</span>
-      <span class="text-lg text-gray-400">场景</span>
-      <span class="text-lg text-gray-700">走查发现某个组件体验不对</span>
-    </div>
-
-    <div class="path-bg p-5 mb-5">
-      <p class="text-base text-gray-400 font-medium mb-4">操作路径</p>
-      <div class="flex items-center gap-2 overflow-x-auto pb-2">
-        <span class="step-pill">打开 Semantic Pipeline</span>
-        <span class="arrow-h">→</span>
-        <span class="step-pill">回答 3 个问题</span>
-        <span class="arrow-h">→</span>
-        <span class="step-pill">匹配模式</span>
-      </div>
-    </div>
-
-    <div class="result-box p-5">
-      <p class="text-base text-emerald-700 font-semibold mb-1">🎯 得到什么</p>
-      <p class="text-lg text-gray-700">模式定义 + 同类证据 + 改造方案</p>
-    </div>
-  </div>
-
-  <!-- Role 2: DesignOps -->
-  <div class="role-card p-8">
-    <div class="flex items-center gap-5 mb-6">
-      <div class="text-5xl">📋</div>
-      <div>
-        <h3 class="text-2xl font-bold text-gray-900">DesignOps</h3>
-        <p class="text-lg text-gray-500 mt-1">规范变更，一次定义，全域生效</p>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap items-center gap-3 mb-6">
-      <span class="text-lg text-gray-400">日常工具</span>
-      <span class="tag-tool">GitHub</span>
-      <span class="tag-tool">Notion</span>
-      <span class="mx-2 text-gray-300">|</span>
-      <span class="text-lg text-gray-400">场景</span>
-      <span class="text-lg text-gray-700">规范要更新，不知道怎么同步</span>
-    </div>
-
-    <div class="path-bg p-5 mb-5">
-      <p class="text-base text-gray-400 font-medium mb-4">操作路径</p>
-      <div class="flex items-center gap-2 overflow-x-auto pb-2">
-        <span class="step-pill">把规范写成 YAML</span>
-        <span class="arrow-h">→</span>
-        <span class="step-pill">Git Diff 触发</span>
-        <span class="arrow-h">→</span>
-        <span class="step-pill">影响面自动分析</span>
-      </div>
-    </div>
-
-    <div class="result-box p-5">
-      <p class="text-base text-emerald-700 font-semibold mb-1">🎯 得到什么</p>
-      <p class="text-lg text-gray-700">规范同步从 <span class="line-through text-gray-400">2 周</span> → <strong class="text-emerald-700">0.5 天</strong></p>
-    </div>
-  </div>
-
-  <!-- Role 3: 前端工程师 -->
-  <div class="role-card p-8">
-    <div class="flex items-center gap-5 mb-6">
-      <div class="text-5xl">💻</div>
-      <div>
-        <h3 class="text-2xl font-bold text-gray-900">前端工程师</h3>
-        <p class="text-lg text-gray-500 mt-1">在 Prompt 里加一道语义保险</p>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap items-center gap-3 mb-6">
-      <span class="text-lg text-gray-400">日常工具</span>
-      <span class="tag-tool">VS Code</span>
-      <span class="tag-tool">Cursor</span>
-      <span class="tag-tool">Claude Code</span>
-      <span class="mx-2 text-gray-300">|</span>
-      <span class="text-lg text-gray-400">场景</span>
-      <span class="text-lg text-gray-700">AI 生成的代码语义错误多</span>
-    </div>
-
-    <div class="path-bg p-5 mb-5">
-      <p class="text-base text-gray-400 font-medium mb-4">操作路径</p>
-      <div class="flex items-center gap-2 overflow-x-auto pb-2">
-        <span class="step-pill">从契约库复制规则</span>
-        <span class="arrow-h">→</span>
-        <span class="step-pill">贴在 Prompt 前面</span>
-        <span class="arrow-h">→</span>
-        <span class="step-pill">AI 按规矩生成</span>
-      </div>
-    </div>
-
-    <div class="result-box p-5">
-      <p class="text-base text-emerald-700 font-semibold mb-1">🎯 得到什么</p>
-      <p class="text-lg text-gray-700">语义返工率从 <span class="line-through text-gray-400">30%</span> → <strong class="text-emerald-700">5%</strong></p>
-    </div>
-  </div>
-
-  <!-- Role 4: AI 产品 PM -->
-  <div class="role-card p-8">
-    <div class="flex items-center gap-5 mb-6">
-      <div class="text-5xl">📊</div>
-      <div>
-        <h3 class="text-2xl font-bold text-gray-900">AI 产品 PM</h3>
-        <p class="text-lg text-gray-500 mt-1">上线前跑一遍，风险提前暴露</p>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap items-center gap-3 mb-6">
-      <span class="text-lg text-gray-400">日常工具</span>
-      <span class="tag-tool">飞书</span>
-      <span class="tag-tool">Jira</span>
-      <span class="mx-2 text-gray-300">|</span>
-      <span class="text-lg text-gray-400">场景</span>
-      <span class="text-lg text-gray-700">要上线 AI 功能，担心体验不一致</span>
-    </div>
-
-    <div class="path-bg p-5 mb-5">
-      <p class="text-base text-gray-400 font-medium mb-4">操作路径</p>
-      <div class="flex items-center gap-2 overflow-x-auto pb-2">
-        <span class="step-pill">打开验证工具</span>
-        <span class="arrow-h">→</span>
-        <span class="step-pill">跑一遍错误状态</span>
-        <span class="arrow-h">→</span>
-        <span class="step-pill">拿到诊断报告</span>
-      </div>
-    </div>
-
-    <div class="result-box p-5">
-      <p class="text-base text-emerald-700 font-semibold mb-1">🎯 得到什么</p>
-      <p class="text-lg text-gray-700">风险清单 + 契约模板（上线前堵住语义漏洞）</p>
-    </div>
-  </div>
-
-  <!-- Bottom Summary -->
-  <div class="role-card p-8 text-center">
-    <div class="flex items-center justify-center gap-3 mb-4">
-      <span class="text-3xl">🎯</span>
-      <h3 class="text-2xl font-bold text-gray-900">同一个目标</h3>
-    </div>
-    <p class="text-xl text-gray-500 max-w-2xl mx-auto">
-      设计师定义规矩 → DesignOps 同步规矩 → 前端消费规矩 → PM 验证规矩
-      <br><strong class="text-gray-900">Schema-As-Code 是连接四个角色的「语义层基础设施」</strong>
-    </p>
-  </div>
-
-</div>
-
-<!-- Footer -->
-<div class="text-center py-8 text-lg text-gray-400" style="background: #EBEBEB;">
-  角色路径图 · Schema-As-Code 语义层设计
-</div>
-
-</body>
-</html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Semantic Pipeline · 语义审查流水线</title>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -213,12 +11,12 @@
   :root {
     --primary: #1677ff;
     --primary-hover: #4096ff;
-    --bg: #F5F5F7;
-    --card-bg: #FFFFFF;
-    --text-primary: rgba(0,0,0,0.88);
-    --text-secondary: rgba(0,0,0,0.65);
-    --text-tertiary: rgba(0,0,0,0.45);
-    --border: #E5E5E5;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
     --radius: 12px;
     --accent-purple: #c084fc;
     --accent-purple-dim: rgba(192,132,252,0.15);
@@ -238,7 +36,7 @@
 
   /* ========== Nav ========== */
   .top-nav {
-    background: rgba(245,245,247,0.92);
+    background: rgba(15,15,18,0.92);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
     position: fixed;
@@ -357,8 +155,8 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(22,119,255,0.08);
-    border: 1px solid rgba(22,119,255,0.2);
+    background: rgba(22,119,255,0.15);
+    border: 1px solid rgba(22,119,255,0.3);
     padding: 5px 14px;
     border-radius: 100px;
     font-size: 16px;
@@ -420,7 +218,7 @@
   }
   .search-box input:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(22,119,255,0.08);
+    box-shadow: 0 0 0 3px rgba(22,119,255,0.15);
   }
   .search-box input::placeholder {
     color: var(--text-tertiary);
@@ -512,7 +310,7 @@
     max-width: 720px;
     max-height: 85vh;
     overflow-y: auto;
-    box-shadow: 0 24px 48px rgba(0,0,0,0.15);
+    box-shadow: 0 24px 48px rgba(0,0,0,0.4);
     animation: modalSlide 0.3s ease-out;
     display: flex;
     flex-direction: column;
@@ -571,7 +369,7 @@
   }
   .classifier-input:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(22,119,255,0.08);
+    box-shadow: 0 0 0 3px rgba(22,119,255,0.15);
   }
   .quick-tags {
     display: flex;
@@ -613,11 +411,11 @@
     font-weight: 700;
     text-transform: uppercase;
   }
-  .severity-fatal { background: #fff2f0; border: 1px solid #ffccc7; color: #cf1322; }
-  .severity-transient { background: #f5f5f5; border: 1px solid #d9d9d9; color: #595959; }
-  .severity-retryable { background: #fffbe6; border: 1px solid #ffe58f; color: #d48806; }
-  .severity-degraded { background: #e6f4ff; border: 1px solid #91caff; color: #0958d9; }
-  .severity-unknown { background: #f5f5f5; border: 1px solid #d9d9d9; color: #888; }
+  .severity-fatal { background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; }
+  .severity-transient { background: #1e1e22; border: 1px solid #3a3a3e; color: #a0a0a0; }
+  .severity-retryable { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
+  .severity-degraded { background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; }
+  .severity-unknown { background: #1e1e22; border: 1px solid #3a3a3e; color: #999; }
   .ab-compare {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -662,7 +460,7 @@
   }
   .json-textarea:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(22,119,255,0.08);
+    box-shadow: 0 0 0 3px rgba(22,119,255,0.15);
   }
   .json-actions {
     display: flex;
@@ -702,7 +500,7 @@
     font-weight: 500;
   }
   .template-example {
-    background: #fafafa;
+    background: #16161a;
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 16px;
@@ -713,9 +511,9 @@
     overflow-x: auto;
     margin-bottom: 16px;
   }
-  .template-example .key { color: #0958d9; }
-  .template-example .str { color: #389e0d; }
-  .template-example .num { color: #d48806; }
+  .template-example .key { color: #4a9eff; }
+  .template-example .str { color: #6abe4a; }
+  .template-example .num { color: #f5a623; }
 
   /* ========== Cards Grid ========== */
   .cards-section {
@@ -741,7 +539,7 @@
     min-height: 320px;
   }
   .card-item:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     transform: translateY(-2px);
   }
   .card-item.hidden {
@@ -765,11 +563,11 @@
     border-radius: 4px;
     font-weight: 600;
   }
-  .tag-red { background: #fff2f0; color: #cf1322; border: 1px solid #ffccc7; }
-  .tag-amber { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
-  .tag-blue { background: #e6f4ff; color: #0958d9; border: 1px solid #91caff; }
-  .tag-green { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
-  .tag-purple { background: #f9f0ff; color: #531dab; border: 1px solid #d3adf7; }
+  .tag-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .tag-amber { background: rgba(212,136,6,0.15); color: #f5a623; border: 1px solid rgba(212,136,6,0.3); }
+  .tag-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .tag-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .tag-purple { background: rgba(131,56,236,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
   .card-name {
     padding: 12px 16px 0;
     font-size: 16px;
@@ -812,7 +610,7 @@
     height: 40px;
     border-radius: 6px;
     border: 1px dashed var(--border);
-    background: #fafafa;
+    background: #16161a;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -845,10 +643,10 @@
     gap: 4px;
     font-weight: 600;
   }
-  .preview-alert.fatal { background: #fff2f0; border: 1px solid #ffccc7; color: #cf1322; }
-  .preview-alert.warning { background: #fffbe6; border: 1px solid #ffe58f; color: #d48806; }
-  .preview-alert.info { background: #e6f4ff; border: 1px solid #91caff; color: #0958d9; }
-  .preview-alert.neutral { background: #f5f5f5; border: 1px solid #d9d9d9; color: #595959; }
+  .preview-alert.fatal { background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; }
+  .preview-alert.warning { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
+  .preview-alert.info { background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; }
+  .preview-alert.neutral { background: #1e1e22; border: 1px solid #3a3a3e; color: #a0a0a0; }
   .preview-button {
     padding: 4px 12px;
     border-radius: 4px;
@@ -856,26 +654,26 @@
     font-weight: 600;
     border: 1px solid;
   }
-  .preview-btn-danger { background: #fff; border-color: #ff4d4f; color: #ff4d4f; }
+  .preview-btn-danger { background: #1a1a1e; border-color: #ff4d4f; color: #ff4d4f; }
   .preview-modal {
     width: 100%;
     padding: 10px;
     border-radius: 6px;
-    border: 1px solid #f0f0f0;
-    background: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #2a2a2e;
+    background: #1a1a1e;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   }
   .preview-modal-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
   .preview-modal-text { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
   .preview-modal-actions { display: flex; gap: 4px; justify-content: flex-end; }
-  .preview-modal-btn { padding: 2px 8px; border-radius: 3px; font-size: 14px; border: 1px solid #d9d9d9; background: #fff; font-weight: 600; }
+  .preview-modal-btn { padding: 2px 8px; border-radius: 3px; font-size: 14px; border: 1px solid #3a3a3e; background: #1a1a1e; font-weight: 600; }
   .preview-modal-btn.primary { background: #ff4d4f; border-color: #ff4d4f; color: #fff; }
   .preview-progress { width: 100%; }
   .preview-progress-label { display: flex; justify-content: space-between; font-size: 14px; color: var(--text-secondary); margin-bottom: 3px; font-weight: 600; }
-  .preview-progress-bar { height: 4px; background: #f0f0f0; border-radius: 100px; overflow: hidden; }
+  .preview-progress-bar { height: 4px; background: #2a2a2e; border-radius: 100px; overflow: hidden; }
   .preview-progress-fill { height: 100%; background: linear-gradient(90deg, #1677ff, #36cfc9); border-radius: 100px; width: 65%; }
   .preview-synonym { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
-  .preview-synonym .word-ok { color: #389e0d; font-weight: 700; }
+  .preview-synonym .word-ok { color: #6abe4a; font-weight: 700; }
   .preview-synonym .word-bad { color: #cf1322; text-decoration: line-through; font-weight: 600; }
   .preview-synonym .arrow { color: var(--text-tertiary); font-weight: 600; }
 
@@ -903,7 +701,7 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    box-shadow: -8px 0 24px rgba(0,0,0,0.08);
+    box-shadow: -8px 0 24px rgba(0,0,0,0.3);
     height: 100vh;
   }
   .drawer.open { transform: translateX(0); }
@@ -977,7 +775,7 @@
     overflow: hidden;
   }
   .col-cell {
-    background: #fafafa;
+    background: #16161a;
     padding: 10px;
   }
   .col-label {
@@ -1043,7 +841,7 @@
     transition: all 0.3s;
   }
   .pipeline-card:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
   }
   .pipeline-card::before {
     content: '';
@@ -1058,7 +856,7 @@
   .card-num {
     font-size: 44px;
     font-weight: 800;
-    color: #f0f0f0;
+    color: #2a2a2e;
     position: absolute;
     top: 16px; right: 24px;
     line-height: 1;
@@ -1072,9 +870,9 @@
     font-size: 20px;
     margin-bottom: 16px;
   }
-  .icon-guard { background: #fff2f0; }
-  .icon-contract { background: #f6ffed; }
-  .icon-verify { background: #e6f4ff; }
+  .icon-guard { background: rgba(207,19,34,0.15); }
+  .icon-contract { background: rgba(82,196,26,0.15); }
+  .icon-verify { background: rgba(22,119,255,0.15); }
   .card-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
   .card-sub { font-size: 13px; color: var(--text-tertiary); margin-bottom: 14px; font-weight: 500; }
   .card-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 16px; font-weight: 500; }
@@ -1083,7 +881,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #d9d9d9;
+    color: #4a4a4e;
     font-size: 20px;
     padding: 0 16px;
     align-self: center;
@@ -1109,7 +907,7 @@
     transition: all 0.3s;
   }
   .stat-card:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
   }
   .stat-num {
     font-size: 40px;
@@ -1151,8 +949,8 @@
     font-weight: 700;
     margin-right: 8px;
   }
-  .method-get { background: #e6f4ff; color: #0958d9; }
-  .method-post { background: #f6ffed; color: #389e0d; }
+  .method-get { background: rgba(22,119,255,0.15); color: #4a9eff; }
+  .method-post { background: rgba(82,196,26,0.15); color: #6abe4a; }
   .api-endpoint {
     font-size: 14px;
     font-weight: 600;
@@ -1206,7 +1004,7 @@
   }
   .tool-input:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(22,119,255,0.08);
+    box-shadow: 0 0 0 3px rgba(22,119,255,0.15);
   }
 
   /* ========== New Pages ========== */
@@ -1242,7 +1040,7 @@
   }
   .glossary-card:hover {
     border-color: #555;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
   .glossary-term {
     font-size: 16px;
@@ -1279,7 +1077,7 @@
   }
   .insight-card:hover {
     border-color: #555;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
   .insight-tag {
     font-size: 14px;
@@ -1338,7 +1136,7 @@
   }
   .newsletter-input:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(22,119,255,0.08);
+    box-shadow: 0 0 0 3px rgba(22,119,255,0.15);
     outline: none;
   }
   .resource-grid {
@@ -1355,7 +1153,7 @@
   }
   .resource-card:hover {
     border-color: #555;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
   .resource-title {
     font-size: 16px;
@@ -1654,11 +1452,11 @@
 
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-bottom:16px;">
       <div style="display:flex;align-items:start;gap:16px;margin-bottom:20px;">
-        <div id="detailPageIcon" style="width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;background:#fff2f0;color:#cf1322;">E</div>
+        <div id="detailPageIcon" style="width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;background:rgba(207,19,34,0.15);color:#cf1322;">E</div>
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <span id="detailPageTag" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#fff2f0;color:#cf1322;border:1px solid #ffccc7;">ERR-001</span>
-            <span id="detailPageType" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#f5f5f5;color:#595959;border:1px solid #d9d9d9;">Error</span>
+            <span id="detailPageTag" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:rgba(207,19,34,0.15);color:#cf1322;border:1px solid rgba(207,19,34,0.3);">ERR-001</span>
+            <span id="detailPageType" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#1e1e22;color:#a0a0a0;border:1px solid #3a3a3e;">Error</span>
           </div>
           <h2 id="detailPageTitle" style="font-size:22px;font-weight:700;color:var(--text-primary);">错误状态后果差异未分级</h2>
         </div>
@@ -1723,11 +1521,11 @@
 
     <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-bottom:16px;">
       <div style="display:flex;align-items:start;gap:16px;margin-bottom:20px;">
-        <div id="detailPageIcon" style="width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;background:#fff2f0;color:#cf1322;">E</div>
+        <div id="detailPageIcon" style="width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;background:rgba(207,19,34,0.15);color:#cf1322;">E</div>
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <span id="detailPageTag" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#fff2f0;color:#cf1322;border:1px solid #ffccc7;">ERR-001</span>
-            <span id="detailPageType" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#f5f5f5;color:#595959;border:1px solid #d9d9d9;">Error</span>
+            <span id="detailPageTag" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:rgba(207,19,34,0.15);color:#cf1322;border:1px solid rgba(207,19,34,0.3);">ERR-001</span>
+            <span id="detailPageType" style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#1e1e22;color:#a0a0a0;border:1px solid #3a3a3e;">Error</span>
           </div>
           <h2 id="detailPageTitle" style="font-size:22px;font-weight:700;color:var(--text-primary);">错误状态后果差异未分级</h2>
         </div>
@@ -2778,26 +2576,26 @@ function runClassifier() {
       </div>
     </div>`;
   } else if (matched.key === 'transient') {
-    optimizedUI = `<div style="background:#f5f5f5;border:1px solid #d9d9d9;padding:10px;border-radius:6px;">
+    optimizedUI = `<div style="background:#1e1e22;border:1px solid #3a3a3e;padding:10px;border-radius:6px;">
       <div style="display:flex;align-items:center;gap:6px;">
-        <div style="width:12px;height:12px;border:2px solid #666;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>
-        <span style="font-size:14px;color:#595959;font-weight:600;">网络连接不稳定</span>
+        <div style="width:12px;height:12px;border:2px solid #888;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>
+        <span style="font-size:14px;color:#a0a0a0;font-weight:600;">网络连接不稳定</span>
       </div>
       <p style="font-size:14px;color:var(--text-tertiary);margin-top:4px;font-weight:500;">正在自动重试（第 2/3 次）...</p>
     </div>`;
   } else if (matched.key === 'retryable') {
     optimizedUI = `<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);padding:10px;border-radius:6px;">
-      <p style="font-size:14px;color:#d48806;font-weight:700;">请求频率已达上限</p>
-      <p style="font-size:14px;color:#d48806;margin-top:4px;font-weight:500;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
+      <p style="font-size:14px;color:#f5a623;font-weight:700;">请求频率已达上限</p>
+      <p style="font-size:14px;color:#f5a623;margin-top:4px;font-weight:500;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
       <div style="display:flex;gap:6px;margin-top:8px;">
         <span style="font-size:14px;background:#f59e0b;color:#1e1e1e;padding:3px 8px;border-radius:4px;font-weight:600;">升级 Plus</span>
-        <span style="font-size:14px;border:1px solid rgba(245,158,11,0.3);color:#d48806;padding:3px 8px;border-radius:4px;font-weight:600;">设置提醒</span>
+        <span style="font-size:14px;border:1px solid rgba(245,158,11,0.3);color:#f5a623;padding:3px 8px;border-radius:4px;font-weight:600;">设置提醒</span>
       </div>
     </div>`;
   } else if (matched.key === 'degraded') {
     optimizedUI = `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);padding:10px;border-radius:6px;">
-      <p style="font-size:14px;color:#0958d9;font-weight:700;">部分响应生成失败</p>
-      <p style="font-size:14px;color:#0958d9;margin-top:4px;font-weight:500;">已生成的内容仍然有效，可继续生成剩余部分。</p>
+      <p style="font-size:14px;color:#4a9eff;font-weight:700;">部分响应生成失败</p>
+      <p style="font-size:14px;color:#4a9eff;margin-top:4px;font-weight:500;">已生成的内容仍然有效，可继续生成剩余部分。</p>
       <div style="margin-top:8px;">
         <span style="font-size:14px;background:#3b82f6;color:#fff;padding:3px 8px;border-radius:4px;font-weight:600;">继续生成</span>
       </div>
@@ -2897,7 +2695,7 @@ llm_constraints:
   },
   err001: {
     type: 'Error',
-    tag: 'ERR-001', tagStyle: 'border-color:rgba(239,68,68,0.3);color:#cf1322;background:#fff2f0;',
+    tag: 'ERR-001', tagStyle: 'border-color:rgba(239,68,68,0.3);color:#cf1322;background:rgba(207,19,34,0.15);',
     title: '错误状态后果差异未分级',
     intent: '按错误性质分级，用户知道多严重',
     design: 'Fatal 红脉冲 / Transient 灰 / Retryable 黄 / Degraded 蓝',
@@ -2922,7 +2720,7 @@ llm_constraints:
   },
   pro001: {
     type: 'Process',
-    tag: 'PRO-001', tagStyle: 'border-color:rgba(245,158,11,0.3);color:#d48806;background:#fffbe6;',
+    tag: 'PRO-001', tagStyle: 'border-color:rgba(245,158,11,0.3);color:#f5a623;background:rgba(212,136,6,0.15);',
     title: '过程状态认知阶段未显化',
     intent: '让用户知道 AI 在查资料还是编答案',
     design: '检索蓝 / 综合黄 / 验证绿 / 生成紫',
@@ -2947,7 +2745,7 @@ llm_constraints:
   },
   bnd001: {
     type: 'Boundary',
-    tag: 'BND-001', tagStyle: 'border-color:rgba(59,130,246,0.3);color:#0958d9;background:#e6f4ff;',
+    tag: 'BND-001', tagStyle: 'border-color:rgba(59,130,246,0.3);color:#4a9eff;background:rgba(22,119,255,0.15);',
     title: '边界动作权利差异未区分',
     intent: '拒绝请求（继续聊）vs 终止会话（清空）',
     design: '拒绝黄（保留输入框）/ 终止红（退出面板）',
@@ -3023,7 +2821,7 @@ function showPatternDetail(id) {
     { label: '工程实现（断裂）', text: data.engineering }
   ];
   const symptomHTML = symptoms.map(s => `
-    <div style="background:#fafafa;border:1px solid var(--border);padding:12px;border-radius:8px;">
+    <div style="background:#16161a;border:1px solid var(--border);padding:12px;border-radius:8px;">
       <div style="font-size:12px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">${s.label}</div>
       <div style="font-size:14px;color:var(--text-primary);font-weight:500;">${s.text}</div>
     </div>
@@ -3043,20 +2841,20 @@ function showPatternDetail(id) {
   // 填充验证工具集
   document.getElementById('detailVerifyContent').innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin-bottom:16px;">
-      <div style="background:#fafafa;border:1px solid var(--border);padding:12px;text-align:center;border-radius:8px;">
+      <div style="background:#16161a;border:1px solid var(--border);padding:12px;text-align:center;border-radius:8px;">
         <div style="font-size:28px;font-weight:800;color:var(--text-primary);">${data.unit}</div>
         <div style="font-size:13px;color:var(--text-tertiary);font-weight:600;">单元测试用例</div>
       </div>
-      <div style="background:#fafafa;border:1px solid var(--border);padding:12px;text-align:center;border-radius:8px;">
+      <div style="background:#16161a;border:1px solid var(--border);padding:12px;text-align:center;border-radius:8px;">
         <div style="font-size:28px;font-weight:800;color:var(--text-primary);">${data.integration}</div>
         <div style="font-size:13px;color:var(--text-tertiary);font-weight:600;">集成测试用例</div>
       </div>
-      <div style="background:#fafafa;border:1px solid var(--border);padding:12px;text-align:center;border-radius:8px;">
+      <div style="background:#16161a;border:1px solid var(--border);padding:12px;text-align:center;border-radius:8px;">
         <div style="font-size:28px;font-weight:800;color:var(--text-primary);">${data.regression}</div>
         <div style="font-size:13px;color:var(--text-tertiary);font-weight:600;">回归测试案例</div>
       </div>
     </div>
-    <div style="background:#fafafa;border:1px solid var(--border);padding:12px;border-radius:8px;">
+    <div style="background:#16161a;border:1px solid var(--border);padding:12px;border-radius:8px;">
       <div style="font-size:13px;color:var(--text-tertiary);font-weight:600;margin-bottom:8px;">通过准则</div>
       <div style="font-size:14px;color:var(--text-secondary);font-weight:500;line-height:1.8;">
         <div>• 单元测试：100% 通过</div>
@@ -3318,26 +3116,26 @@ function runVTClassifier() {
       </div>
     </div>`;
   } else if (matched.key === 'transient') {
-    optimizedUI = `<div style="background:#f5f5f5;border:1px solid #d9d9d9;padding:10px;border-radius:6px;">
+    optimizedUI = `<div style="background:#1e1e22;border:1px solid #3a3a3e;padding:10px;border-radius:6px;">
       <div style="display:flex;align-items:center;gap:6px;">
-        <div style="width:12px;height:12px;border:2px solid #666;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>
-        <span style="font-size:14px;color:#595959;font-weight:600;">网络连接不稳定</span>
+        <div style="width:12px;height:12px;border:2px solid #888;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>
+        <span style="font-size:14px;color:#a0a0a0;font-weight:600;">网络连接不稳定</span>
       </div>
       <p style="font-size:14px;color:var(--text-tertiary);margin-top:4px;font-weight:500;">正在自动重试（第 2/3 次）...</p>
     </div>`;
   } else if (matched.key === 'retryable') {
     optimizedUI = `<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);padding:10px;border-radius:6px;">
-      <p style="font-size:14px;color:#d48806;font-weight:700;">请求频率已达上限</p>
-      <p style="font-size:14px;color:#d48806;margin-top:4px;font-weight:500;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
+      <p style="font-size:14px;color:#f5a623;font-weight:700;">请求频率已达上限</p>
+      <p style="font-size:14px;color:#f5a623;margin-top:4px;font-weight:500;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
       <div style="display:flex;gap:6px;margin-top:8px;">
         <span style="font-size:14px;background:#f59e0b;color:#1e1e1e;padding:3px 8px;border-radius:4px;font-weight:600;">升级 Plus</span>
-        <span style="font-size:14px;border:1px solid rgba(245,158,11,0.3);color:#d48806;padding:3px 8px;border-radius:4px;font-weight:600;">设置提醒</span>
+        <span style="font-size:14px;border:1px solid rgba(245,158,11,0.3);color:#f5a623;padding:3px 8px;border-radius:4px;font-weight:600;">设置提醒</span>
       </div>
     </div>`;
   } else if (matched.key === 'degraded') {
     optimizedUI = `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);padding:10px;border-radius:6px;">
-      <p style="font-size:14px;color:#0958d9;font-weight:700;">部分响应生成失败</p>
-      <p style="font-size:14px;color:#0958d9;margin-top:4px;font-weight:500;">已生成的内容仍然有效，可继续生成剩余部分。</p>
+      <p style="font-size:14px;color:#4a9eff;font-weight:700;">部分响应生成失败</p>
+      <p style="font-size:14px;color:#4a9eff;margin-top:4px;font-weight:500;">已生成的内容仍然有效，可继续生成剩余部分。</p>
       <div style="margin-top:8px;">
         <span style="font-size:14px;background:#3b82f6;color:#fff;padding:3px 8px;border-radius:4px;font-weight:600;">继续生成</span>
       </div>
@@ -3384,7 +3182,7 @@ function parseVTJson() {
       result.style.display = 'block';
       document.getElementById('vtJsonResultContent').innerHTML = `
         <div style="display:flex;align-items:start;gap:12px;">
-          <span style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:#e6f4ff;color:#0958d9;border:1px solid #91caff;">匹配成功</span>
+          <span style="font-size:12px;padding:2px 8px;border-radius:4px;font-weight:700;background:rgba(22,119,255,0.15);color:#4a9eff;border:1px solid rgba(22,119,255,0.3);">匹配成功</span>
           <div>
             <p style="font-size:14px;color:var(--text-primary);font-weight:700;">匹配到模式：${matchedId}</p>
             <p style="font-size:14px;color:var(--text-secondary);font-weight:500;">${patternData[matchedId].title}</p>
@@ -3580,26 +3378,26 @@ function analyzeError() {
       </div>
     </div>`;
   } else if (matched.key === 'transient') {
-    optimizedUI = `<div style="background:#f5f5f5;border:1px solid #d9d9d9;padding:10px;border-radius:6px;">
+    optimizedUI = `<div style="background:#1e1e22;border:1px solid #3a3a3e;padding:10px;border-radius:6px;">
       <div style="display:flex;align-items:center;gap:6px;">
-        <div style="width:12px;height:12px;border:2px solid #666;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>
-        <span style="font-size:14px;color:#595959;font-weight:600;">网络连接不稳定</span>
+        <div style="width:12px;height:12px;border:2px solid #888;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>
+        <span style="font-size:14px;color:#a0a0a0;font-weight:600;">网络连接不稳定</span>
       </div>
       <p style="font-size:14px;color:var(--text-tertiary);margin-top:4px;font-weight:500;">正在自动重试（第 2/3 次）...</p>
     </div>`;
   } else if (matched.key === 'retryable') {
     optimizedUI = `<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);padding:10px;border-radius:6px;">
-      <p style="font-size:14px;color:#d48806;font-weight:700;">请求频率已达上限</p>
-      <p style="font-size:14px;color:#d48806;margin-top:4px;font-weight:500;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
+      <p style="font-size:14px;color:#f5a623;font-weight:700;">请求频率已达上限</p>
+      <p style="font-size:14px;color:#f5a623;margin-top:4px;font-weight:500;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
       <div style="display:flex;gap:6px;margin-top:8px;">
         <span style="font-size:14px;background:#f59e0b;color:#1e1e1e;padding:3px 8px;border-radius:4px;font-weight:600;">升级 Plus</span>
-        <span style="font-size:14px;border:1px solid rgba(245,158,11,0.3);color:#d48806;padding:3px 8px;border-radius:4px;font-weight:600;">设置提醒</span>
+        <span style="font-size:14px;border:1px solid rgba(245,158,11,0.3);color:#f5a623;padding:3px 8px;border-radius:4px;font-weight:600;">设置提醒</span>
       </div>
     </div>`;
   } else if (matched.key === 'degraded') {
     optimizedUI = `<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);padding:10px;border-radius:6px;">
-      <p style="font-size:14px;color:#0958d9;font-weight:700;">部分响应生成失败</p>
-      <p style="font-size:14px;color:#0958d9;margin-top:4px;font-weight:500;">已生成的内容仍然有效，可继续生成剩余部分。</p>
+      <p style="font-size:14px;color:#4a9eff;font-weight:700;">部分响应生成失败</p>
+      <p style="font-size:14px;color:#4a9eff;margin-top:4px;font-weight:500;">已生成的内容仍然有效，可继续生成剩余部分。</p>
       <div style="margin-top:8px;">
         <span style="font-size:14px;background:#3b82f6;color:#fff;padding:3px 8px;border-radius:4px;font-weight:600;">继续生成</span>
       </div>

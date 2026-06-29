@@ -159,6 +159,10 @@
     transform: translateY(-2px);
   }
   .card-item.hidden { display: none; }
+  .card-item.highlight-match {
+    border-color: #4ade80;
+    box-shadow: 0 0 0 2px rgba(74,222,128,0.3), 0 8px 24px rgba(0,0,0,0.3);
+  }
   .card-header {
     padding: 16px 16px 10px;
     border-bottom: 1px solid var(--border);
@@ -523,6 +527,15 @@
     color: #fff;
     border-color: var(--primary);
   }
+  .search-result-box {
+    display: none;
+    background: rgba(22,119,255,0.05);
+    border: 1px solid rgba(22,119,255,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+  }
+  .search-result-box.show { display: block; }
 
   /* Footer */
   .footer {
@@ -711,56 +724,148 @@
     font-weight: 700;
   }
 
-  /* Title collapse */
-  .title-area {
-    transition: all 0.3s ease;
-    overflow: hidden;
-    max-height: 300px;
-    opacity: 1;
+  /* ===== THREE LAYER DIAGNOSIS EMBEDDED ===== */
+  .diagnosis-embedded {
+    margin-bottom: 32px;
   }
-  .title-area.collapsed {
-    max-height: 0;
-    opacity: 0;
-    margin-bottom: 0;
-    padding: 0;
+  .diagnosis-embedded .step-active {
+    background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(74,222,128,0.03));
+    border-color: rgba(74,222,128,0.3);
+  }
+  .diagnosis-embedded .step-inactive {
+    background: rgba(255,255,255,0.02);
+    border-color: rgba(255,255,255,0.06);
+  }
+  .diagnosis-embedded .option-card {
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .diagnosis-embedded .option-card:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(74,222,128,0.2);
+  }
+  .diagnosis-embedded .option-selected {
+    background: rgba(74,222,128,0.08);
+    border-color: rgba(74,222,128,0.4);
+  }
+  .diagnosis-embedded .layer-badge {
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .diagnosis-embedded .result-card {
+    animation: slideUp 0.4s ease-out;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .diagnosis-embedded .highlight-green { color: #4ade80; }
+  .diagnosis-embedded .highlight-red { color: #f87171; }
+  .diagnosis-embedded .highlight-amber { color: #fbbf24; }
+  .diagnosis-embedded .highlight-blue { color: #60a5fa; }
+
+  /* Diagnosis trigger area */
+  .diagnosis-trigger {
+    background: linear-gradient(135deg, rgba(22,119,255,0.08), rgba(54,207,201,0.05));
+    border: 1px dashed rgba(22,119,255,0.3);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .diagnosis-trigger:hover {
+    border-color: rgba(22,119,255,0.6);
+    background: linear-gradient(135deg, rgba(22,119,255,0.12), rgba(54,207,201,0.08));
+  }
+  .diagnosis-trigger-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .diagnosis-trigger-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .diagnosis-trigger-text h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+  .diagnosis-trigger-text p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .diagnosis-trigger-btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .diagnosis-trigger-btn:hover {
+    background: var(--primary-hover);
   }
 
-  /* No cards state - text list */
-  .text-list-container {
+  /* Diagnosis flow area */
+  .diagnosis-flow {
+    display: none;
+  }
+  .diagnosis-flow.show {
+    display: block;
+  }
+
+  /* Large search in pipeline page */
+  .pipeline-search-area {
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 24px;
-    display: none;
+    margin-bottom: 24px;
   }
-  .text-list-container.show {
-    display: block;
+  .pipeline-search-box {
+    position: relative;
+    width: 100%;
   }
-  .text-list-title {
-    font-size: 16px;
-    font-weight: 700;
+  .pipeline-search-box input {
+    width: 100%;
+    padding: 14px 20px 14px 48px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
     color: var(--text-primary);
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-  }
-  .text-list-item {
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    font-size: 14px;
-    color: var(--text-secondary);
+    font-size: 15px;
     font-weight: 500;
-    display: flex;
-    align-items: start;
-    gap: 8px;
+    outline: none;
+    transition: all 0.3s;
   }
-  .text-list-item:last-child {
-    border-bottom: none;
+  .pipeline-search-box input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(22,119,255,0.15);
   }
-  .text-list-check {
-    color: var(--primary);
-    font-weight: 700;
-    flex-shrink: 0;
+  .pipeline-search-box .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    font-size: 16px;
   }
 </style>
 <base target="_blank">
@@ -802,7 +907,8 @@
       <span>Schema-As-Code</span>
     </div>
     <div class="nav-center">
-      <a onclick="switchPage('overview')" data-nav="overview" class="active">Semantic Pipeline</a>
+      <a onclick="switchPage('overview')" data-nav="overview" class="active">Overview</a>
+      <a onclick="switchPage('semantic-pipeline')" data-nav="semantic-pipeline">Semantic Pipeline</a>
       <a onclick="switchPage('contract')" data-nav="contract">Contract Library</a>
       <a onclick="switchPage('verify')" data-nav="verify">Validation Toolkit</a>
     </div>
@@ -819,55 +925,309 @@
   </div>
 </div>
 
-<!-- ==================== PAGE: OVERVIEW (阶段一) ==================== -->
+<!-- ==================== PAGE: OVERVIEW (首页只保留 Hero) ==================== -->
 <div class="page active" id="page-overview">
   <div class="cards-section">
     <div style="margin-bottom: 32px;">
-      <div class="title-area" id="overviewTitleArea">
-        <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 16px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
-          <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
-          <span>Schema-As-Code 工程实现 · 三阶段流水线</span>
-        </div>
-        <h1 style="font-size: 40px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; color: var(--text-primary); letter-spacing: -0.02em;">
-          <span style="background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Schema-As-Code</span>
-        </h1>
-        <p style="font-size: 16px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; margin-bottom: 28px; font-weight: 500;">
-          Schema-As-Code 是一条三阶段流水线：发现问题（Guard）→ 写契约（Contract）→ 证明有效（Verify）。<br>
-          不是三个工具，是一个工作流。让 AI 生成的内容在到达视觉层和工程层之前，先过一遍语义审查。
-        </p>
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 16px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 工程实现 · 三阶段流水线</span>
       </div>
+      <h1 style="font-size: 40px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; color: var(--text-primary); letter-spacing: -0.02em;">
+        <span style="background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Schema-As-Code</span>
+      </h1>
+      <p style="font-size: 16px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; margin-bottom: 28px; font-weight: 500;">
+        Schema-As-Code 是一条三阶段流水线：发现问题（Guard）→ 写契约（Contract）→ 证明有效（Verify）。<br>
+        不是三个工具，是一个工作流。让 AI 生成的内容在到达视觉层和工程层之前，先过一遍语义审查。
+      </p>
 
-      <!-- Search + Filter -->
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
-        <div class="search-box">
+      <!-- Search -->
+      <div style="display: flex; align-items: center; gap: 12px; max-width: 600px;">
+        <div class="pipeline-search-box" style="flex: 1;">
           <span class="search-icon">🔍</span>
-          <input type="text" placeholder="搜索模式、组件类型、语义令牌..." id="searchInput" onfocus="collapseTitle()" onblur="expandTitle()" onkeydown="if(event.key==='Enter'){filterCards();}">
+          <input type="text" placeholder="搜索模式、组件类型、语义令牌..." onclick="switchPage('semantic-pipeline')" style="cursor: pointer;">
         </div>
-        <button onclick="filterCards()" style="padding: 10px 20px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; white-space: nowrap; transition: all 0.2s;">诊断匹配</button>
-        <div class="search-tags">
-          <div class="search-tag active" onclick="filterCategory('all', this)">ALL</div>
-          <div class="search-tag" onclick="filterCategory('error', this)">Error</div>
-          <div class="search-tag" onclick="filterCategory('process', this)">Process</div>
-          <div class="search-tag" onclick="filterCategory('boundary', this)">Boundary</div>
-          <div class="search-tag" onclick="filterCategory('action', this)">Action</div>
-          <div class="search-tag" onclick="filterCategory('alert', this)">Alert</div>
-        </div>
-      </div>
-
-      <!-- Search Result Box -->
-      <div id="searchResultBox" class="search-result-box">
-        <p style="font-size: 14px; color: var(--primary); font-weight: 600;">诊断匹配：找到 <span id="searchMatchCount">0</span> 个模式，点击卡片查看详情</p>
-      </div>
-
-      <!-- Text List Container (No Cards State) -->
-      <div id="textListContainer" class="text-list-container">
-        <div class="text-list-title" id="textListTitle">诊断匹配结果</div>
-        <div id="textListContent"></div>
+        <button onclick="switchPage('semantic-pipeline')" style="padding: 14px 28px; border-radius: 10px; background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; border: none; cursor: pointer; white-space: nowrap; transition: all 0.2s;">
+          进入诊断 →
+        </button>
       </div>
     </div>
 
-    <!-- 6 Cards -->
-    <div class="cards-grid" id="cardsGrid">
+    <!-- Empty below -->
+    <div style="min-height: 40vh;"></div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: SEMANTIC PIPELINE (独立页面) ==================== -->
+<div class="page" id="page-semantic-pipeline">
+  <div class="cards-section" style="padding-top: 80px;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <button onclick="switchPage('overview')" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+        <span>←</span> Overview
+      </button>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Semantic Pipeline</span>
+    </div>
+
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Semantic Pipeline <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">阶段一 · 模式诊断</span></h1>
+    <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 32px; font-weight: 500;">6 个已验证漂移模式 · 结构化问诊 · 语义分级器。从症状到契约，一站式诊断。</p>
+
+    <!-- Search Area -->
+    <div class="pipeline-search-area">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div class="pipeline-search-box" style="flex: 1;">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="pipelineSearchInput" placeholder="搜索模式、组件类型、语义令牌..." onkeydown="if(event.key==='Enter'){expandDiagnosis();}">
+        </div>
+        <button onclick="expandDiagnosis()" style="padding: 14px 28px; border-radius: 10px; background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; border: none; cursor: pointer; white-space: nowrap; transition: all 0.2s;">
+          诊断匹配
+        </button>
+      </div>
+      <div class="search-tags">
+        <div class="search-tag active" onclick="filterPipelineCategory('all', this)">ALL</div>
+        <div class="search-tag" onclick="filterPipelineCategory('error', this)">Error</div>
+        <div class="search-tag" onclick="filterPipelineCategory('process', this)">Process</div>
+        <div class="search-tag" onclick="filterPipelineCategory('boundary', this)">Boundary</div>
+        <div class="search-tag" onclick="filterPipelineCategory('action', this)">Action</div>
+        <div class="search-tag" onclick="filterPipelineCategory('alert', this)">Alert</div>
+      </div>
+    </div>
+
+    <!-- Diagnosis Trigger -->
+    <div class="diagnosis-trigger" onclick="toggleDiagnosisFlow()">
+      <div class="diagnosis-trigger-left">
+        <div class="diagnosis-trigger-icon">3</div>
+        <div class="diagnosis-trigger-text">
+          <h4>结构化问诊入口（三层判定模型诊断器）</h4>
+          <p>回答 3 组问题，自动匹配语义断层模式，输出诊断报告与 YAML 契约</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diagnosis Flow (Embedded Three Layer Model) -->
+    <div id="diagnosisFlow" class="diagnosis-flow diagnosis-embedded show">
+
+      <!-- Three Layer Indicator -->
+      <div style="display: flex; align-items: center; justify-content: center; gap: 2px; margin-bottom: 24px; flex-wrap: wrap;">
+        <div id="sp-layer-1-indicator" class="layer-badge" style="background: rgba(74,222,128,0.15); color: #4ade80; padding: 6px 14px; border-radius: 100px; border: 1px solid rgba(74,222,128,0.3); font-weight: 600;">
+          第一层：组件类型识别
+        </div>
+        <div style="width: 24px; height: 2px; background: #2a2a2e;"></div>
+        <div id="sp-layer-2-indicator" class="layer-badge" style="background: #1a1a1e; color: #666; padding: 6px 14px; border-radius: 100px; border: 1px solid #2a2a2e; font-weight: 600;">
+          第二层：语义缺失判定
+        </div>
+        <div style="width: 24px; height: 2px; background: #2a2a2e;"></div>
+        <div id="sp-layer-3-indicator" class="layer-badge" style="background: #1a1a1e; color: #666; padding: 6px 14px; border-radius: 100px; border: 1px solid #2a2a2e; font-weight: 600;">
+          第三层：视觉表达校验
+        </div>
+      </div>
+
+      <!-- Layer 1: Component Type Classification -->
+      <div id="sp-layer-1" class="glass-card rounded-2xl p-6" style="border: 1px solid rgba(74,222,128,0.3); margin-bottom: 16px;">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style="background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.3); color: #4ade80;">1</div>
+          <div>
+            <h3 class="text-sm font-semibold text-white">第一层：组件类型识别</h3>
+            <p class="text-xs" style="color: #666;">Component Type Classification · 根据交互路径，而非视觉形态</p>
+          </div>
+        </div>
+
+        <p class="text-sm text-neutral-300 mb-4">用户在使用 AI 产品时，遇到了什么类型的界面？</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="sp-layer1-options">
+          <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spSelectLayer1('error')">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(239,68,68,0.1);">
+                <svg class="w-5 h-5" style="color: #f87171;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-white">错误提示</p>
+                <p class="text-xs text-neutral-500 mt-1">用户遭遇系统异常，操作被迫中断</p>
+                <p class="text-xs mt-1" style="color: #444;">例：报错、连接断开、服务繁忙</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spSelectLayer1('process')">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(96,165,250,0.1);">
+                <svg class="w-5 h-5" style="color: #60a5fa;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-white">过程指示</p>
+                <p class="text-xs text-neutral-500 mt-1">AI 执行多步任务，用户等待过程中可见</p>
+                <p class="text-xs mt-1" style="color: #444;">例：搜索中、思考中、生成中</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spSelectLayer1('boundary')">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(251,191,36,0.1);">
+                <svg class="w-5 h-5" style="color: #fbbf24;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-white">边界反馈</p>
+                <p class="text-xs text-neutral-500 mt-1">系统对请求作出拒绝、终止或升级审核响应</p>
+                <p class="text-xs mt-1" style="color: #444;">例：无法回答、会话已结束、需要审核</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spSelectLayer1('action')">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(168,85,247,0.1);">
+                <svg class="w-5 h-5" style="color: #a855f7;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m2.25 5.834l-1.59 1.59"/></svg>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-white">操作控件</p>
+                <p class="text-xs text-neutral-500 mt-1">用户主动发起，触发系统状态变更</p>
+                <p class="text-xs mt-1" style="color: #444;">例：删除、提交、确认按钮</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spSelectLayer1('status')">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background: rgba(6,182,212,0.1);">
+                <svg class="w-5 h-5" style="color: #22d3ee;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-white">状态提示</p>
+                <p class="text-xs text-neutral-500 mt-1">系统主动推送，提示用户注意风险或状态变化</p>
+                <p class="text-xs mt-1" style="color: #444;">例：告警卡片、系统通知、风险提示</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer 2: Semantic Deficiency Detection -->
+      <div id="sp-layer-2" class="glass-card rounded-2xl p-6" style="border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); display: none; margin-bottom: 16px;">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style="background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.3); color: #fbbf24;">2</div>
+          <div>
+            <h3 class="text-sm font-semibold text-white">第二层：语义缺失判定</h3>
+            <p class="text-xs" style="color: #666;">Semantic Deficiency Detection · 提取语义关键词，匹配缺失模式</p>
+          </div>
+        </div>
+
+        <p class="text-sm text-neutral-300 mb-4">用户的核心困惑是什么？（可多选）</p>
+
+        <div class="grid grid-cols-1 gap-3" id="sp-layer2-options">
+          <!-- Dynamic options based on layer 1 selection -->
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button onclick="spProceedToLayer3()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
+            进入第三层 →
+          </button>
+        </div>
+      </div>
+
+      <!-- Layer 3: Visual Expression Validation -->
+      <div id="sp-layer-3" class="glass-card rounded-2xl p-6" style="border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); display: none; margin-bottom: 16px;">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style="background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3); color: #60a5fa;">3</div>
+          <div>
+            <h3 class="text-sm font-semibold text-white">第三层：视觉表达校验</h3>
+            <p class="text-xs" style="color: #666;">Visual Expression Validation · 记录与语义级别不匹配的视觉映射</p>
+          </div>
+        </div>
+
+        <p class="text-sm text-neutral-300 mb-4">当前界面的视觉表达有什么特征？（可多选）</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="sp-layer3-options">
+          <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spToggleLayer3(this, 'color')">
+            <p class="text-sm font-medium text-white">颜色映射不匹配</p>
+            <p class="text-xs text-neutral-500 mt-1">所有错误都用红色，没有按严重程度区分</p>
+          </div>
+          <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spToggleLayer3(this, 'text')">
+            <p class="text-sm font-medium text-white">文案精度不足</p>
+            <p class="text-xs text-neutral-500 mt-1">使用模糊词汇（"出错了""请稍后"）或错误同义词</p>
+          </div>
+          <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spToggleLayer3(this, 'action')">
+            <p class="text-sm font-medium text-white">行动完整性缺失</p>
+            <p class="text-xs text-neutral-500 mt-1">没有提供与后果级别匹配的用户行动（刷新/等待/升级）</p>
+          </div>
+          <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spToggleLayer3(this, 'code')">
+            <p class="text-sm font-medium text-white">技术错误码暴露</p>
+            <p class="text-xs text-neutral-500 mt-1">429、500、DataInspectionFailed 等直接展示给用户</p>
+          </div>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button onclick="spGenerateDiagnosis()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
+            生成诊断报告 →
+          </button>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div id="sp-result-section" style="display: none;">
+        <!-- Diagnosis Report -->
+        <div class="glass-card rounded-2xl p-6 result-card" style="border: 1px solid rgba(74,222,128,0.2); margin-bottom: 16px;">
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.3);">
+              <svg class="w-4 h-4" style="color: #4ade80;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-semibold text-white">诊断报告</h3>
+              <p class="text-xs" style="color: #666;">三层判定完成 · 置信度基于关键词匹配度 + 视觉校验一致性</p>
+            </div>
+          </div>
+
+          <div id="sp-result-content" class="space-y-4">
+            <!-- Dynamic result -->
+          </div>
+        </div>
+
+        <!-- YAML Contract -->
+        <div class="glass-card rounded-2xl p-6 mt-4 result-card" style="border: 1px solid var(--border); margin-bottom: 16px;">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-white">对应 YAML 语义契约</h3>
+            <button onclick="spCopyResultYAML()" class="text-xs text-emerald-400 hover:text-emerald-300 transition bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
+              复制契约
+            </button>
+          </div>
+          <div id="sp-result-yaml" class="yaml-block rounded-lg p-4 overflow-x-auto">
+            <!-- Dynamic YAML -->
+          </div>
+        </div>
+
+        <!-- Next Action -->
+        <div class="glass-card rounded-2xl p-6 mt-4 result-card" style="border: 1px solid var(--border); margin-bottom: 24px;">
+          <h3 class="text-sm font-semibold text-white mb-3">下一步行动</h3>
+          <div id="sp-next-action" class="space-y-2">
+            <!-- Dynamic next actions -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Cards Grid -->
+    <!-- 视图切换页签 -->
+    <div id="viewTabs" style="display: none; margin-bottom: 20px; border-bottom: 1px solid var(--border);">
+      <div style="display: flex; gap: 0;">
+        <button id="tab-diagnosis" onclick="showDiagnosisReport()" style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--primary); background: none; border: none; border-bottom: 2px solid var(--primary); cursor: pointer;">诊断报告</button>
+        <button id="tab-all" onclick="showAllPatterns()" style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;">全部模式</button>
+      </div>
+    </div>
+
+    <div id="searchResultBox" class="search-result-box">
+      <p style="font-size: 14px; color: var(--primary); font-weight: 600;">诊断匹配：找到 <span id="searchMatchCount">0</span> 个模式，点击卡片查看详情</p>
+    </div>
+
+    <!-- 诊断报告视图 -->
+    <div id="diagnosisReportView" style="display: none;">
+      <div id="embeddedDiagnosisReport"></div>
+    </div>
+
+    <!-- 全部模式视图 -->
+    <div id="allPatternsView" style="display: none;">
+      <div class="cards-grid" id="pipelineCardsGrid">
       <div class="card-item" data-category="action" data-id="ACT-001" data-search="Button 按钮 删除账户 高危操作 蓝色实心 二次确认 ACT-001" onclick="showPatternDetail('act001')">
         <div class="card-header">
           <div class="card-id">ACT-001</div>
@@ -1009,6 +1369,7 @@
         </div>
       </div>
     </div>
+    </div> <!-- /allPatternsView -->
   </div>
 </div>
 
@@ -1561,12 +1922,257 @@ rules:
   }
 };
 
+// ===== Three Layer Diagnosis Data =====
+const spLayer2Options = {
+  error: [
+    { id: 'severity', text: '"不知道多严重""不知道该做什么""后果不明"', desc: '后果差异未分级', pattern: 'ERR-001' },
+    { id: 'recover', text: '"刷新还是等待？""对话还在吗？"', desc: '恢复路径不明确', pattern: 'ERR-001' },
+    { id: 'confuse', text: '"为什么又是红色？""这个和刚才那个有什么区别？"', desc: '视觉层级混乱', pattern: 'ERR-001' }
+  ],
+  process: [
+    { id: 'stage', text: '"不知道在干什么""检索还是生成？""可信度不明"', desc: '认知阶段未显化', pattern: 'PRO-001' },
+    { id: 'trust', text: '"这个结果可靠吗？""AI 是在猜还是查出来的？"', desc: '可信度不可见', pattern: 'PRO-001' },
+    { id: 'time', text: '"还要等多久？""卡住了吗？"', desc: '进度语义缺失', pattern: 'PRO-001' }
+  ],
+  boundary: [
+    { id: 'right', text: '"上下文还在吗？""还能继续吗？""权利不明"', desc: '会话状态未区分', pattern: 'BND-001' },
+    { id: 'appeal', text: '"为什么被封？""能申诉吗？"', desc: '拒绝原因不透明', pattern: 'BND-001' },
+    { id: 'data', text: '"我的数据丢了吗？""历史记录还在吗？"', desc: '数据保留政策不明', pattern: 'BND-001' }
+  ],
+  action: [
+    { id: 'risk', text: '"点了会出大事吗？""能撤销吗？""风险不明"', desc: '操作风险未标注', pattern: 'ACT-001' },
+    { id: 'confirm', text: '"这就直接删了？""没有确认吗？"', desc: '二次确认缺失', pattern: 'ACT-001' },
+    { id: 'undo', text: '"误触了怎么办？""能恢复吗？"', desc: '撤销路径缺失', pattern: 'ACT-001' }
+  ],
+  status: [
+    { id: 'weight', text: '"这个词严重程度如何？""是否忽略？""权重不明"', desc: '语义权重未对齐', pattern: 'ALR-001' },
+    { id: 'word', text: '"Critical 和严重有什么区别？""为什么用词不一样？"', desc: '同义词混用', pattern: 'ALR-001' },
+    { id: 'ignore', text: '"这个告警需要处理吗？""还是只是通知？"', desc: '行动优先级不明', pattern: 'ALR-001' }
+  ]
+};
+
+const spPatternDetails = {
+  'ERR-001': {
+    name: '后果差异未分级',
+    component: '错误状态',
+    missing: 'error_severity 语义令牌',
+    severity: '安全类（最高优先级）',
+    yaml: `intent_id: "ERR-001"
+semantic_domain: "observational"
+
+semantic_tokens:
+  error_severity:
+    fatal:
+      description: "系统级故障，对话上下文可能丢失"
+      visual_mapping:
+        color_token: "status.critical"
+        motion_token: "pulse.red.urgent"
+        icon_token: "alert.octagon"
+      user_action:
+        - label: "刷新页面"
+          action: "refresh"
+        - label: "导出历史"
+          action: "export_history"
+
+    transient:
+      description: "网络抖动，系统可自动恢复"
+      visual_mapping:
+        color_token: "status.neutral"
+        motion_token: "spinner"
+        icon_token: "loader"
+      user_action:
+        - label: "等待自动恢复"
+          action: "wait"
+        - label: "手动重试"
+          action: "retry"
+
+    retryable:
+      description: "请求频率已达上限"
+      visual_mapping:
+        color_token: "status.warning"
+        motion_token: "none"
+        icon_token: "clock"
+      user_action:
+        - label: "等待倒计时"
+          action: "wait_countdown"
+        - label: "升级套餐"
+          action: "upgrade"
+
+    degraded:
+      description: "部分功能可用，可继续生成"
+      visual_mapping:
+        color_token: "status.info"
+        motion_token: "none"
+        icon_token: "info.circle"
+      user_action:
+        - label: "继续生成"
+          action: "continue"
+        - label: "简化问题重试"
+          action: "retry_simplified"`,
+    actions: [
+      '将本 YAML 保存为 intent/err-001.yaml',
+      '在 AI 生成错误状态前，将本契约编译为 Prompt 前缀',
+      '使用错误状态语义分级器验证生成结果'
+    ]
+  },
+  'PRO-001': {
+    name: '认知阶段未显化',
+    component: '过程状态',
+    missing: 'process_phase 语义令牌',
+    severity: '认知类',
+    yaml: `intent_id: "PRO-001"
+semantic_domain: "observational"
+
+semantic_tokens:
+  process_phase:
+    retrieval:
+      description: "从外部来源获取原始信息"
+      visual_mapping:
+        color_token: "phase.research"
+        icon_token: "search"
+      llm_constraints: ["必须显示已检索到的来源数量"]
+
+    synthesis:
+      description: "对比多源信息，识别共识与分歧"
+      visual_mapping:
+        color_token: "phase.analysis"
+        icon_token: "brain"
+      llm_constraints: ["必须显化共识度指标"]
+
+    verification:
+      description: "核对引用锚点与原文一致性"
+      visual_mapping:
+        color_token: "phase.check"
+        icon_token: "shield"
+      llm_constraints: ["必须验证引用链接可访问"]
+
+    generation:
+      description: "基于验证后的信息生成最终答案"
+      visual_mapping:
+        color_token: "phase.output"
+        icon_token: "document"
+      llm_constraints: ["必须附带完整引用索引"]`,
+    actions: [
+      '将本 YAML 保存为 intent/pro-001.yaml',
+      '在 AI 生成过程状态时，按阶段切换视觉表达',
+      '使用过程状态语义分级器验证阶段显化'
+    ]
+  },
+  'BND-001': {
+    name: '权利差异未区分',
+    component: '边界动作',
+    missing: 'boundary_action 语义令牌',
+    severity: '安全类（最高优先级）',
+    yaml: `intent_id: "BND-001"
+semantic_domain: "transactional"
+
+semantic_tokens:
+  boundary_action:
+    refusal:
+      description: "基于安全策略拒绝特定请求，但保留会话上下文"
+      visual_mapping:
+        color_token: "boundary.soft"
+        icon_token: "hand"
+      user_impact:
+        session_state: "active"
+        retry_allowed: true
+
+    termination:
+      description: "检测到严重违规，强制终止会话并清空上下文"
+      visual_mapping:
+        color_token: "boundary.hard"
+        icon_token: "door"
+      user_impact:
+        session_state: "terminated"
+        new_session_required: true
+
+    escalation:
+      description: "升级人工审核"
+      visual_mapping:
+        color_token: "boundary.review"
+        icon_token: "shield"`,
+    actions: [
+      '将本 YAML 保存为 intent/bnd-001.yaml',
+      '在 AI 生成边界反馈时，区分拒绝与终止的视觉表达',
+      '确保用户明确知道数据保留政策和申诉路径'
+    ]
+  },
+  'ACT-001': {
+    name: '高危操作未约束',
+    component: '操作按钮',
+    missing: 'destructive_action 语义约束',
+    severity: '安全类（最高优先级）',
+    yaml: `intent_id: "ACT-001"
+semantic_domain: "transactional"
+
+immutable_boundaries:
+  - boundary_type: "safety"
+    rule: "禁止直接执行删除操作而不显示二次确认"
+    violation_action: "block"
+
+semantic_tokens:
+  destructive_action:
+    description: "不可逆的数据销毁操作"
+    visual_mapping:
+      color_token: "status.critical"
+      button_style: "outline_danger"
+    llm_constraints:
+      - "必须包含二次确认弹窗"
+      - "文案必须明确说明'此操作不可恢复'"
+      - "必须提供取消选项，且视觉权重不低于确认按钮"`,
+    actions: [
+      '将本 YAML 保存为 intent/act-001.yaml',
+      '在 AI 生成操作按钮时，检查 action_type 是否为 destructive',
+      '使用操作按钮语义校验器验证高危操作约束'
+    ]
+  },
+  'ALR-001': {
+    name: '语义弱化',
+    component: '告警状态',
+    missing: 'synonym_firewall 同义词约束',
+    severity: '认知类',
+    yaml: `intent_id: "ALR-001"
+semantic_domain: "observational"
+
+synonym_firewall:
+  prohibited:
+    - term: "严重"
+      standard_token: "Critical"
+      context: "system_alert"
+      reason: "情绪权重降级，用户可能低估故障严重性"
+    - term: "紧急"
+      standard_token: "Critical"
+      context: "system_alert"
+      reason: "与 P1 告警级别混淆"
+
+semantic_tokens:
+  alert_severity:
+    critical:
+      description: "系统级故障，需要立即响应"
+      visual_mapping:
+        color_token: "status.critical"
+        motion_token: "pulse.red.urgent"
+      llm_constraints:
+        - "必须提供明确的恢复路径或人工支持入口"
+        - "禁止仅显示'严重'等模糊文案"`,
+    actions: [
+      '将本 YAML 保存为 intent/alr-001.yaml',
+      '在 AI 生成告警文案时，注入同义词防火墙前缀',
+      '使用告警语义校验器验证关键词替换'
+    ]
+  }
+};
+
 // ===== State =====
 let currentRole = 'designer';
 let currentDetailId = null;
 let previousPage = 'overview';
 let modalCurrentFormat = 'yaml';
 let modalCurrentId = null;
+
+// SP Diagnosis State
+let spSelections = { layer1: null, layer2: [], layer3: [] };
+let spDiagnosisFlowOpen = false;
 
 // ===== Page Switching =====
 function switchPage(page) {
@@ -1581,108 +2187,390 @@ function switchPage(page) {
   window.scrollTo(0, 0);
 }
 
-// ===== Title Collapse / Expand =====
-function collapseTitle() {
-  document.getElementById('overviewTitleArea').classList.add('collapsed');
-}
-function expandTitle() {
-  // Only expand if search is empty
-  const val = document.getElementById('searchInput').value.trim();
-  if (!val) {
-    document.getElementById('overviewTitleArea').classList.remove('collapsed');
+// ===== Diagnosis Flow Toggle =====
+function toggleDiagnosisFlow() {
+  // 诊断流程默认展开，不再支持收起
+  const flow = document.getElementById('diagnosisFlow');
+  if (!flow.classList.contains('show')) {
+    flow.classList.add('show');
+    spDiagnosisFlowOpen = true;
   }
 }
 
-// ===== Card Search & Filter =====
-function filterCards() {
-  const query = document.getElementById('searchInput').value.trim().toLowerCase();
-  const resultBox = document.getElementById('searchResultBox');
-  const matchCountEl = document.getElementById('searchMatchCount');
-  const textListContainer = document.getElementById('textListContainer');
-  const cardsGrid = document.getElementById('cardsGrid');
-
-  if (!query) {
-    document.querySelectorAll('.card-item').forEach(card => card.classList.remove('hidden'));
-    resultBox.classList.remove('show');
-    textListContainer.classList.remove('show');
-    cardsGrid.style.display = 'grid';
-    return;
+function expandDiagnosis() {
+  switchPage('semantic-pipeline');
+  const flow = document.getElementById('diagnosisFlow');
+  if (!flow.classList.contains('show')) {
+    flow.classList.add('show');
+    spDiagnosisFlowOpen = true;
   }
+}
 
-  // Hide title
-  document.getElementById('overviewTitleArea').classList.add('collapsed');
+// ===== SP Layer 1 =====
+function spSelectLayer1(type) {
+  spSelections.layer1 = type;
+  spSelections.layer2 = [];
+  spSelections.layer3 = [];
 
-  // Check if it's a checklist content (from modal diagnostic match)
-  const checklistPatterns = ['高危操作按钮走查清单', '错误状态走查清单', '过程状态走查清单', '边界动作走查清单', '告警文案走查清单'];
-  const isChecklistQuery = checklistPatterns.some(cp => query.includes(cp.toLowerCase()));
-
-  if (isChecklistQuery) {
-    // Show text list, hide cards
-    cardsGrid.style.display = 'none';
-    textListContainer.classList.add('show');
-    resultBox.classList.remove('show');
-
-    // Generate text list content
-    let listHtml = '';
-    if (query.includes('高危操作')) {
-      listHtml = `
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>按钮是否为 outline_danger 样式？</span></div>
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>是否包含二次确认弹窗？</span></div>
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>文案是否明确说明"不可恢复"？</span></div>
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>取消按钮视觉权重是否不低于确认按钮？</span></div>
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>是否引用意图契约 DEL-001？</span></div>
-      `;
-      document.getElementById('textListTitle').textContent = '高危操作按钮走查清单';
-    } else if (query.includes('错误状态')) {
-      listHtml = `
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>是否区分了 Fatal/Transient/Retryable/Degraded 四级？</span></div>
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>每级是否有不同的颜色（红/灰/黄/蓝）？</span></div>
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>每级是否有明确的用户行动指引？</span></div>
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>Fatal 是否有恢复路径（刷新/导出）？</span></div>
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>Retryable 是否有倒计时或升级入口？</span></div>
-        <div class="text-list-item"><span class="text-list-check">☐</span><span>是否引用了意图契约 ERR-001？</span></div>
-      `;
-      document.getElementById('textListTitle').textContent = '错误状态走查清单';
-    }
-    document.getElementById('textListContent').innerHTML = listHtml;
-    return;
-  }
-
-  // Normal search - show cards
-  textListContainer.classList.remove('show');
-  cardsGrid.style.display = 'grid';
-
-  const queryWords = query.split(/\s+/).filter(w => w.length > 0);
-  let matchCount = 0;
-
-  document.querySelectorAll('.card-item').forEach(card => {
-    const data = (card.getAttribute('data-search') || '').toLowerCase();
-    const isMatch = data.includes(query) || queryWords.some(qw => data.includes(qw));
-    if (isMatch) {
-      card.classList.remove('hidden');
-      matchCount++;
-    } else {
-      card.classList.add('hidden');
-    }
+  document.querySelectorAll('#sp-layer1-options .option-card').forEach(el => {
+    el.classList.remove('option-selected');
   });
+  event.currentTarget.classList.add('option-selected');
 
-  matchCountEl.textContent = matchCount;
-  resultBox.classList.add('show');
+  // Show layer 2
+  document.getElementById('sp-layer-2').style.display = 'block';
+  document.getElementById('sp-layer-2-indicator').style.cssText = 'background: rgba(251,191,36,0.15); color: #fbbf24; padding: 6px 14px; border-radius: 100px; border: 1px solid rgba(251,191,36,0.3); font-weight: 600;';
+
+  // Populate layer 2 options
+  const container = document.getElementById('sp-layer2-options');
+  container.innerHTML = spLayer2Options[type].map(opt => `
+    <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spToggleLayer2(this, '${opt.id}', '${opt.pattern}')">
+      <div class="flex items-start gap-3">
+        <div class="w-5 h-5 rounded border border-neutral-600 flex items-center justify-center shrink-0 mt-0.5" data-checkbox="${opt.id}">
+          <div class="w-3 h-3 rounded bg-emerald-400 hidden"></div>
+        </div>
+        <div>
+          <p class="text-sm text-neutral-300">${opt.text}</p>
+          <p class="text-xs text-neutral-500 mt-1">→ 语义缺失类型：${opt.desc}</p>
+          <p class="text-xs mt-0.5" style="color: rgba(251,191,36,0.7);">→ 匹配模式：${opt.pattern}</p>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // Hide result
+  document.getElementById('sp-result-section').style.display = 'none';
+
+  document.getElementById('sp-layer-2').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function filterCategory(cat, el) {
-  document.querySelectorAll('.search-tag').forEach(t => t.classList.remove('active'));
+function spToggleLayer2(el, id, pattern) {
+  const checkbox = el.querySelector('[data-checkbox]');
+  const checkmark = checkbox.querySelector('div');
+
+  if (spSelections.layer2.includes(id)) {
+    spSelections.layer2 = spSelections.layer2.filter(i => i !== id);
+    el.classList.remove('option-selected');
+    checkmark.classList.add('hidden');
+  } else {
+    spSelections.layer2.push(id);
+    el.classList.add('option-selected');
+    checkmark.classList.remove('hidden');
+  }
+}
+
+function spProceedToLayer3() {
+  if (spSelections.layer2.length === 0) {
+    alert('请至少选择一个语义缺失类型');
+    return;
+  }
+
+  document.getElementById('sp-layer-3').style.display = 'block';
+  document.getElementById('sp-layer-3-indicator').style.cssText = 'background: rgba(96,165,250,0.15); color: #60a5fa; padding: 6px 14px; border-radius: 100px; border: 1px solid rgba(96,165,250,0.3); font-weight: 600;';
+
+  document.getElementById('sp-layer-3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function spToggleLayer3(el, id) {
+  if (spSelections.layer3.includes(id)) {
+    spSelections.layer3 = spSelections.layer3.filter(i => i !== id);
+    el.classList.remove('option-selected');
+  } else {
+    spSelections.layer3.push(id);
+    el.classList.add('option-selected');
+  }
+}
+
+function spGenerateDiagnosis() {
+  if (spSelections.layer3.length === 0) {
+    alert('请至少选择一个视觉表达特征');
+    return;
+  }
+
+  // Determine dominant pattern
+  const patterns = spLayer2Options[spSelections.layer1].filter(opt => spSelections.layer2.includes(opt.id)).map(opt => opt.pattern);
+  const dominantPattern = patterns[0];
+
+  const detail = spPatternDetails[dominantPattern];
+  const confidence = Math.min(0.95, 0.6 + (spSelections.layer2.length * 0.1) + (spSelections.layer3.length * 0.05));
+
+  // Show result
+  document.getElementById('sp-result-section').style.display = 'block';
+
+  // 生成匹配的模式卡片HTML
+  const matchedPatterns = [...new Set(patterns)];
+  let cardsHtml = '';
+  if (matchedPatterns.length === 1) {
+    const p = matchedPatterns[0];
+    const d = spPatternDetails[p];
+    cardsHtml = `
+      <div class="card-item" style="cursor: pointer; max-width: 400px;" onclick="showPatternDetail('${p.toLowerCase()}')">
+        <div class="card-header">
+          <div class="card-id">${p}</div>
+          <span class="card-tag" style="font-size: 15px; padding: 3px 10px; border-radius: 4px; font-weight: 600; background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3);">已匹配</span>
+        </div>
+        <div class="card-name">${d.name}</div>
+        <div class="card-desc">${d.component} · ${d.missing}</div>
+        <div style="padding: 16px; display: flex; align-items: flex-end; justify-content: space-between;">
+          <span style="font-size: 14px; color: var(--text-tertiary); font-weight: 600;">点击查看详情 →</span>
+        </div>
+      </div>
+    `;
+  } else {
+    cardsHtml = `<div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin;">` + 
+      matchedPatterns.map(p => {
+        const d = spPatternDetails[p];
+        return `
+          <div class="card-item" style="cursor: pointer; min-width: 280px; flex-shrink: 0;" onclick="showPatternDetail('${p.toLowerCase()}')">
+            <div class="card-header">
+              <div class="card-id">${p}</div>
+              <span class="card-tag" style="font-size: 15px; padding: 3px 10px; border-radius: 4px; font-weight: 600; background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3);">已匹配</span>
+            </div>
+            <div class="card-name">${d.name}</div>
+            <div class="card-desc">${d.component} · ${d.missing}</div>
+            <div style="padding: 16px; display: flex; align-items: flex-end; justify-content: space-between;">
+              <span style="font-size: 14px; color: var(--text-tertiary); font-weight: 600;">点击查看详情 →</span>
+            </div>
+          </div>
+        `;
+      }).join('') + `</div>`;
+  }
+
+  document.getElementById('sp-result-content').innerHTML = `
+    <!-- 匹配模式卡片 -->
+    <div style="margin-bottom: 20px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <p class="text-xs text-neutral-500" style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">匹配模式</p>
+        <a href="javascript:void(0)" onclick="showAllPatternsFromDiagnosis()" style="font-size: 13px; color: var(--primary); font-weight: 600; text-decoration: none;">查看全部模式 →</a>
+      </div>
+      ${cardsHtml}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-neutral-900 rounded-xl p-4">
+        <p class="text-xs text-neutral-500 mb-2">匹配模式</p>
+        <div class="flex items-center gap-2">
+          <span class="tag bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded font-bold">${dominantPattern}</span>
+          <span class="text-sm text-white">${detail.name}</span>
+        </div>
+        <p class="text-xs text-neutral-400 mt-2">组件类型：${detail.component}</p>
+      </div>
+      <div class="bg-neutral-900 rounded-xl p-4">
+        <p class="text-xs text-neutral-500 mb-2">置信度</p>
+        <div class="flex items-center gap-2">
+          <div class="flex-1 bg-neutral-800 rounded-full h-2">
+            <div class="bg-emerald-400 h-2 rounded-full" style="width: ${confidence * 100}%"></div>
+          </div>
+          <span class="text-sm text-emerald-400 font-medium">${(confidence * 100).toFixed(0)}%</span>
+        </div>
+        <p class="text-xs text-neutral-500 mt-2">基于 ${spSelections.layer2.length} 个语义缺失 + ${spSelections.layer3.length} 个视觉校验项</p>
+      </div>
+    </div>
+    <div class="bg-neutral-900 rounded-xl p-4 mt-4">
+      <p class="text-xs text-neutral-500 mb-2">缺失的语义维度</p>
+      <p class="text-sm text-neutral-300">${detail.missing}</p>
+      <p class="text-xs text-neutral-500 mt-3 mb-2">优先级</p>
+      <p class="text-sm text-amber-400">${detail.severity}</p>
+    </div>
+  `;
+
+  document.getElementById('sp-result-yaml').innerHTML = `<pre class="text-xs leading-relaxed text-neutral-300">${detail.yaml}</pre>`;
+
+  document.getElementById('sp-next-action').innerHTML = detail.actions.map((action, i) => `
+    <div class="flex items-start gap-3">
+      <span class="text-xs text-emerald-400 font-bold mt-0.5">${i + 1}</span>
+      <p class="text-sm text-neutral-300">${action}</p>
+    </div>
+  `).join('');
+
+  // Highlight matched card
+  document.querySelectorAll('#pipelineCardsGrid .card-item').forEach(card => {
+    card.classList.remove('highlight-match');
+  });
+  const matchedCard = document.querySelector(`#pipelineCardsGrid .card-item[data-id="${dominantPattern}"]`);
+  if (matchedCard) {
+    matchedCard.classList.add('highlight-match');
+  }
+
+  // 显示视图切换页签
+  document.getElementById('viewTabs').style.display = 'block';
+  document.getElementById('tab-diagnosis').style.cssText = 'padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--primary); background: none; border: none; border-bottom: 2px solid var(--primary); cursor: pointer;';
+  document.getElementById('tab-all').style.cssText = 'padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;';
+
+  document.getElementById('sp-result-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function spCopyResultYAML() {
+  const yaml = document.getElementById('sp-result-yaml').innerText;
+  navigator.clipboard.writeText(yaml);
+  alert('YAML 契约已复制到剪贴板');
+}
+
+// ===== 视图切换 =====
+function showAllPatterns() {
+  document.getElementById('diagnosisReportView').style.display = 'none';
+  document.getElementById('allPatternsView').style.display = 'block';
+  document.getElementById('viewTabs').style.display = 'block';
+  document.getElementById('tab-diagnosis').style.cssText = 'padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;';
+  document.getElementById('tab-all').style.cssText = 'padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--primary); background: none; border: none; border-bottom: 2px solid var(--primary); cursor: pointer;';
+  document.getElementById('sp-result-section').style.display = 'none';
+  document.getElementById('diagnosisFlow').style.display = 'none';
+  document.querySelector('.diagnosis-trigger').style.display = 'none';
+  document.querySelector('.pipeline-search-area').style.display = 'none';
+}
+
+function showDiagnosisReport() {
+  document.getElementById('allPatternsView').style.display = 'none';
+  document.getElementById('diagnosisReportView').style.display = 'block';
+  document.getElementById('viewTabs').style.display = 'block';
+  document.getElementById('tab-all').style.cssText = 'padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;';
+  document.getElementById('tab-diagnosis').style.cssText = 'padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--primary); background: none; border: none; border-bottom: 2px solid var(--primary); cursor: pointer;';
+  document.getElementById('sp-result-section').style.display = 'block';
+  document.getElementById('diagnosisFlow').style.display = 'block';
+  document.querySelector('.diagnosis-trigger').style.display = 'flex';
+  document.querySelector('.pipeline-search-area').style.display = 'block';
+}
+
+function showAllPatternsFromDiagnosis() {
+  showAllPatterns();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== 搜索自动诊断 =====
+const autoDiagnosisMap = [
+  { keywords: ['error', 'stream', 'message', '中断', '断开', '连接失败', '出错了'], layer1: 'error', layer2: ['severity'], layer3: ['color'] },
+  { keywords: ['429', 'too many', 'throttling', '限流', '请求过于频繁', '服务繁忙', 'rate limit', 'quota'], layer1: 'error', layer2: ['severity'], layer3: ['color'] },
+  { keywords: ['network', '网络错误', 'network error', '加载失败', '超时', 'timeout'], layer1: 'error', layer2: ['recover'], layer3: ['color'] },
+  { keywords: ['something went wrong', 'something wrong', '创造失败', '服务异常', 'degraded'], layer1: 'error', layer2: ['confuse'], layer3: ['text'] },
+  { keywords: ['searching', 'reading', 'wrapping', '检索', '搜索中', '思考中', '生成中', 'process'], layer1: 'process', layer2: ['stage'], layer3: ['color'] },
+  { keywords: ['refuse', 'terminate', '拒绝', '终止', '会话结束', 'chat ended', 'boundary'], layer1: 'boundary', layer2: ['right'], layer3: ['action'] },
+  { keywords: ['delete', '删除', '销毁', 'remove', '高危操作', 'destructive', '不可逆'], layer1: 'action', layer2: ['risk'], layer3: ['action'] },
+  { keywords: ['alert', 'critical', '严重', '告警', 'warning', '同义词', 'synonym'], layer1: 'status', layer2: ['weight'], layer3: ['text'] },
+  { keywords: ['button', '按钮', 'confirm', '确认', 'submit'], layer1: 'action', layer2: ['confirm'], layer3: ['action'] },
+  { keywords: ['modal', '弹窗', 'dialog', 'dialogue'], layer1: 'boundary', layer2: ['appeal'], layer3: ['action'] }
+];
+
+function runAutoDiagnosis(input) {
+  if (!input || input.trim().length < 2) return;
+  const lower = input.trim().toLowerCase();
+
+  let bestMatch = null;
+  let maxScore = 0;
+
+  for (const rule of autoDiagnosisMap) {
+    let score = 0;
+    for (const kw of rule.keywords) {
+      if (lower.includes(kw.toLowerCase())) score += 1;
+    }
+    if (score > maxScore) {
+      maxScore = score;
+      bestMatch = rule;
+    }
+  }
+
+  if (bestMatch && maxScore > 0) {
+    // 自动填充选择
+    spSelections.layer1 = bestMatch.layer1;
+    spSelections.layer2 = [...bestMatch.layer2];
+    spSelections.layer3 = [...bestMatch.layer3];
+
+    // 确保诊断流程展开
+    const flow = document.getElementById('diagnosisFlow');
+    if (!flow.classList.contains('show')) {
+      flow.classList.add('show');
+      spDiagnosisFlowOpen = true;
+    }
+
+    // 自动高亮第一层选项
+    document.querySelectorAll('#sp-layer1-options .option-card').forEach(el => el.classList.remove('option-selected'));
+    const l1Options = document.querySelectorAll('#sp-layer1-options .option-card');
+    const typeMap = { error: 0, process: 1, boundary: 2, action: 3, status: 4 };
+    const idx = typeMap[bestMatch.layer1];
+    if (idx !== undefined && l1Options[idx]) {
+      l1Options[idx].classList.add('option-selected');
+    }
+
+    // 自动填充第二层
+    document.getElementById('sp-layer-2').style.display = 'block';
+    document.getElementById('sp-layer-2').classList.remove('step-inactive');
+    document.getElementById('sp-layer-2').classList.add('step-active');
+    document.getElementById('sp-layer-2-indicator').style.cssText = 'background: rgba(251,191,36,0.15); color: #fbbf24; padding: 6px 14px; border-radius: 100px; border: 1px solid rgba(251,191,36,0.3); font-weight: 600;';
+
+    // 触发第二层选项生成并自动选中
+    const container = document.getElementById('sp-layer2-options');
+    container.innerHTML = spLayer2Options[bestMatch.layer1].map(opt => `
+      <div class="option-card glass-card rounded-xl p-4 border ${bestMatch.layer2.includes(opt.id) ? 'option-selected' : ''}" style="border-color: rgba(255,255,255,0.08);" onclick="spToggleLayer2(this, '${opt.id}', '${opt.pattern}')">
+        <div class="flex items-start gap-3">
+          <div class="w-5 h-5 rounded border border-neutral-600 flex items-center justify-center shrink-0 mt-0.5" data-checkbox="${opt.id}">
+            <div class="w-3 h-3 rounded bg-emerald-400 ${bestMatch.layer2.includes(opt.id) ? '' : 'hidden'}"></div>
+          </div>
+          <div>
+            <p class="text-sm text-neutral-300">${opt.text}</p>
+            <p class="text-xs text-neutral-500 mt-1">→ 语义缺失类型：${opt.desc}</p>
+            <p class="text-xs text-amber-400/70 mt-0.5">→ 匹配模式：${opt.pattern}</p>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    // 自动填充第三层
+    document.getElementById('sp-layer-3').style.display = 'block';
+    document.getElementById('sp-layer-3').classList.remove('step-inactive');
+    document.getElementById('sp-layer-3').classList.add('step-active');
+    document.getElementById('sp-layer-3-indicator').style.cssText = 'background: rgba(96,165,250,0.15); color: #60a5fa; padding: 6px 14px; border-radius: 100px; border: 1px solid rgba(96,165,250,0.3); font-weight: 600;';
+
+    document.querySelectorAll('#sp-layer3-options .option-card').forEach(el => {
+      el.classList.remove('option-selected');
+    });
+    bestMatch.layer3.forEach(id => {
+      const el = document.querySelector(`#sp-layer3-options .option-card[onclick*="'${id}'"]"`);
+      if (el) el.classList.add('option-selected');
+    });
+
+    // 自动执行诊断
+    spGenerateDiagnosis();
+
+    // 滚动到结果
+    setTimeout(() => {
+      document.getElementById('sp-result-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+}
+
+// 绑定搜索框事件
+function bindSearchAutoDiagnosis() {
+  const searchInput = document.getElementById('pipelineSearchInput');
+  if (searchInput) {
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        runAutoDiagnosis(this.value);
+      }
+    });
+  }
+}
+
+// 页面加载时绑定
+document.addEventListener('DOMContentLoaded', bindSearchAutoDiagnosis);
+
+// ===== Pipeline Category Filter =====
+function filterPipelineCategory(cat, el) {
+  document.querySelectorAll('#page-semantic-pipeline .search-tag').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  document.querySelectorAll('.card-item').forEach(card => {
+  document.querySelectorAll('#pipelineCardsGrid .card-item').forEach(card => {
     if (cat === 'all' || card.dataset.category === cat) {
       card.classList.remove('hidden');
     } else {
       card.classList.add('hidden');
     }
   });
-  document.getElementById('searchResultBox').classList.remove('show');
-  document.getElementById('textListContainer').classList.remove('show');
-  document.getElementById('cardsGrid').style.display = 'grid';
+}
+
+// ===== Card Search & Filter (Overview) =====
+function filterCards() {
+  const query = document.getElementById('searchInput').value.trim().toLowerCase();
+  if (!query) return;
+  switchPage('semantic-pipeline');
+  document.getElementById('pipelineSearchInput').value = query;
+  expandDiagnosis();
 }
 
 // ===== Modal System =====

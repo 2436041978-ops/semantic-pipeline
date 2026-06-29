@@ -4,7 +4,71 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Schema-As-Code · Semantic Pipeline</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.tailwindcss.com">
+function spScrollToYAML() {
+  document.getElementById('sp-result-yaml').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function runLazyMode() {
+  const input = document.getElementById('lazyInput').value.trim();
+  if (!input) return;
+
+  const lower = input.toLowerCase();
+  let extracted = {
+    component_type: "Alert",
+    visual: { color: "red", background: "solid", icon: "warning" },
+    copy: { title: "Error", description: input, tone: "urgent" },
+    interaction: { dismissible: true, actions: ["retry"] },
+    context: "system_error"
+  };
+
+  let matchedPattern = null;
+
+  if (lower.includes('429') || lower.includes('频繁') || lower.includes('限流') || lower.includes('throttling') || lower.includes('服务繁忙')) {
+    extracted.visual.color = "yellow";
+    extracted.copy.title = "Too Many Requests";
+    extracted.interaction.actions = ["wait", "upgrade"];
+    matchedPattern = 'ERR-001 (retryable)';
+  } else if (lower.includes('网络') || lower.includes('network') || lower.includes('超时') || lower.includes('timeout')) {
+    extracted.visual.color = "gray";
+    extracted.copy.title = "Network Error";
+    extracted.interaction.actions = ["retry"];
+    matchedPattern = 'ERR-001 (transient)';
+  } else if (lower.includes('断开') || lower.includes('stream') || lower.includes('中断') || lower.includes('interrupted')) {
+    extracted.visual.color = "red";
+    extracted.copy.title = "Error in Message Stream";
+    extracted.interaction.actions = ["refresh", "export"];
+    matchedPattern = 'ERR-001 (fatal)';
+  } else if (lower.includes('wrong') || lower.includes('失败') || lower.includes('异常') || lower.includes('degraded')) {
+    extracted.visual.color = "blue";
+    extracted.copy.title = "Something Went Wrong";
+    extracted.interaction.actions = ["continue", "retry"];
+    matchedPattern = 'ERR-001 (degraded)';
+  }
+
+  document.getElementById('lazyResult').style.display = 'block';
+  document.getElementById('lazyExtractedFields').innerHTML = `
+    <div style="font-family: 'SF Mono', monospace; font-size: 13px; line-height: 1.6; color: #e5e5e5; white-space: pre-wrap;">${JSON.stringify(extracted, null, 2)}</div>
+    ${matchedPattern ? `<div style="margin-top: 12px; padding: 8px 12px; background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); border-radius: 6px;"><span style="font-size: 13px; color: #4ade80; font-weight: 600;">✓ 自动匹配到模式：${matchedPattern}</span></div>` : ''}
+  `;
+}
+
+function fillLazyToJson() {
+  const result = document.getElementById('lazyExtractedFields').querySelector('div').innerText;
+  document.getElementById('vtJsonInput').value = result;
+  document.getElementById('lazyResult').style.display = 'none';
+  showToast('已填充到 JSON 编辑器');
+}
+
+function clearLazyResult() {
+  document.getElementById('lazyResult').style.display = 'none';
+  document.getElementById('lazyInput').value = '';
+}
+
+function spScrollToAction() {
+  document.getElementById('sp-next-action').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -1033,7 +1097,7 @@
           </div>
         </div>
 
-        <p class="text-sm text-neutral-300 mb-4">用户在使用 AI 产品时，遇到了什么类型的界面？</p>
+        <p class="text-base text-white mb-4" style="font-size: 16px; font-weight: 500;">用户在使用 AI 产品时，遇到了什么类型的界面？</p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="sp-layer1-options">
           <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spSelectLayer1('error')">
@@ -1042,9 +1106,9 @@
                 <svg class="w-5 h-5" style="color: #f87171;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
               </div>
               <div>
-                <p class="text-sm font-medium text-white">错误提示</p>
-                <p class="text-xs text-neutral-500 mt-1">用户遭遇系统异常，操作被迫中断</p>
-                <p class="text-xs mt-1" style="color: #444;">例：报错、连接断开、服务繁忙</p>
+                <p class="text-base font-semibold text-white" style="font-size: 16px;">错误提示</p>
+                <p class="text-sm text-neutral-400 mt-1" style="font-size: 14px;">用户遭遇系统异常，操作被迫中断</p>
+                <p class="text-sm mt-1" style="color: #666; font-size: 14px;">例：报错、连接断开、服务繁忙</p>
               </div>
             </div>
           </div>
@@ -1055,9 +1119,9 @@
                 <svg class="w-5 h-5" style="color: #60a5fa;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               </div>
               <div>
-                <p class="text-sm font-medium text-white">过程指示</p>
-                <p class="text-xs text-neutral-500 mt-1">AI 执行多步任务，用户等待过程中可见</p>
-                <p class="text-xs mt-1" style="color: #444;">例：搜索中、思考中、生成中</p>
+                <p class="text-base font-semibold text-white" style="font-size: 16px;">过程指示</p>
+                <p class="text-sm text-neutral-400 mt-1" style="font-size: 14px;">AI 执行多步任务，用户等待过程中可见</p>
+                <p class="text-sm mt-1" style="color: #666; font-size: 14px;">例：搜索中、思考中、生成中</p>
               </div>
             </div>
           </div>
@@ -1068,9 +1132,9 @@
                 <svg class="w-5 h-5" style="color: #fbbf24;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
               </div>
               <div>
-                <p class="text-sm font-medium text-white">边界反馈</p>
-                <p class="text-xs text-neutral-500 mt-1">系统对请求作出拒绝、终止或升级审核响应</p>
-                <p class="text-xs mt-1" style="color: #444;">例：无法回答、会话已结束、需要审核</p>
+                <p class="text-base font-semibold text-white" style="font-size: 16px;">边界反馈</p>
+                <p class="text-sm text-neutral-400 mt-1" style="font-size: 14px;">系统对请求作出拒绝、终止或升级审核响应</p>
+                <p class="text-sm mt-1" style="color: #666; font-size: 14px;">例：无法回答、会话已结束、需要审核</p>
               </div>
             </div>
           </div>
@@ -1081,9 +1145,9 @@
                 <svg class="w-5 h-5" style="color: #a855f7;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m2.25 5.834l-1.59 1.59"/></svg>
               </div>
               <div>
-                <p class="text-sm font-medium text-white">操作控件</p>
-                <p class="text-xs text-neutral-500 mt-1">用户主动发起，触发系统状态变更</p>
-                <p class="text-xs mt-1" style="color: #444;">例：删除、提交、确认按钮</p>
+                <p class="text-base font-semibold text-white" style="font-size: 16px;">操作控件</p>
+                <p class="text-sm text-neutral-400 mt-1" style="font-size: 14px;">用户主动发起，触发系统状态变更</p>
+                <p class="text-sm mt-1" style="color: #666; font-size: 14px;">例：删除、提交、确认按钮</p>
               </div>
             </div>
           </div>
@@ -1094,9 +1158,9 @@
                 <svg class="w-5 h-5" style="color: #22d3ee;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
               </div>
               <div>
-                <p class="text-sm font-medium text-white">状态提示</p>
-                <p class="text-xs text-neutral-500 mt-1">系统主动推送，提示用户注意风险或状态变化</p>
-                <p class="text-xs mt-1" style="color: #444;">例：告警卡片、系统通知、风险提示</p>
+                <p class="text-base font-semibold text-white" style="font-size: 16px;">状态提示</p>
+                <p class="text-sm text-neutral-400 mt-1" style="font-size: 14px;">系统主动推送，提示用户注意风险或状态变化</p>
+                <p class="text-sm mt-1" style="color: #666; font-size: 14px;">例：告警卡片、系统通知、风险提示</p>
               </div>
             </div>
           </div>
@@ -1113,7 +1177,7 @@
           </div>
         </div>
 
-        <p class="text-sm text-neutral-300 mb-4">用户的核心困惑是什么？（可多选）</p>
+        <p class="text-base text-white mb-4" style="font-size: 16px; font-weight: 500;">用户的核心困惑是什么？（可多选）</p>
 
         <div class="grid grid-cols-1 gap-3" id="sp-layer2-options">
           <!-- Dynamic options based on layer 1 selection -->
@@ -1136,24 +1200,24 @@
           </div>
         </div>
 
-        <p class="text-sm text-neutral-300 mb-4">当前界面的视觉表达有什么特征？（可多选）</p>
+        <p class="text-base text-white mb-4" style="font-size: 16px; font-weight: 500;">当前界面的视觉表达有什么特征？（可多选）</p>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="sp-layer3-options">
           <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spToggleLayer3(this, 'color')">
-            <p class="text-sm font-medium text-white">颜色映射不匹配</p>
-            <p class="text-xs text-neutral-500 mt-1">所有错误都用红色，没有按严重程度区分</p>
+            <p class="text-base font-semibold text-white" style="font-size: 16px;">颜色映射不匹配</p>
+            <p class="text-sm text-neutral-400 mt-1" style="font-size: 14px;">所有错误都用红色，没有按严重程度区分</p>
           </div>
           <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spToggleLayer3(this, 'text')">
-            <p class="text-sm font-medium text-white">文案精度不足</p>
-            <p class="text-xs text-neutral-500 mt-1">使用模糊词汇（"出错了""请稍后"）或错误同义词</p>
+            <p class="text-base font-semibold text-white" style="font-size: 16px;">文案精度不足</p>
+            <p class="text-sm text-neutral-400 mt-1" style="font-size: 14px;">使用模糊词汇（"出错了""请稍后"）或错误同义词</p>
           </div>
           <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spToggleLayer3(this, 'action')">
-            <p class="text-sm font-medium text-white">行动完整性缺失</p>
-            <p class="text-xs text-neutral-500 mt-1">没有提供与后果级别匹配的用户行动（刷新/等待/升级）</p>
+            <p class="text-base font-semibold text-white" style="font-size: 16px;">行动完整性缺失</p>
+            <p class="text-sm text-neutral-400 mt-1" style="font-size: 14px;">没有提供与后果级别匹配的用户行动（刷新/等待/升级）</p>
           </div>
           <div class="option-card glass-card rounded-xl p-4 border" style="border-color: rgba(255,255,255,0.08);" onclick="spToggleLayer3(this, 'code')">
-            <p class="text-sm font-medium text-white">技术错误码暴露</p>
-            <p class="text-xs text-neutral-500 mt-1">429、500、DataInspectionFailed 等直接展示给用户</p>
+            <p class="text-base font-semibold text-white" style="font-size: 16px;">技术错误码暴露</p>
+            <p class="text-sm text-neutral-400 mt-1" style="font-size: 14px;">429、500、DataInspectionFailed 等直接展示给用户</p>
           </div>
         </div>
 
@@ -1168,14 +1232,19 @@
       <div id="sp-result-section" style="display: none;">
         <!-- Diagnosis Report -->
         <div class="glass-card rounded-2xl p-6 result-card" style="border: 1px solid rgba(74,222,128,0.2); margin-bottom: 16px;">
-          <div class="flex items-center gap-3 mb-5">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.3);">
-              <svg class="w-4 h-4" style="color: #4ade80;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.3);">
+                <svg class="w-4 h-4" style="color: #4ade80;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold text-white">诊断报告</h3>
+                <p class="text-xs" style="color: #666;">三层判定完成 · 置信度基于关键词匹配度 + 视觉校验一致性</p>
+              </div>
             </div>
-            <div>
-              <h3 class="text-sm font-semibold text-white">诊断报告</h3>
-              <p class="text-xs" style="color: #666;">三层判定完成 · 置信度基于关键词匹配度 + 视觉校验一致性</p>
-            </div>
+            <button onclick="showAllPatterns()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
+              查看全部模式 →
+            </button>
           </div>
 
           <div id="sp-result-content" class="space-y-4">
@@ -1208,16 +1277,17 @@
     </div>
 
     <!-- Cards Grid -->
-    <!-- 视图切换页签 -->
-    <div id="viewTabs" style="display: none; margin-bottom: 20px; border-bottom: 1px solid var(--border);">
-      <div style="display: flex; gap: 0;">
-        <button id="tab-diagnosis" onclick="showDiagnosisReport()" style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--primary); background: none; border: none; border-bottom: 2px solid var(--primary); cursor: pointer;">诊断报告</button>
-        <button id="tab-all" onclick="showAllPatterns()" style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;">全部模式</button>
-      </div>
-    </div>
+
 
     <div id="searchResultBox" class="search-result-box">
       <p style="font-size: 14px; color: var(--primary); font-weight: 600;">诊断匹配：找到 <span id="searchMatchCount">0</span> 个模式，点击卡片查看详情</p>
+    </div>
+
+    <!-- 视图页签导航 -->
+    <div id="viewTabs" style="display: none; margin-bottom: 24px; border-bottom: 1px solid var(--border);">
+      <button id="tab-diagnosis" onclick="showDiagnosisReport()" style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s;">诊断报告</button>
+      <button id="tab-all" onclick="showAllPatterns()" style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s;">全部模式</button>
+      <button id="tab-detail" onclick="return false;" style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: default; display: none;">模式详情</button>
     </div>
 
     <!-- 诊断报告视图 -->
@@ -1228,7 +1298,7 @@
     <!-- 全部模式视图 -->
     <div id="allPatternsView" style="display: none;">
       <div class="cards-grid" id="pipelineCardsGrid">
-      <div class="card-item" data-category="action" data-id="ACT-001" data-search="Button 按钮 删除账户 高危操作 蓝色实心 二次确认 ACT-001" onclick="showPatternDetail('act001')">
+      <div class="card-item" data-category="action" data-id="ACT-001" data-search="Button 按钮 删除账户 高危操作 蓝色实心 二次确认 ACT-001" onclick="showPatternDetailInline('act001')">
         <div class="card-header">
           <div class="card-id">ACT-001</div>
           <span class="card-tag tag-purple">Destructive</span>
@@ -1247,7 +1317,7 @@
         </div>
       </div>
 
-      <div class="card-item" data-category="error" data-id="ERR-001" data-search="Alert 告警 错误状态 红色 多种错误 后果差异 ERR-001" onclick="showPatternDetail('err001')">
+      <div class="card-item" data-category="error" data-id="ERR-001" data-search="Alert 告警 错误状态 红色 多种错误 后果差异 ERR-001" onclick="showPatternDetailInline('err001')">
         <div class="card-header">
           <div class="card-id">ERR-001</div>
           <span class="card-tag tag-red">Error</span>
@@ -1269,7 +1339,7 @@
         </div>
       </div>
 
-      <div class="card-item" data-category="alert" data-id="ALR-001" data-search="Message 消息 告警文案 Critical 严重 同义词 ALR-001" onclick="showPatternDetail('alr001')">
+      <div class="card-item" data-category="alert" data-id="ALR-001" data-search="Message 消息 告警文案 Critical 严重 同义词 ALR-001" onclick="showPatternDetailInline('alr001')">
         <div class="card-header">
           <div class="card-id">ALR-001</div>
           <span class="card-tag tag-purple">Synonym</span>
@@ -1292,7 +1362,7 @@
         </div>
       </div>
 
-      <div class="card-item" data-category="process" data-id="PRO-001" data-search="Progress 进度 过程状态 Searching Reading Wrapping up 认知阶段 PRO-001" onclick="showPatternDetail('pro001')">
+      <div class="card-item" data-category="process" data-id="PRO-001" data-search="Progress 进度 过程状态 Searching Reading Wrapping up 认知阶段 PRO-001" onclick="showPatternDetailInline('pro001')">
         <div class="card-header">
           <div class="card-id">PRO-001</div>
           <span class="card-tag tag-amber">Process</span>
@@ -1319,7 +1389,7 @@
         </div>
       </div>
 
-      <div class="card-item" data-category="boundary" data-id="BND-001" data-search="Modal 弹窗 边界动作 拒绝 终止 权利差异 BND-001" onclick="showPatternDetail('bnd001')">
+      <div class="card-item" data-category="boundary" data-id="BND-001" data-search="Modal 弹窗 边界动作 拒绝 终止 权利差异 BND-001" onclick="showPatternDetailInline('bnd001')">
         <div class="card-header">
           <div class="card-id">BND-001</div>
           <span class="card-tag tag-blue">Boundary</span>
@@ -1344,7 +1414,7 @@
         </div>
       </div>
 
-      <div class="card-item" data-category="action" data-id="ACT-001-pop" data-search="Popconfirm 确认 删除 高危操作 二次确认 ACT-001" onclick="showPatternDetail('act001')">
+      <div class="card-item" data-category="action" data-id="ACT-001-pop" data-search="Popconfirm 确认 删除 高危操作 二次确认 ACT-001" onclick="showPatternDetailInline('act001')">
         <div class="card-header">
           <div class="card-id">ACT-001</div>
           <span class="card-tag tag-purple">Destructive</span>
@@ -1370,6 +1440,55 @@
       </div>
     </div>
     </div> <!-- /allPatternsView -->
+
+    <!-- 内联模式详情视图 -->
+    <div id="inlineDetailView" style="display: none;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: start; gap: 16px; margin-bottom: 20px;">
+          <div id="inlineDetailIcon" style="width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; background: rgba(207,19,34,0.15); color: #cf1322;">E</div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span id="inlineDetailTag" style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">ERR-001</span>
+              <span id="inlineDetailType" style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e;">Error</span>
+            </div>
+            <h2 id="inlineDetailTitle" style="font-size: 22px; font-weight: 700; color: var(--text-primary);">错误状态后果差异未分级</h2>
+          </div>
+        </div>
+        <p id="inlineDetailDesc" style="font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 24px; font-weight: 500;">多种错误共用红色，用户无法判断后果严重程度</p>
+
+        <!-- Inline Detail Tabs -->
+        <div class="detail-tabs" id="inlineDetailTabs">
+          <button class="detail-tab active" onclick="switchInlineDetailTab('symptom', this)">语义断层地图</button>
+          <button class="detail-tab" onclick="switchInlineDetailTab('rootcause', this)">模式诊断</button>
+          <button class="detail-tab" onclick="switchInlineDetailTab('contract', this)">编译输出</button>
+          <button class="detail-tab" onclick="switchInlineDetailTab('verify', this)">验证工具集</button>
+        </div>
+
+        <div class="detail-tab-content active" id="inline-tab-symptom">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">语义断层地图</p>
+          <div id="inlineSymptomContent" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;"></div>
+        </div>
+        <div class="detail-tab-content" id="inline-tab-rootcause">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">模式诊断</p>
+          <div id="inlineRootcauseContent" style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;"></div>
+        </div>
+        <div class="detail-tab-content" id="inline-tab-contract">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">编译输出（一份 YAML，四种消费格式）</p>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <button onclick="switchInlineContractFormat('yaml', this)" id="ict-yaml" style="padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid var(--primary); background: var(--primary); color: #fff; cursor: pointer;">YAML</button>
+            <button onclick="switchInlineContractFormat('prompt', this)" id="ict-prompt" style="padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-secondary); cursor: pointer;">Prompt 前缀</button>
+            <button onclick="switchInlineContractFormat('checklist', this)" id="ict-checklist" style="padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-secondary); cursor: pointer;">Checklist</button>
+            <button onclick="switchInlineContractFormat('ci', this)" id="ict-ci" style="padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-secondary); cursor: pointer;">CI 规则</button>
+          </div>
+          <div class="yaml-block" id="inlineContractContent" style="margin-bottom: 12px;"></div>
+          <button onclick="copyInlineContract()" style="padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid var(--primary); background: var(--primary); color: #fff; cursor: pointer;">复制</button>
+        </div>
+        <div class="detail-tab-content" id="inline-tab-verify">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">验证工具集</p>
+          <div id="inlineVerifyContent" style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1507,6 +1626,31 @@
     <!-- Tab 2: JSON 输入 -->
     <div class="tk-content" id="tk-json">
       <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px;">
+
+        <!-- 懒人模式 -->
+        <div style="background: linear-gradient(135deg, rgba(22,119,255,0.08), rgba(54,207,201,0.05)); border: 1px dashed rgba(22,119,255,0.3); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 16px;">⚡</span>
+            <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary);">懒人模式</h4>
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; background: rgba(22,119,255,0.15); color: var(--primary); font-weight: 600;">自动提取</span>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500;">粘贴一段错误文案或描述，系统自动提取关键字段并匹配模式。</p>
+          <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+            <input type="text" id="lazyInput" placeholder="例如：请求过于频繁，请稍后再试 / 网络错误 / 连接断开..." style="flex: 1; padding: 12px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; font-weight: 500; outline: none;">
+            <button onclick="runLazyMode()" style="padding: 12px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; white-space: nowrap;">自动提取</button>
+          </div>
+          <div id="lazyResult" style="display: none;">
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 12px;">
+              <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">提取结果</p>
+              <div id="lazyExtractedFields"></div>
+              <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                <button onclick="fillLazyToJson()" style="padding: 8px 16px; border-radius: 6px; background: var(--primary); color: #fff; font-size: 13px; font-weight: 600; border: none; cursor: pointer;">填充到 JSON 编辑器</button>
+                <button onclick="clearLazyResult()" style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;">清除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; font-weight: 500;">粘贴组件语义快照 JSON，系统自动匹配已知模式。用于快速诊断一个组件是否符合语义规范。</p>
         <textarea id="vtJsonInput" style="width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 13px; font-weight: 500; font-family: 'SF Mono', monospace; outline: none; resize: vertical; min-height: 200px;" placeholder='粘贴组件语义快照 JSON，例如：&#10;{&#10;  "component_type": "Alert",&#10;  "visual": { "color": "red", "background": "solid" },&#10;  "copy": { "title": "Error", "description": "Something went wrong" },&#10;  "context": "system_error"&#10;}'></textarea>
         <div style="display: flex; gap: 8px; margin-top: 12px;">
@@ -1578,6 +1722,8 @@
       <button onclick="backToPrevious()" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
         <span>←</span> 返回
       </button>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <button onclick="switchPage('semantic-pipeline'); setTimeout(() => { showDiagnosisReport(); showAllPatterns(); }, 50);" style="background: none; border: none; color: var(--text-secondary); font-size: 14px; cursor: pointer; font-weight: 600;">全部模式</button>
       <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
       <span id="detailBreadcrumbId" style="font-size: 14px; color: var(--text-primary); font-weight: 700;">ERR-001</span>
     </div>
@@ -2167,6 +2313,7 @@ semantic_tokens:
 let currentRole = 'designer';
 let currentDetailId = null;
 let previousPage = 'overview';
+let previousView = 'diagnosisReport';  // 'diagnosisReport' | 'allPatterns'
 let modalCurrentFormat = 'yaml';
 let modalCurrentId = null;
 
@@ -2183,6 +2330,9 @@ function switchPage(page) {
   document.querySelectorAll('.nav-center a[data-nav="' + page + '"]').forEach(el => el.classList.add('active'));
 
   if (page === 'contract') renderContractLibrary();
+  if (page === 'semantic-pipeline') {
+    setTimeout(() => showDiagnosisReport(), 0);
+  }
 
   window.scrollTo(0, 0);
 }
@@ -2204,6 +2354,7 @@ function expandDiagnosis() {
     flow.classList.add('show');
     spDiagnosisFlowOpen = true;
   }
+  showDiagnosisReport();
 }
 
 // ===== SP Layer 1 =====
@@ -2304,7 +2455,7 @@ function spGenerateDiagnosis() {
     const p = matchedPatterns[0];
     const d = spPatternDetails[p];
     cardsHtml = `
-      <div class="card-item" style="cursor: pointer; max-width: 400px;" onclick="showPatternDetail('${p.toLowerCase()}')">
+      <div class="card-item" style="cursor: pointer; max-width: 400px;" onclick="showPatternDetailInline('${p.toLowerCase().replace('-', '')}')">
         <div class="card-header">
           <div class="card-id">${p}</div>
           <span class="card-tag" style="font-size: 15px; padding: 3px 10px; border-radius: 4px; font-weight: 600; background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3);">已匹配</span>
@@ -2312,7 +2463,10 @@ function spGenerateDiagnosis() {
         <div class="card-name">${d.name}</div>
         <div class="card-desc">${d.component} · ${d.missing}</div>
         <div style="padding: 16px; display: flex; align-items: flex-end; justify-content: space-between;">
-          <span style="font-size: 14px; color: var(--text-tertiary); font-weight: 600;">点击查看详情 →</span>
+          <div style="display: flex; gap: 12px; margin-top: 8px;">
+              <a href="javascript:void(0)" onclick="event.stopPropagation();spScrollToYAML();" style="font-size: 14px; color: var(--primary); font-weight: 600; text-decoration: none;">查看对应 YAML 语义契约</a>
+              <a href="javascript:void(0)" onclick="event.stopPropagation();spScrollToAction();" style="font-size: 14px; color: #4ade80; font-weight: 600; text-decoration: none;">下一步行动</a>
+            </div>
         </div>
       </div>
     `;
@@ -2321,7 +2475,7 @@ function spGenerateDiagnosis() {
       matchedPatterns.map(p => {
         const d = spPatternDetails[p];
         return `
-          <div class="card-item" style="cursor: pointer; min-width: 280px; flex-shrink: 0;" onclick="showPatternDetail('${p.toLowerCase()}')">
+          <div class="card-item" style="cursor: pointer; min-width: 280px; flex-shrink: 0;" onclick="showPatternDetailInline('${p.toLowerCase().replace('-', '')}')">
             <div class="card-header">
               <div class="card-id">${p}</div>
               <span class="card-tag" style="font-size: 15px; padding: 3px 10px; border-radius: 4px; font-weight: 600; background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3);">已匹配</span>
@@ -2329,7 +2483,10 @@ function spGenerateDiagnosis() {
             <div class="card-name">${d.name}</div>
             <div class="card-desc">${d.component} · ${d.missing}</div>
             <div style="padding: 16px; display: flex; align-items: flex-end; justify-content: space-between;">
-              <span style="font-size: 14px; color: var(--text-tertiary); font-weight: 600;">点击查看详情 →</span>
+              <div style="display: flex; gap: 12px; margin-top: 8px;">
+              <a href="javascript:void(0)" onclick="event.stopPropagation();spScrollToYAML();" style="font-size: 14px; color: var(--primary); font-weight: 600; text-decoration: none;">查看对应 YAML 语义契约</a>
+              <a href="javascript:void(0)" onclick="event.stopPropagation();spScrollToAction();" style="font-size: 14px; color: #4ade80; font-weight: 600; text-decoration: none;">下一步行动</a>
+            </div>
             </div>
           </div>
         `;
@@ -2339,15 +2496,14 @@ function spGenerateDiagnosis() {
   document.getElementById('sp-result-content').innerHTML = `
     <!-- 匹配模式卡片 -->
     <div style="margin-bottom: 20px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+      <div style="margin-bottom: 12px;">
         <p class="text-xs text-neutral-500" style="text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">匹配模式</p>
-        <a href="javascript:void(0)" onclick="showAllPatternsFromDiagnosis()" style="font-size: 13px; color: var(--primary); font-weight: 600; text-decoration: none;">查看全部模式 →</a>
       </div>
       ${cardsHtml}
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="bg-neutral-900 rounded-xl p-4">
-        <p class="text-xs text-neutral-500 mb-2">匹配模式</p>
+        <p class="text-sm text-neutral-400 mb-2" style="font-size: 14px;">匹配模式</p>
         <div class="flex items-center gap-2">
           <span class="tag bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded font-bold">${dominantPattern}</span>
           <span class="text-sm text-white">${detail.name}</span>
@@ -2355,7 +2511,7 @@ function spGenerateDiagnosis() {
         <p class="text-xs text-neutral-400 mt-2">组件类型：${detail.component}</p>
       </div>
       <div class="bg-neutral-900 rounded-xl p-4">
-        <p class="text-xs text-neutral-500 mb-2">置信度</p>
+        <p class="text-sm text-neutral-400 mb-2" style="font-size: 14px;">置信度</p>
         <div class="flex items-center gap-2">
           <div class="flex-1 bg-neutral-800 rounded-full h-2">
             <div class="bg-emerald-400 h-2 rounded-full" style="width: ${confidence * 100}%"></div>
@@ -2366,9 +2522,9 @@ function spGenerateDiagnosis() {
       </div>
     </div>
     <div class="bg-neutral-900 rounded-xl p-4 mt-4">
-      <p class="text-xs text-neutral-500 mb-2">缺失的语义维度</p>
+      <p class="text-sm text-neutral-400 mb-2" style="font-size: 14px;">缺失的语义维度</p>
       <p class="text-sm text-neutral-300">${detail.missing}</p>
-      <p class="text-xs text-neutral-500 mt-3 mb-2">优先级</p>
+      <p class="text-sm text-neutral-400 mt-3 mb-2" style="font-size: 14px;">优先级</p>
       <p class="text-sm text-amber-400">${detail.severity}</p>
     </div>
   `;
@@ -2376,9 +2532,16 @@ function spGenerateDiagnosis() {
   document.getElementById('sp-result-yaml').innerHTML = `<pre class="text-xs leading-relaxed text-neutral-300">${detail.yaml}</pre>`;
 
   document.getElementById('sp-next-action').innerHTML = detail.actions.map((action, i) => `
-    <div class="flex items-start gap-3">
+    <div class="flex items-start gap-3" style="margin-bottom: 12px;">
       <span class="text-xs text-emerald-400 font-bold mt-0.5">${i + 1}</span>
-      <p class="text-sm text-neutral-300">${action}</p>
+      <div style="flex: 1;">
+        <p class="text-sm text-neutral-300" style="margin-bottom: 8px;">${action}</p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button onclick="openContractModal('${dominantPattern.toLowerCase().replace('-', '')}', 'yaml')" style="padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid var(--primary); background: var(--primary); color: #fff; cursor: pointer;">YAML</button>
+          <button onclick="openContractModal('${dominantPattern.toLowerCase().replace('-', '')}', 'prompt')" style="padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-secondary); cursor: pointer;">Prompt</button>
+          <button onclick="openContractModal('${dominantPattern.toLowerCase().replace('-', '')}', 'checklist')" style="padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-secondary); cursor: pointer;">Checklist</button>
+        </div>
+      </div>
     </div>
   `).join('');
 
@@ -2406,28 +2569,93 @@ function spCopyResultYAML() {
 }
 
 // ===== 视图切换 =====
+function updateViewTabs(activeTab) {
+  const tabDiagnosis = document.getElementById('tab-diagnosis');
+  const tabAll = document.getElementById('tab-all');
+  const tabDetail = document.getElementById('tab-detail');
+
+  if (!tabDiagnosis || !tabAll || !tabDetail) return;
+
+  // Reset all tabs
+  tabDiagnosis.style.color = 'var(--text-secondary)';
+  tabDiagnosis.style.borderBottomColor = 'transparent';
+  tabAll.style.color = 'var(--text-secondary)';
+  tabAll.style.borderBottomColor = 'transparent';
+  tabDetail.style.color = 'var(--text-secondary)';
+  tabDetail.style.borderBottomColor = 'transparent';
+
+  // Activate current tab
+  if (activeTab === 'diagnosis') {
+    tabDiagnosis.style.color = 'var(--primary)';
+    tabDiagnosis.style.borderBottomColor = 'var(--primary)';
+    tabDetail.style.display = 'none';
+  } else if (activeTab === 'all') {
+    tabAll.style.color = 'var(--primary)';
+    tabAll.style.borderBottomColor = 'var(--primary)';
+    tabDetail.style.display = 'none';
+  } else if (activeTab === 'detail') {
+    tabDetail.style.display = 'block';
+    tabDetail.style.color = 'var(--primary)';
+    tabDetail.style.borderBottomColor = 'var(--primary)';
+  }
+}
+
 function showAllPatterns() {
+  // 隐藏其他视图
   document.getElementById('diagnosisReportView').style.display = 'none';
+  document.getElementById('inlineDetailView').style.display = 'none';
+  // 显示全部模式
   document.getElementById('allPatternsView').style.display = 'block';
-  document.getElementById('viewTabs').style.display = 'block';
-  document.getElementById('tab-diagnosis').style.cssText = 'padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;';
-  document.getElementById('tab-all').style.cssText = 'padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--primary); background: none; border: none; border-bottom: 2px solid var(--primary); cursor: pointer;';
-  document.getElementById('sp-result-section').style.display = 'none';
+
+  // 显示页签导航
+  const viewTabs = document.getElementById('viewTabs');
+  if (viewTabs) viewTabs.style.display = 'block';
+
+  // 更新页签状态
+  updateViewTabs('all');
+
+  // 隐藏诊断流程相关元素
   document.getElementById('diagnosisFlow').style.display = 'none';
-  document.querySelector('.diagnosis-trigger').style.display = 'none';
-  document.querySelector('.pipeline-search-area').style.display = 'none';
+  const trigger = document.querySelector('.diagnosis-trigger');
+  if (trigger) trigger.style.display = 'none';
+  const searchArea = document.querySelector('.pipeline-search-area');
+  if (searchArea) searchArea.style.display = 'none';
+  const searchResult = document.getElementById('searchResultBox');
+  if (searchResult) searchResult.style.display = 'none';
+
+  window.scrollTo(0, 0);
 }
 
 function showDiagnosisReport() {
+  // 隐藏其他视图
   document.getElementById('allPatternsView').style.display = 'none';
+  document.getElementById('inlineDetailView').style.display = 'none';
+  // 显示诊断报告
   document.getElementById('diagnosisReportView').style.display = 'block';
-  document.getElementById('viewTabs').style.display = 'block';
-  document.getElementById('tab-all').style.cssText = 'padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;';
-  document.getElementById('tab-diagnosis').style.cssText = 'padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--primary); background: none; border: none; border-bottom: 2px solid var(--primary); cursor: pointer;';
-  document.getElementById('sp-result-section').style.display = 'block';
+
+  // 显示页签导航
+  const viewTabs = document.getElementById('viewTabs');
+  if (viewTabs) viewTabs.style.display = 'block';
+
+  // 更新页签状态
+  updateViewTabs('diagnosis');
+
+  // 恢复诊断流程显示
   document.getElementById('diagnosisFlow').style.display = 'block';
-  document.querySelector('.diagnosis-trigger').style.display = 'flex';
-  document.querySelector('.pipeline-search-area').style.display = 'block';
+  const trigger = document.querySelector('.diagnosis-trigger');
+  if (trigger) trigger.style.display = 'flex';
+  const searchArea = document.querySelector('.pipeline-search-area');
+  if (searchArea) searchArea.style.display = 'block';
+  const searchResult = document.getElementById('searchResultBox');
+  if (searchResult) searchResult.style.display = 'block';
+
+  // 如果有诊断结果，显示它
+  const resultSection = document.getElementById('sp-result-section');
+  if (resultSection && resultSection.innerHTML.trim() !== '') {
+    resultSection.style.display = 'block';
+  }
+
+  window.scrollTo(0, 0);
 }
 
 function showAllPatternsFromDiagnosis() {
@@ -2703,7 +2931,7 @@ function renderContractLibrary() {
           <button class="format-btn ${defaultFormat === 'yaml' ? 'primary' : ''}" onclick="openContractModal('${key}', 'yaml')">YAML</button>
           <button class="format-btn ${defaultFormat === 'prompt' ? 'primary' : ''}" onclick="openContractModal('${key}', 'prompt')">Prompt</button>
           <button class="format-btn ${defaultFormat === 'checklist' ? 'primary' : ''}" onclick="openContractModal('${key}', 'checklist')">Checklist</button>
-          <button class="format-btn" onclick="showPatternDetail('${key}')">详情 →</button>
+          <button class="format-btn" onclick="showPatternDetailInline('${key}')">详情 →</button>
           <button class="format-btn" onclick="switchPage('verify')" style="border-color: var(--primary); color: var(--primary); margin-top: 10px; width: 100%;">前往验证实验室诊断</button>
         </div>
       </div>
@@ -2745,10 +2973,146 @@ function copyContractFormat(id, format) {
   });
 }
 
+
+// ===== Inline Pattern Detail (在当前页面内显示) =====
+let currentInlineDetailId = null;
+let currentInlineFormat = 'yaml';
+
+function showPatternDetailInline(id) {
+  if (!id) id = currentInlineDetailId;
+  else currentInlineDetailId = id;
+
+  const data = patternData[id];
+  if (!data) return;
+
+  // 隐藏其他视图，显示模式详情
+  document.getElementById('diagnosisReportView').style.display = 'none';
+  document.getElementById('allPatternsView').style.display = 'none';
+  document.getElementById('inlineDetailView').style.display = 'block';
+
+  // 显示页签导航
+  const viewTabs = document.getElementById('viewTabs');
+  if (viewTabs) viewTabs.style.display = 'block';
+
+  // 更新页签状态
+  updateViewTabs('detail');
+
+  // 隐藏诊断流程相关元素
+  document.getElementById('diagnosisFlow').style.display = 'none';
+  const trigger = document.querySelector('.diagnosis-trigger');
+  if (trigger) trigger.style.display = 'none';
+  const searchArea = document.querySelector('.pipeline-search-area');
+  if (searchArea) searchArea.style.display = 'none';
+  const searchResult = document.getElementById('searchResultBox');
+  if (searchResult) searchResult.style.display = 'none';
+
+  // 填充详情内容
+  document.getElementById('inlineDetailTag').textContent = data.tag;
+  document.getElementById('inlineDetailTag').style.cssText = data.tagStyle;
+  document.getElementById('inlineDetailType').textContent = data.type;
+  document.getElementById('inlineDetailTitle').textContent = data.title;
+  document.getElementById('inlineDetailDesc').textContent = data.desc;
+  document.getElementById('inlineDetailIcon').textContent = data.tag.split('-')[0];
+  document.getElementById('inlineDetailIcon').style.background = data.tagStyle.includes('cf1322') ? 'rgba(207,19,34,0.15)' : 
+    data.tagStyle.includes('f5a623') ? 'rgba(212,136,6,0.15)' : 
+    data.tagStyle.includes('4a9eff') ? 'rgba(22,119,255,0.15)' : 
+    data.tagStyle.includes('a855f7') ? 'rgba(131,56,236,0.15)' : 'rgba(6,182,212,0.1)';
+  document.getElementById('inlineDetailIcon').style.color = data.tagStyle.includes('cf1322') ? '#cf1322' : 
+    data.tagStyle.includes('f5a623') ? '#f5a623' : 
+    data.tagStyle.includes('4a9eff') ? '#4a9eff' : 
+    data.tagStyle.includes('a855f7') ? '#a855f7' : '#06b6d4';
+
+  // 语义断层地图
+  document.getElementById('inlineSymptomContent').innerHTML = `
+    <div style="background: #16161a; border: 1px solid var(--border); padding: 12px; border-radius: 8px;">
+      <div style="font-size: 12px; color: #22c55e; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">设计意图</div>
+      <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${data.intent}</div>
+    </div>
+    <div style="background: #16161a; border: 1px solid var(--border); padding: 12px; border-radius: 8px;">
+      <div style="font-size: 12px; color: #3b82f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">设计稿表现</div>
+      <div style="font-size: 14px; color: var(--text-primary); font-weight: 500;">${data.design}</div>
+    </div>
+    <div style="background: #16161a; border: 1px solid var(--border); padding: 12px; border-radius: 8px;">
+      <div style="font-size: 12px; color: #ef4444; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">工程实现（断裂）</div>
+      <div style="font-size: 14px; color: #ef4444; font-weight: 500;">${data.engineering}</div>
+    </div>
+  `;
+
+  // 模式诊断
+  document.getElementById('inlineRootcauseContent').innerHTML = `
+    <div style="margin-bottom: 8px;"><span style="color: var(--text-tertiary); font-weight: 600;">组件类型：</span><span style="color: var(--text-primary); font-weight: 500;">${data.component}</span></div>
+    <div style="margin-bottom: 8px;"><span style="color: var(--text-tertiary); font-weight: 600;">根因：</span><span style="color: var(--text-primary); font-weight: 500;">${data.rootCause}</span></div>
+    <div style="margin-bottom: 8px;"><span style="color: var(--text-tertiary); font-weight: 600;">产品实例：</span><span style="color: var(--text-primary); font-weight: 500;">${data.products}</span></div>
+  `;
+
+  // 编译输出
+  switchInlineContractFormat('yaml', document.getElementById('ict-yaml'));
+
+  // 验证工具集
+  document.getElementById('inlineVerifyContent').innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+      <div style="background: #16161a; border: 1px solid var(--border); padding: 12px; text-align: center; border-radius: 8px;">
+        <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">${data.unit}</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">单元测试用例</div>
+      </div>
+      <div style="background: #16161a; border: 1px solid var(--border); padding: 12px; text-align: center; border-radius: 8px;">
+        <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">${data.integration}</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">集成测试用例</div>
+      </div>
+      <div style="background: #16161a; border: 1px solid var(--border); padding: 12px; text-align: center; border-radius: 8px;">
+        <div style="font-size: 28px; font-weight: 800; color: var(--text-primary);">${data.regression}</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">回归测试案例</div>
+      </div>
+    </div>
+  `;
+
+  // 默认显示第一个 tab
+  switchInlineDetailTab('symptom', document.querySelector('#inlineDetailTabs .detail-tab'));
+
+  window.scrollTo(0, 0);
+}
+
+function switchInlineDetailTab(tab, el) {
+  if (!el) el = document.querySelectorAll('#inlineDetailTabs .detail-tab')[0];
+  document.querySelectorAll('#inlineDetailTabs .detail-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#inline-tab-symptom, #inline-tab-rootcause, #inline-tab-contract, #inline-tab-verify').forEach(c => c.classList.remove('active'));
+  document.getElementById('inline-tab-' + tab).classList.add('active');
+}
+
+function switchInlineContractFormat(format, el) {
+  if (!el) el = document.getElementById('ict-yaml');
+  currentInlineFormat = format;
+  document.querySelectorAll('#ict-yaml, #ict-prompt, #ict-checklist, #ict-ci').forEach(btn => {
+    btn.style.background = 'var(--card-bg)';
+    btn.style.color = 'var(--text-secondary)';
+    btn.style.borderColor = 'var(--border)';
+  });
+  el.style.background = 'var(--primary)';
+  el.style.color = '#fff';
+  el.style.borderColor = 'var(--primary)';
+
+  const data = patternData[currentInlineDetailId];
+  if (!data) return;
+  let content = data.yaml;
+  if (format === 'prompt') content = data.prompt || data.yaml;
+  if (format === 'checklist') content = data.checklist || data.yaml;
+  if (format === 'ci') content = data.ci || '# CI 规则暂未定义';
+  document.getElementById('inlineContractContent').innerHTML = `<pre style="white-space: pre-wrap; font-family: 'SF Mono', monospace; font-size: 13px; line-height: 1.6; color: #e5e5e5;">${content}</pre>`;
+}
+
+function copyInlineContract() {
+  const content = document.getElementById('inlineContractContent').innerText;
+  navigator.clipboard.writeText(content).then(() => showToast('已复制到剪贴板'));
+}
+
 // ===== Detail Page =====
 function showPatternDetail(id) {
   currentDetailId = id;
   previousPage = document.querySelector('.page.active').id.replace('page-', '');
+  // 记录当前视图：如果在 allPatternsView 中，则返回 allPatterns；否则返回 diagnosisReport
+  const allPatternsVisible = document.getElementById('allPatternsView').style.display !== 'none' && document.getElementById('allPatternsView').style.display !== '';
+  previousView = allPatternsVisible ? 'allPatterns' : 'diagnosisReport';
   const data = patternData[id];
   if (!data) return;
 
@@ -2831,6 +3195,12 @@ function showPatternDetail(id) {
 
 function backToPrevious() {
   switchPage(previousPage);
+  // 如果之前是在全部模式视图，则恢复该视图
+  if (previousPage === 'semantic-pipeline' && previousView === 'allPatterns') {
+    setTimeout(() => {
+      showAllPatterns();
+    }, 50);
+  }
 }
 
 function switchDetailTab(tab, el) {
@@ -3098,7 +3468,7 @@ function parseVTJson() {
           <div>
             <p style="font-size: 14px; color: var(--text-primary); font-weight: 700;">匹配到模式：${pattern.id}</p>
             <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">${pattern.title}</p>
-            <button onclick="showPatternDetail('${matchedId}')" style="background: none; border: none; color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 8px;">查看详情 →</button>
+            <button onclick="showPatternDetailInline('${matchedId}')" style="background: none; border: none; color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 8px;">查看详情 →</button>
           </div>
         </div>
       `;
@@ -3112,6 +3482,70 @@ function parseVTJson() {
 
 // Init
 renderContractLibrary();
+
+function spScrollToYAML() {
+  document.getElementById('sp-result-yaml').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function runLazyMode() {
+  const input = document.getElementById('lazyInput').value.trim();
+  if (!input) return;
+
+  const lower = input.toLowerCase();
+  let extracted = {
+    component_type: "Alert",
+    visual: { color: "red", background: "solid", icon: "warning" },
+    copy: { title: "Error", description: input, tone: "urgent" },
+    interaction: { dismissible: true, actions: ["retry"] },
+    context: "system_error"
+  };
+
+  let matchedPattern = null;
+
+  if (lower.includes('429') || lower.includes('频繁') || lower.includes('限流') || lower.includes('throttling') || lower.includes('服务繁忙')) {
+    extracted.visual.color = "yellow";
+    extracted.copy.title = "Too Many Requests";
+    extracted.interaction.actions = ["wait", "upgrade"];
+    matchedPattern = 'ERR-001 (retryable)';
+  } else if (lower.includes('网络') || lower.includes('network') || lower.includes('超时') || lower.includes('timeout')) {
+    extracted.visual.color = "gray";
+    extracted.copy.title = "Network Error";
+    extracted.interaction.actions = ["retry"];
+    matchedPattern = 'ERR-001 (transient)';
+  } else if (lower.includes('断开') || lower.includes('stream') || lower.includes('中断') || lower.includes('interrupted')) {
+    extracted.visual.color = "red";
+    extracted.copy.title = "Error in Message Stream";
+    extracted.interaction.actions = ["refresh", "export"];
+    matchedPattern = 'ERR-001 (fatal)';
+  } else if (lower.includes('wrong') || lower.includes('失败') || lower.includes('异常') || lower.includes('degraded')) {
+    extracted.visual.color = "blue";
+    extracted.copy.title = "Something Went Wrong";
+    extracted.interaction.actions = ["continue", "retry"];
+    matchedPattern = 'ERR-001 (degraded)';
+  }
+
+  document.getElementById('lazyResult').style.display = 'block';
+  document.getElementById('lazyExtractedFields').innerHTML = `
+    <div style="font-family: 'SF Mono', monospace; font-size: 13px; line-height: 1.6; color: #e5e5e5; white-space: pre-wrap;">${JSON.stringify(extracted, null, 2)}</div>
+    ${matchedPattern ? `<div style="margin-top: 12px; padding: 8px 12px; background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); border-radius: 6px;"><span style="font-size: 13px; color: #4ade80; font-weight: 600;">✓ 自动匹配到模式：${matchedPattern}</span></div>` : ''}
+  `;
+}
+
+function fillLazyToJson() {
+  const result = document.getElementById('lazyExtractedFields').querySelector('div').innerText;
+  document.getElementById('vtJsonInput').value = result;
+  document.getElementById('lazyResult').style.display = 'none';
+  showToast('已填充到 JSON 编辑器');
+}
+
+function clearLazyResult() {
+  document.getElementById('lazyResult').style.display = 'none';
+  document.getElementById('lazyInput').value = '';
+}
+
+function spScrollToAction() {
+  document.getElementById('sp-next-action').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 </script>
 <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
 </body>

@@ -1,0 +1,80 @@
+# BND-001: 边界动作权利差异未区分
+# 适用场景：AI 对话产品的安全拦截、会话管理
+# 问题：拒绝请求和终止会话在界面上都是"拒绝"，用户不知道权利还在不在
+# 解决：区分拒绝(refusal)、终止(termination)、升级(escalation)三种边界动作
+
+intent_id: "BND-001"
+version: "1.0.0"
+description: "边界动作语义区分规范"
+semantic_domain: "transactional"
+
+semantic_tokens:
+  boundary_action:
+    refusal:
+      description: "基于安全策略拒绝特定请求，但保留会话上下文"
+      visual_mapping:
+        color_token: "boundary.soft"
+        icon_token: "hand.stop"
+        motion_token: "none"
+      llm_constraints:
+        - "必须明确说明拒绝原因（引用具体策略条款）"
+        - "必须提供替代建议或合法路径"
+        - "禁止终止整个会话"
+      user_impact:
+        session_state: "active"
+        history_retention: "full"
+        retry_allowed: true
+        input_box: "visible"
+      user_action:
+        - label: "继续其他话题"
+          action: "continue_chat"
+
+    termination:
+      description: "检测到严重违规，强制终止会话并清空上下文"
+      visual_mapping:
+        color_token: "boundary.hard"
+        icon_token: "door.exit"
+        motion_token: "fade.out"
+      llm_constraints:
+        - "必须明确告知用户会话已终止且不可恢复"
+        - "必须说明数据保留政策（如：是否上报审核）"
+        - "禁止仅显示'Chat ended by Claude'等模糊文案"
+      user_impact:
+        session_state: "terminated"
+        history_retention: "partial"
+        retry_allowed: false
+        new_session_required: true
+      user_action:
+        - label: "开启新会话"
+          action: "new_session"
+        - label: "申诉"
+          action: "appeal"
+
+    escalation:
+      description: "升级人工审核"
+      visual_mapping:
+        color_token: "boundary.review"
+        icon_token: "shield.check"
+        motion_token: "none"
+      llm_constraints:
+        - "必须说明审核预计时间"
+        - "必须提供临时替代方案"
+      user_impact:
+        session_state: "pending_review"
+        retry_allowed: false
+      user_action:
+        - label: "等待审核"
+          action: "wait_review"
+
+# 不可变边界
+immutable_boundaries:
+  - boundary_type: "safety"
+    constraint_rule_ref: "rules/conversation-boundary.yaml"
+    violation_action: "block"
+    description: "边界动作必须区分拒绝/终止/升级三种类型，禁止混用相同视觉表达"
+
+# 产品实例
+applicable_products:
+  - "Claude"
+  - "ChatGPT"
+  - "Kimi"

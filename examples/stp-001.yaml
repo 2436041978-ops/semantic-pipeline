@@ -1,0 +1,79 @@
+# STP-001: 状态提示语义权重未对齐
+# 适用场景：系统通知、状态变更、功能更新提示
+# 问题：重要通知做成普通提示，用户忽略；普通通知做成强提醒，用户疲劳
+# 解决：按信息重要性分级，匹配对应的视觉权重
+
+intent_id: "STP-001"
+version: "1.0.0"
+description: "状态提示语义权重对齐规范"
+semantic_domain: "observational"
+
+semantic_tokens:
+  notification_weight:
+    urgent:
+      description: "需要用户立即知晓并行动的状态变更"
+      trigger_keywords: ["账户安全", "支付异常", "数据泄露", "服务即将终止"]
+      visual_mapping:
+        color_token: "status.critical"
+        motion_token: "pulse.red.slow"
+        icon_token: "bell.alert"
+        background: "red.500/10"
+        dismissible: false
+      llm_constraints:
+        - "必须显示在用户首屏，不可折叠"
+        - "必须提供明确的行动按钮"
+        - "禁止用户忽略（必须点击确认或采取行动）"
+      user_action:
+        - label: "立即处理"
+          action: "resolve_now"
+          priority: 1
+
+    important:
+      description: "需要用户知晓但无需立即行动的状态变更"
+      trigger_keywords: ["功能更新", "政策变更", "套餐到期提醒"]
+      visual_mapping:
+        color_token: "status.warning"
+        motion_token: "none"
+        icon_token: "bell"
+        background: "amber.500/10"
+        dismissible: true
+      llm_constraints:
+        - "显示在通知中心，允许用户稍后查看"
+        - "必须提供详情入口"
+        - "禁止使用红色（避免情绪过载）"
+      user_action:
+        - label: "查看详情"
+          action: "view_details"
+          priority: 1
+        - label: "稍后提醒"
+          action: "remind_later"
+          priority: 2
+
+    casual:
+      description: "纯信息性通知，用户可选择性了解"
+      trigger_keywords: ["新功能上线", "使用技巧", "活动推荐"]
+      visual_mapping:
+        color_token: "status.info"
+        motion_token: "none"
+        icon_token: "info.circle"
+        background: "blue.500/10"
+        dismissible: true
+      llm_constraints:
+        - "允许用户一键关闭"
+        - "禁止打断用户当前操作流程"
+        - "禁止自动弹出（除非用户主动进入通知中心）"
+      user_action:
+        - label: "知道了"
+          action: "dismiss"
+          priority: 1
+
+# 不可变边界
+immutable_boundaries:
+  - boundary_type: "semantic"
+    constraint_rule_ref: "rules/notification-weight.yaml"
+    violation_action: "block"
+    description: "状态提示必须按重要性匹配视觉权重，禁止重要通知用弱提醒、普通通知用强提醒"
+
+# 产品实例
+applicable_products:
+  - "通用（所有 AI 生成状态提示的场景）"

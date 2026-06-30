@@ -1,0 +1,50 @@
+# ACT-001: 高危操作风险未约束
+# 适用场景：删除账户、清空数据、不可逆操作
+# 问题：AI 把不可逆操作做成普通按钮，没有二次确认
+# 解决：定义 destructive_action 语义约束，强制二次确认
+
+intent_id: "ACT-001"
+version: "1.0.0"
+description: "高危操作语义约束规范"
+semantic_domain: "transactional"
+
+semantic_tokens:
+  destructive_action:
+    description: "不可逆的数据销毁操作"
+    visual_mapping:
+      color_token: "status.critical"
+      button_style: "outline_danger"
+      icon_token: "alert.triangle"
+    llm_constraints:
+      - "禁止将删除按钮设计为普通主按钮样式"
+      - "必须包含二次确认弹窗"
+      - "文案必须明确说明'此操作不可恢复'"
+      - "必须提供取消选项，且视觉权重不低于确认按钮"
+    confirmation_requirements:
+      - type: "modal"
+        must_include:
+          - "操作后果明确说明"
+          - "取消按钮（视觉权重 ≥ 确认按钮）"
+          - "确认按钮（红色空心描边）"
+      - type: "input_verification"
+        optional: true
+        description: "要求输入账户名或勾选确认框"
+
+# 同义词防火墙
+synonym_firewall:
+  prohibited:
+    - term: "确认"
+      context: "destructive_action"
+      reason: "情绪权重过低，用户可能误触"
+      standard_token: "确认删除账户"
+
+# 不可变边界
+immutable_boundaries:
+  - boundary_type: "safety"
+    constraint_rule_ref: "rules/destructive-action.yaml"
+    violation_action: "block"
+    description: "高危操作必须包含二次确认，禁止直接执行"
+
+# 产品实例
+applicable_products:
+  - "通用（所有 AI 生成高危操作的场景）"

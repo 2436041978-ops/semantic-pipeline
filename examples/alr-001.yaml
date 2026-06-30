@@ -1,0 +1,68 @@
+# ALR-001: 告警文案语义降级
+# 适用场景：系统告警、运维通知、安全提示
+# 问题：AI 把 Critical 写成严重，情绪权重降低，用户延迟响应
+# 解决：建立同义词防火墙，禁止情绪权重降级
+
+intent_id: "ALR-001"
+version: "1.0.0"
+description: "告警文案语义约束规范"
+semantic_domain: "observational"
+
+semantic_tokens:
+  alert_severity:
+    critical:
+      description: "系统级故障，需要立即响应"
+      visual_mapping:
+        color_token: "status.critical"
+        motion_token: "pulse.red.urgent"
+        icon_token: "alert.octagon"
+      llm_constraints:
+        - "必须提供明确的恢复路径或人工支持入口"
+        - "禁止仅显示'严重'等模糊文案"
+      standard_token: "Critical"
+
+    warning:
+      description: "用户可自助恢复的限制"
+      visual_mapping:
+        color_token: "status.warning"
+        motion_token: "none"
+        icon_token: "alert.triangle"
+      llm_constraints:
+        - "必须显示恢复时间或操作步骤"
+        - "禁止使用红色背景（避免情绪过载）"
+      standard_token: "Warning"
+
+    info:
+      description: "纯通知，无需立即行动"
+      visual_mapping:
+        color_token: "status.info"
+        motion_token: "none"
+        icon_token: "info.circle"
+      standard_token: "Info"
+
+# 同义词防火墙
+synonym_firewall:
+  prohibited:
+    - term: "严重"
+      standard_token: "Critical"
+      context: "system_alert"
+      reason: "情绪权重降级，用户可能低估故障严重性"
+    - term: "紧急"
+      standard_token: "Critical"
+      context: "system_alert"
+      reason: "与 P1 告警级别混淆"
+    - term: "危急"
+      standard_token: "Critical"
+      context: "system_alert"
+      reason: "非标准运维术语"
+
+# 不可变边界
+immutable_boundaries:
+  - boundary_type: "semantic"
+    constraint_rule_ref: "rules/alert-terminology.yaml"
+    violation_action: "block"
+    description: "系统级故障告警必须使用 Critical，禁止用严重/紧急/危急等降级词汇"
+
+# 产品实例
+applicable_products:
+  - "通用（所有 AI 生成告警文案的场景）"

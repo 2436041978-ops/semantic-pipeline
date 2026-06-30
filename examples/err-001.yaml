@@ -1,0 +1,110 @@
+# ERR-001: 错误状态后果差异未分级
+# 适用场景：AI 对话产品、Web 应用、移动端
+# 问题：多种错误共用红色，用户无法判断后果严重程度
+# 解决：将错误状态按后果分级，每种级别对应不同视觉和用户行动
+
+intent_id: "ERR-001"
+version: "1.0.0"
+description: "错误状态语义分级规范"
+semantic_domain: "observational"
+
+# 语义令牌定义
+semantic_tokens:
+  error_severity:
+    fatal:
+      description: "系统级故障，对话上下文可能丢失"
+      trigger_keywords: ["stream interrupted", "message stream", "连接断开", "输出中断"]
+      visual_mapping:
+        color_token: "status.critical"
+        motion_token: "pulse.red.urgent"
+        icon_token: "alert.octagon"
+        background: "red.500/10"
+      user_action:
+        - label: "刷新页面"
+          action: "refresh"
+          priority: 1
+        - label: "导出历史"
+          action: "export_history"
+          priority: 2
+      llm_constraints:
+        - "必须明确告知用户对话上下文可能已丢失"
+        - "禁止仅显示'出错了'等模糊文案"
+        - "必须提供恢复路径"
+
+    transient:
+      description: "网络层故障，系统可自动恢复"
+      trigger_keywords: ["network error", "网络错误", "加载失败", "connection lost"]
+      visual_mapping:
+        color_token: "status.neutral"
+        motion_token: "spinner"
+        icon_token: "loader"
+        background: "neutral.800"
+      user_action:
+        - label: "等待自动恢复"
+          action: "wait"
+          priority: 1
+        - label: "手动重试"
+          action: "retry"
+          priority: 2
+      llm_constraints:
+        - "必须显示自动重试进度"
+        - "禁止使用红色背景（避免情绪过载）"
+        - "必须说明预计恢复时间"
+
+    retryable:
+      description: "限流/流控，用户可自助恢复"
+      trigger_keywords: ["too many requests", "429", "throttling", "请求过于频繁", "服务繁忙"]
+      visual_mapping:
+        color_token: "status.warning"
+        motion_token: "none"
+        icon_token: "clock"
+        background: "amber.500/10"
+      user_action:
+        - label: "等待倒计时"
+          action: "wait_countdown"
+          countdown_field: "retry_after"
+          priority: 1
+        - label: "升级套餐"
+          action: "upgrade"
+          priority: 2
+      llm_constraints:
+        - "必须显示剩余等待时间（秒/分钟）"
+        - "必须提供升级/扩容路径"
+        - "禁止使用红色（避免用户恐慌）"
+
+    degraded:
+      description: "服务端兜底，部分功能可用"
+      trigger_keywords: ["something went wrong", "创造失败", "服务异常", "something wrong"]
+      visual_mapping:
+        color_token: "status.info"
+        motion_token: "none"
+        icon_token: "info.circle"
+        background: "blue.500/10"
+      user_action:
+        - label: "继续生成"
+          action: "continue"
+          priority: 1
+        - label: "简化问题重试"
+          action: "retry_simplified"
+          priority: 2
+      llm_constraints:
+        - "必须说明哪些功能仍然可用"
+        - "必须提供替代方案（如简化问题）"
+        - "禁止显示纯技术错误码（如 500 Internal Error）"
+
+# 不可变边界
+immutable_boundaries:
+  - boundary_type: "safety"
+    constraint_rule_ref: "rules/error-severity.yaml"
+    violation_action: "block"
+    description: "所有错误状态必须携带 severity_level 字段"
+
+# 产品实例
+applicable_products:
+  - "ChatGPT"
+  - "文心一言"
+  - "通义千问"
+  - "Kimi"
+  - "豆包"
+  - "DeepSeek"
+  - "讯飞星火"

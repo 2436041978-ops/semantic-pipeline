@@ -1,0 +1,75 @@
+# PRO-001: 过程状态认知阶段未显化
+# 适用场景：AI 搜索、多步推理、长文本生成
+# 问题：Searching/Reading/Wrapping up 模糊，用户不知道 AI 在干什么
+# 解决：显化认知阶段，让用户知道 AI 在查资料还是编答案
+
+intent_id: "PRO-001"
+version: "1.0.0"
+description: "过程状态认知阶段显化规范"
+semantic_domain: "observational"
+
+semantic_tokens:
+  process_phase:
+    retrieval:
+      description: "从外部来源获取原始信息"
+      visual_mapping:
+        color_token: "phase.research"
+        icon_token: "search.magnifier"
+        motion_token: "spinner.blue"
+      llm_constraints:
+        - "必须显示已检索到的来源数量"
+        - "禁止跳过此阶段直接显示答案"
+      user_feedback:
+        - "已找到 X 个来源"
+        - "正在检索..."
+
+    synthesis:
+      description: "对比多源信息，识别共识与分歧"
+      visual_mapping:
+        color_token: "phase.analysis"
+        icon_token: "brain.neural"
+        motion_token: "wave.pulse"
+      llm_constraints:
+        - "必须显化'共识度'指标（如 5/7 来源一致）"
+        - "禁止隐藏来源冲突"
+      user_feedback:
+        - "X 个来源一致，Y 个来源存在分歧"
+        - "正在综合多源观点..."
+
+    verification:
+      description: "核对引用锚点与原文一致性"
+      visual_mapping:
+        color_token: "phase.check"
+        icon_token: "shield.check"
+        motion_token: "checkmark.sequence"
+      llm_constraints:
+        - "必须验证每个引用链接可访问"
+        - "禁止引用已失效或 404 的来源"
+      user_feedback:
+        - "正在验证链接有效性..."
+        - "X 个引用已验证"
+
+    generation:
+      description: "基于验证后的信息生成最终答案"
+      visual_mapping:
+        color_token: "phase.output"
+        icon_token: "document.sparkle"
+        motion_token: "none"
+      llm_constraints:
+        - "必须附带完整引用索引"
+        - "禁止生成无来源支撑的结论"
+      user_feedback:
+        - "基于已验证的 X 个来源生成中..."
+
+# 不可变边界
+immutable_boundaries:
+  - boundary_type: "semantic"
+    constraint_rule_ref: "rules/transparency.yaml"
+    violation_action: "block"
+    description: "过程状态必须显化认知阶段，禁止仅用 Searching/Reading/Wrapping up 等模糊标签"
+
+# 产品实例
+applicable_products:
+  - "Perplexity"
+  - "ChatGPT"
+  - "通义千问"

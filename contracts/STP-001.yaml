@@ -1,0 +1,103 @@
+intent_id: "STP-001"
+schema_version: "1.0.0"
+semantic_domain: "observational"
+description: "状态提示语义权重未对齐规范"
+
+component_spec:
+  component: "Alert"
+  component_library: "Ant Design"
+  props_reference:
+    - type: "success / info / warning / error"
+    - message: "string"
+    - description: "string"
+    - icon: "ReactNode"
+
+semantic_tokens:
+  info_weight:
+    urgent:
+      description: "需立即行动的安全或系统级提示"
+      trigger_keywords: ["异常登录", "安全警告", "数据泄露风险", "紧急", "critical alert"]
+      visual_mapping:
+        color_token: "status.critical"
+        motion_token: "pulse.red.urgent"
+        icon_token: "alert.octagon"
+        background: "red.500/10"
+      user_action:
+        - label: "立即处理"
+          action: "resolve_now"
+          priority: 1
+        - label: "查看详情"
+          action: "view_details"
+          priority: 2
+      llm_constraints:
+        - "禁止自动消失，必须手动关闭"
+        - "必须提供明确的处理路径"
+        - "禁止仅显示'请注意'等模糊文案"
+
+    important:
+      description: "需要关注但非立即行动的提示"
+      trigger_keywords: ["存储空间不足", "版本过期", "功能即将下线", "重要通知"]
+      visual_mapping:
+        color_token: "status.warning"
+        motion_token: "none"
+        icon_token: "alert.triangle"
+        background: "amber.500/10"
+      user_action:
+        - label: "稍后处理"
+          action: "dismiss"
+          priority: 1
+      llm_constraints:
+        - "必须显示预计过期时间或影响范围"
+        - "禁止使用红色（避免与紧急级别混淆）"
+
+    notice:
+      description: "纯信息通知，无需用户行动"
+      trigger_keywords: ["新功能上线", "活动通知", "系统维护", "更新日志"]
+      visual_mapping:
+        color_token: "status.info"
+        motion_token: "none"
+        icon_token: "info.circle"
+        background: "blue.500/10"
+      user_action:
+        - label: "知道了"
+          action: "acknowledge"
+          priority: 1
+      llm_constraints:
+        - "5 秒后允许自动消失"
+        - "禁止要求用户必须点击"
+
+    feedback:
+      description: "操作结果确认，自动消失"
+      trigger_keywords: ["保存成功", "设置已更新", "操作完成", "已发送"]
+      visual_mapping:
+        color_token: "status.success"
+        motion_token: "none"
+        icon_token: "check.circle"
+        background: "green.500/10"
+      user_action:
+        - label: "撤销"
+          action: "undo"
+          priority: 1
+      llm_constraints:
+        - "3 秒后自动消失"
+        - "必须提供撤销入口（如适用）"
+
+immutable_boundaries:
+  - boundary_type: "semantic"
+    rule: "禁止将紧急提示与普通通知使用相同视觉权重"
+    violation_action: "block"
+  - boundary_type: "semantic"
+    rule: "禁止紧急提示自动消失"
+    violation_action: "block"
+  - boundary_type: "semantic"
+    rule: "禁止在通知类提示中要求用户必须行动"
+    violation_action: "block"
+
+applicable_products:
+  - "通用"
+  - "所有含状态提示的 AI 生成界面"
+
+version_history:
+  - version: "1.0.0"
+    date: "2026-06-23"
+    change: "初始发布，定义状态提示四级语义权重"

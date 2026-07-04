@@ -1,240 +1,377 @@
-# 设计师使用指南
+# 前端工程师接入指南
 
-> **写给谁看**：不会写代码的体验设计师、交互设计师、设计系统负责人。  
-> **你能得到什么**：一套"回答 3 个问题 → 复制 1 份规则 → 验证 1 次结果"的工作流，让 AI 生成的界面不再偏离你的设计意图。
-
----
-
-## 一、你的角色：设计意图的翻译者
-
-你不是在写代码，你是在做**翻译**——把"这个场景下不能这样做"的设计直觉，翻译成机器能读懂的规矩（YAML 规则文件）。
-
-**你不需要会：**
-- 写 React / Vue / CSS
-- 调 AI 模型参数
-- 搭建设计系统
-- 画视觉稿（这不是你的重点）
-
-**你必须会：**
-- 观察界面，发现"意思跑偏了"（语义漂移）
-- 收集用户抱怨（截图 + 社区反馈）
-- 写 YAML 规则文件（比写文档还简单，就是缩进 + 冒号）
-- 做 A/B 对比（有规矩 vs 没规矩的生成结果）
+> **写给谁看**：前端工程师、全栈开发者、AI 编程助手使用者。
+> **你能得到什么**：一套"复制 1 段 Prompt 前缀 → 生成符合语义约束的代码 → 自动校验 Props"的工作流，让 AI 生成的组件不再出现"删除按钮做成蓝色实心"这类语义事故。
 
 ---
 
-## 二、你的工作流：三阶段流水线
+## 一、你的角色：契约的消费者
+
+在 Schema-As-Code 体系里，**设计师写契约，前端消费契约**。你不需要写 YAML，但需要知道：
+
+- 怎么把契约翻译成 AI 能懂的约束（Prompt 前缀）
+- 怎么让生成的代码自动符合语义规则（JSON Schema + ESLint）
+- 怎么在 CI 里拦住语义漂移（自动化校验）
+
+**你不做：**
+- 写 YAML 契约文件（设计师/DesignOps 负责）
+- 诊断语义断层（设计师负责）
+- 调整 AI 模型参数（算法工程师负责）
+
+**你做：**
+- 复制 Prompt 前缀，贴在 AI 指令前面
+- 用 JSON Schema 校验组件 Props
+- 在 CI 里接入契约校验脚本
+- 把语义问题反馈给设计师
+
+---
+
+## 二、核心工作流：三阶段消费
 
 ```
-阶段一：发现问题（Guard）
-  ↓ 回答 3 个问题，匹配模式
-阶段二：写契约（Contract）
-  ↓ 复制 YAML 模板，填空
-阶段三：验证有效（Verify）
-  ↓ 对比生成结果，算返工率
+阶段一：获取契约（Guard）
+ ↓ 从契约库复制 Prompt 前缀 / JSON Schema / ESLint 规则
+阶段二：注入约束（Contract）
+ ↓ 贴在 AI 指令前，或配置到组件库
+阶段三：自动校验（Verify）
+ ↓ CI 跑校验，拦截语义漂移
 ```
 
 ---
 
-## 三、阶段一：发现问题 —— 回答 3 个问题
+## 三、阶段一：获取契约资产
 
-### 3.1 你遇到了什么症状？
+### 3.1 契约资产在哪里
 
-打开你要诊断的 AI 产品，截图记录以下现象：
+```
+contracts/
+├── ERR-001.yaml          # 错误状态语义契约（源文件）
+├── ACT-001.yaml          # 高危操作语义契约（源文件）
+├── PRO-001.yaml          # 过程状态语义契约（源文件）
+├── BND-001.yaml          # 边界动作语义契约（源文件）
+├── ALR-001.yaml          # 告警文案语义契约（源文件）
+└── prompt-prefixes/      # 编译输出：Prompt 前缀
+    ├── ERR-001.md
+    ├── ACT-001.md
+    └── ...
+```
 
-| 症状类型 | 具体表现 | 举例 |
-|---------|---------|------|
-| 颜色乱用 | 多种错误共用同一种红色 | ChatGPT 的 4 种错误全是红色 |
-| 文案降级 | 重要词被换成轻量词 | "Critical" 被写成 "严重" |
-| 阶段模糊 | 用户不知道 AI 在干什么 | Perplexity 的 Searching/Reading 分不清 |
-| 边界不清 | 拒绝和终止长得一样 | Claude 的 "I can't help" vs "Chat ended" |
-| 操作危险 | 高危按钮做成普通样式 | 删除账户按钮是蓝色实心 |
+> **注意**：`prompt-prefixes/` 目录下的 `.md` 文件由 `scripts/compile-contract.js` 自动生成。如果目录为空，说明尚未运行编译脚本。你可以：
+> 1. 直接运行 `node scripts/compile-contract.js` 生成
+> 2. 或直接从 `contracts/*.yaml` 中手动提取关键约束
 
-**产出物**：至少 3 张截图 + 10 条用户抱怨（来自 V2EX / 知乎 / 即刻 / 小红书）。
+### 3.2 三种消费方式
 
-### 3.2 回答 3 个问题，自动匹配模式
-
-打开 [语义分级器](https://2436041978-ops.github.io/semantic-pipeline/tool.html)，回答：
-
-**问题 1：这是什么类型的组件？**
-- [ ] 错误状态（用户遇到故障时看到的）
-- [ ] 过程状态（AI 干活时显示的进度）
-- [ ] 边界动作（AI 拒绝 / 终止 / 升级时）
-- [ ] 操作按钮（用户点击执行的）
-- [ ] 告警 / 状态（系统状态提示）
-
-**问题 2：用户的核心困惑是什么？**
-- [ ] 不知道多严重（后果差异）
-- [ ] 不知道在干什么（认知阶段）
-- [ ] 不知道权利还在不在（权利差异）
-- [ ] 不知道能不能点（操作风险）
-- [ ] 不知道词对不对（语义降级）
-
-**问题 3：当前界面用什么视觉表达？**
-- [ ] 全部红色
-- [ ] 全部灰色
-- [ ] 没有区分
-- [ ] 文案模糊
-
-**匹配结果**：系统自动告诉你这是 ERR-001 / PRO-001 / BND-001 / ACT-001 / ALR-001 中的哪一个。
-
-### 3.3 检查清单（阶段一通过标准）
-
-- [ ] 收集到 ≥ 3 个产品的截图（或 ≥ 3 次同一产品的不同表现）
-- [ ] 收集到 ≥ 10 条用户真实抱怨（社区截图）
-- [ ] 完成 3 个问题问卷，匹配到已知模式
-- [ ] 截图证据能证明"这是通用模式，不是单个 Bug"
+| 消费方式 | 适用场景 | 文件位置 | 更新频率 |
+|---------|---------|---------|---------|
+| **Prompt 前缀** | 用 Claude Code / Cursor / v0 生成组件时 | `contracts/prompt-prefixes/*.md` | 每次契约变更后重编译 |
+| **JSON Schema** | 校验组件 Props 是否符合语义约束 | `contracts/json-schemas/*.json`（编译生成） | 每次契约变更后重编译 |
+| **ESLint 规则** | 代码静态检查，拦截语义违规 | `contracts/eslint-rules/*.js`（编译生成） | 每次契约变更后重编译 |
 
 ---
 
-## 四、阶段二：写契约 —— 复制 YAML 模板，填空
+## 四、阶段二：注入约束
 
-### 4.1 打开模式卡片，复制 YAML 模板
+### 4.1 方式 A：Prompt 前缀（推荐，AI 生成场景）
 
-在 [模式库](https://2436041978-ops.github.io/semantic-pipeline/) 中点击匹配到的模式卡片，进入抽屉页面，切换到"契约库"标签，复制 YAML 模板。
+**步骤 1：复制 Prompt 前缀**
 
-### 4.2 填写 6 个字段
+打开 `contracts/prompt-prefixes/ERR-001.md`，复制全部内容。如果文件不存在，先从 `contracts/ERR-001.yaml` 中提取关键约束：
 
-每份 YAML 契约必须包含以下 6 个字段：
+```yaml
+# 从 ERR-001.yaml 提取的关键约束（示例）
+## 绝对不能碰的红线
+1. 禁止把多种错误做成同一种颜色
+2. 禁止仅显示'出错了'等模糊文案
+3. 禁止不提供用户下一步行动
 
-| 字段 | 写什么 | 示例 |
-|------|--------|------|
-| `intent_id` | 模式编号 | `ERR-001` |
-| `semantic_domain` | 语义领域 | `transactional` / `observational` |
-| `description` | 一句话人话描述 | `流式输出中断，对话上下文可能丢失` |
-| `immutable_boundaries` | 绝对不能碰的红线（至少 3 条） | `禁止直接执行删除操作而不显示二次确认` |
-| `semantic_tokens` | 语义令牌定义（颜色 + 行动 + 约束） | `fatal: 红色脉冲 + 刷新/导出` |
-| `applicable_products` | 适用产品列表 | `[ChatGPT, 文心一言, 通义千问]` |
+## 颜色背后的意思
+- fatal: status.critical（红色脉冲）→ 刷新页面 / 导出历史
+- transient: status.neutral（灰色加载）→ 等待自动恢复
+- retryable: status.warning（黄色提示）→ 等待倒计时 / 升级套餐
+- degraded: status.info（蓝色提示）→ 继续生成 / 简化重试
 
-### 4.3 填写规范
+## 用户行动指引
+- fatal: 刷新页面 / 导出历史
+- transient: 等待自动恢复 / 手动重试
+- retryable: 等待倒计时 / 升级套餐
+- degraded: 继续生成 / 简化问题重试
+```
 
-**description（描述）**：
-- 必须是一句话人话，不是技术术语
-- 错误示例：`semantic drift in stream output context` ❌
-- 正确示例：`流式输出中断，对话上下文可能丢失` ✅
+**步骤 2：贴在 AI 指令前面**
 
-**immutable_boundaries（红线）**：
-- 每条必须以"禁止"或"必须"开头
-- 必须写清楚"违反后会怎样"（阻断 / 告警 / 降级）
-- 至少 3 条，不超过 8 条
+在使用 Claude Code / Cursor / v0 生成错误状态组件时，把 Prompt 前缀贴在指令最前面：
 
-**semantic_tokens（语义令牌）**：
-- 每个级别必须包含：`description`（人话）+ `visual_mapping`（颜色/样式）+ `user_action`（用户该做什么）+ `llm_constraints`（AI 不能做什么）
+```markdown
+【粘贴 Prompt 前缀】
 
-### 4.4 检查清单（阶段二通过标准）
+请帮我生成一个 React 错误状态组件，用于展示流式输出中断的场景。
+```
 
-- [ ] 6 个字段全部填写完整
-- [ ] `immutable_boundaries` 不少于 3 条
-- [ ] `description` 是一句话人话，不是技术术语
-- [ ] `semantic_tokens` 包含视觉映射 + 用户行动 + LLM 约束
-- [ ] YAML 语法正确（可用脚本校验：`npm run validate-yaml`）
-- [ ] 提交到 Git 仓库，写好 Commit message（参考仓库的提交规范）
+**效果**：AI 生成代码时，会自动遵守"fatal 用红色脉冲、必须提供刷新按钮、禁止只说'出错了'"等约束。
+
+### 4.2 方式 B：JSON Schema（组件 Props 校验）
+
+**步骤 1：获取 JSON Schema**
+
+运行编译脚本生成，或从契约中手动构建：
+
+```bash
+node scripts/compile-contract.js
+```
+
+生成后的 `contracts/json-schemas/ERR-001.json` 示例结构：
+
+```json
+{
+  "$id": "https://semantic-pipeline.dev/schemas/ERR-001.json",
+  "title": "错误状态语义约束",
+  "type": "object",
+  "properties": {
+    "intent_id": { "const": "ERR-001" },
+    "semantic_domain": { "enum": ["observational"] },
+    "semantic_tokens": {
+      "type": "object",
+      "properties": {
+        "fatal": {
+          "properties": {
+            "visual_mapping": {
+              "properties": {
+                "color_token": { "enum": ["status.critical"] },
+                "motion_token": { "enum": ["pulse.red.urgent"] }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**步骤 2：接入组件库**
+
+在 React/Vue 组件库中，用 JSON Schema 校验传入的 Props：
+
+```javascript
+// utils/semantic-validator.js
+import Ajv from "ajv";
+import err001Schema from "semantic-pipeline/contracts/json-schemas/ERR-001.json";
+
+const ajv = new Ajv();
+
+export function validateErrorProps(props) {
+  const validate = ajv.compile(err001Schema);
+  const valid = validate(props);
+  if (!valid) {
+    console.error("语义约束违规:", validate.errors);
+    // 开发环境报错，生产环境可降级为警告
+  }
+  return valid;
+}
+```
+
+```jsx
+// components/ErrorAlert.jsx
+import { validateErrorProps } from "../utils/semantic-validator";
+
+export function ErrorAlert({ severity, colorToken, actions }) {
+  // 运行时校验
+  validateErrorProps({
+    intent_id: "ERR-001",
+    semantic_tokens: {
+      [severity]: {
+        visual_mapping: { color_token: colorToken },
+        user_action: actions,
+      },
+    },
+  });
+
+  return <Alert type={severity} actions={actions} />;
+}
+```
+
+### 4.3 方式 C：ESLint 规则（代码静态检查）
+
+**步骤 1：获取 ESLint 规则**
+
+编译生成后的 `contracts/eslint-rules/ERR-001.js` 示例：
+
+```javascript
+/**
+ * ESLint 规则：错误状态语义约束
+ * 自动生成于 2026-07-04
+ */
+
+module.exports = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "错误状态语义约束检查",
+      category: "Semantic Rules",
+      recommended: true,
+    },
+  },
+  create(context) {
+    return {
+      JSXElement(node) {
+        const name = node.openingElement.name.name;
+        if (name !== "Alert") return;
+
+        const props = {};
+        node.openingElement.attributes.forEach((attr) => {
+          if (attr.type === "JSXAttribute") {
+            props[attr.name.name] = attr.value?.value;
+          }
+        });
+
+        // 检查：fatal 错误必须使用 status.critical
+        if (props.severity === "fatal" && props.colorToken !== "status.critical") {
+          context.report({
+            node,
+            message: "'fatal' 必须使用颜色令牌 status.critical",
+          });
+        }
+      },
+    };
+  },
+};
+```
+
+**步骤 2：配置 ESLint**
+
+```javascript
+// .eslintrc.js
+module.exports = {
+  plugins: ["semantic-pipeline"],
+  rules: {
+    "semantic-pipeline/error-severity": "error",
+    "semantic-pipeline/destructive-action": "error",
+  },
+};
+```
+
+**步骤 3：IDE 实时拦截**
+
+配置完成后，前端在写代码时就会看到：
+
+```jsx
+// ❌ ESLint 报错：'fatal' 必须使用颜色令牌 status.critical
+<Alert severity="fatal" colorToken="status.info" />
+
+// ✅ 通过
+<Alert severity="fatal" colorToken="status.critical" />
+```
 
 ---
 
-## 五、阶段三：验证有效 —— 对比生成结果，算返工率
+## 五、阶段三：CI 自动校验
 
-### 5.1 生成 A/B 对比图
+### 5.1 接入 YAML 结构校验
 
-**A 面（无契约）**：让 AI 用自然语言生成组件，截图保存。
+在 `.github/workflows/ci.yml` 中添加：
 
-**B 面（有契约）**：在 AI 指令前粘贴从契约库复制的 Prompt 前缀，再生成一次，截图保存。
+```yaml
+name: Semantic Validation
 
-**对比维度**：
-- 颜色是否按语义分级？
-- 文案是否用了正确的词？
-- 高危操作是否有二次确认？
-- 用户是否知道下一步该做什么？
+on:
+  push:
+    paths:
+      - "contracts/**"
+      - "src/components/**"
 
-### 5.2 算返工率
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: node scripts/validate-yaml.js
+      - run: node scripts/compile-contract.js
+      - run: npm run lint -- --rulesdir contracts/eslint-rules
+```
 
-| 指标 | 计算公式 | 目标值 |
-|------|---------|--------|
-| 语义返工率 | （修语义错误的时间 / 总开发时间）× 100% | ≤ 5% |
-| 规范同步时间 | 从规范变更到所有产品生效的时间 | ≤ 0.5 天 |
-| 走查覆盖率 | 机器自动走查的页面数 / 总页面数 | 100% |
+### 5.2 契约变更自动通知
 
-**产出物**：一份《验证报告》，包含 A/B 对比截图 + 返工率数据 + 用户反馈。
-
-### 5.3 检查清单（阶段三通过标准）
-
-- [ ] A/B 对比图完整（至少 3 组对比）
-- [ ] 测试用例 ≥ 10 组（不同输入，同一契约）
-- [ ] 语义返工率从 30% 降到 5% 以内（或证明趋势）
-- [ ] 至少 1 个前端同事确认：使用 Prompt 前缀后，语义错误减少
-- [ ] 验证报告发布，获得 ≥ 50 个互动（点赞 / 评论 / 转发）
-
----
-
-## 六、你的输入件清单（从上游接收什么）
-
-在开始诊断前，你需要从以下渠道收集输入：
-
-| 输入件 | 来源 | 用途 |
-|--------|------|------|
-| PRD（产品需求文档） | PM | 了解业务场景和用户目标 |
-| 用户研究结论 | 用研团队 | 了解用户真实困惑和痛点 |
-| 品牌策略文档 | 品牌团队 | 了解品牌语气和情绪基调 |
-| 竞品走查报告 | 你自己或竞品分析 | 了解同类产品怎么做的 |
-| 设计系统现有规范 | 设计系统负责人 | 了解现有 Token 和组件定义 |
-| 用户投诉 / 工单 | 客服 / 运营 | 了解线上真实问题 |
-
-**收集方法**：截图 + 复制文案 + 记录来源链接。不需要整理成 PPT，直接贴到语雀或 Notion 里，作为诊断证据。
+当设计师修改 `contracts/ERR-001.yaml` 时，GitHub Actions 自动：
+1. 校验 YAML 结构是否完整
+2. 重新编译 Prompt 前缀 / JSON Schema / ESLint 规则
+3. 运行测试用例
+4. 如果通过，自动更新下游资产
 
 ---
 
-## 七、你的输出件清单（向下游交付什么）
+## 六、与设计师的协作边界
 
-完成三阶段后，你需要向不同角色交付以下资产：
+| 场景 | 你的回应 |
+|------|---------|
+| 设计师说"这个按钮颜色不对" | "请更新 `contracts/ACT-001.yaml` 中的 color_token，我这边会自动同步" |
+| 设计师说"帮我写个 CSS 样式" | "我不写视觉样式，但我可以帮你确认这个按钮的语义约束是否生效" |
+| 设计师说"规范更新了" | "把 YAML 提 PR，合并后 CI 会自动重编译，我拉取最新 Prompt 前缀即可" |
+| 你发现 AI 生成的文案不对 | "截图 + 记录触发场景，提交 Issue 给设计师，由设计师更新契约" |
 
-| 输出件 | 交付对象 | 格式 |
-|--------|---------|------|
-| 模式卡片 | 设计团队 / 社区 | 网页（模式库） |
-| YAML 语义契约 | 前端 / AI 编程助手 | YAML 文件（Git 仓库） |
-| 语义令牌映射表 | 设计系统负责人 | Markdown 表格 |
-| Prompt 前缀模板 | 前端工程师 | 文本片段（可直接复制到 IDE） |
-| 走查 Checklist | DesignOps | Markdown 清单 |
-| A/B 对比图 | 老板 / 团队汇报 | 图片 + 数据说明 |
+**关键原则**：前端不改 YAML，只消费 YAML；语义问题反馈给设计师，由设计师更新契约。
 
 ---
 
-## 八、常见问题
+## 七、常见问题
 
-**Q：我不会写 YAML，怎么办？**  
-A：YAML 比 Markdown 还简单。就是缩进 + 冒号。复制模板，填空即可。如果语法错了，运行 `npm run validate-yaml` 会自动提示哪里缩进不对。
+### Q：Prompt 前缀会影响 AI 的创造力吗？
 
-**Q：我需要学 Git 吗？**  
-A：基础操作必须会：clone、add、commit、push。不需要会分支合并、冲突解决。让前端同事帮你配好环境，你只管写文件和提交。
+**A**：不会。Prompt 前缀只约束"语义边界"（什么不能说、什么不能做），不约束"视觉形态"（长什么样、用什么组件）。AI 仍然可以自由发挥组件的具体实现方式。
 
-**Q：前端不配合怎么办？**  
-A：你不需要前端配合。你先做出 A/B 对比图，证明"有契约后效果更好"，拿数据说话。前端看到返工率下降，自然会配合。
+### Q：JSON Schema 校验会影响运行时性能吗？
 
-**Q：我的产品不在模式库里怎么办？**  
-A：模式库是通用模式，不限定产品。如果你的产品出现了新模式，按照阶段一的流程，补充到模式库中，提交 PR。
+**A**：建议只在**开发环境**和**CI 阶段**启用完整校验，生产环境可移除或使用简化版校验。Schema 校验本身开销很小（毫秒级），但如果组件渲染频繁，建议用构建时静态检查替代运行时检查。
 
-**Q：多久能走完一次三阶段？**  
-A：单个模式：1-2 天。如果已有类似模式，复制修改：2-4 小时。
+### Q：设计师还没写契约，我怎么提前接入？
+
+**A**：先让设计师按照《设计师使用指南》走完阶段一（诊断）和阶段二（写契约）。如果业务紧急，你可以：
+1. 从 `examples/*.yaml` 复制模板
+2. 让设计师填空
+3. 提交到 `contracts/`，跑 `validate-yaml.js` 通过后即可使用
+
+### Q：契约库里的规则和我的设计系统冲突怎么办？
+
+**A**：契约库定义的是"语义规则"（什么场景下用什么语义），设计系统定义的是"视觉规则"（这个语义用什么颜色）。两者是上下层关系：
+
+```
+契约库：fatal → status.critical（语义层）
+设计系统：status.critical → #EF4444（视觉层）
+```
+
+如果冲突，优先以设计系统的视觉映射为准，但**语义约束不能改**（fatal 必须是 critical 级别，不能降级为 warning）。
+
+### Q：多久同步一次契约？
+
+**A**：
+- **自动**：每次 `git pull` 后，如果 `contracts/` 有变更，CI 会自动重编译
+- **手动**：如果你需要立即使用最新契约，运行 `node scripts/compile-contract.js`
 
 ---
 
-## 九、快速开始（今天就能做）
+## 八、快速开始（今天就能做）
 
-1. **打开 [模式库](https://2436041978-ops.github.io/semantic-pipeline/)**，浏览 5 个已验证模式
-2. **点击 ERR-001**，进入抽屉，查看 YAML 模板
-3. **复制 YAML**，在本地新建一个文件，尝试修改 `description` 和 `immutable_boundaries`
-4. **运行 `npm run validate-yaml`**，检查语法是否正确
-5. **提交到 Git**，写好 Commit message：`docs: 新增 ERR-001 针对 XX 产品的语义契约`
+1. **Clone 仓库**：`git clone https://github.com/2436041978-ops/semantic-pipeline.git`
+2. **安装依赖**：`npm install`（如果已有 `package.json`，否则先让 DesignOps 添加）
+3. **运行编译**：`node scripts/compile-contract.js`
+4. **复制 Prompt 前缀**：打开 `contracts/prompt-prefixes/ERR-001.md`，复制到 Claude Code / Cursor
+5. **生成组件**：在 AI 指令前粘贴 Prompt 前缀，观察生成结果是否符合语义约束
+6. **接入校验**：把 `contracts/json-schemas/ERR-001.json` 导入你的组件库，跑一遍 Props 校验
 
 ---
 
-## 十、相关链接
+## 九、相关链接
 
 - [模式库（在线浏览）](https://2436041978-ops.github.io/semantic-pipeline/)
-- [语义分级器（在线工具）](https://2436041978-ops.github.io/semantic-pipeline/tool.html)
 - [契约库（Git 仓库）](https://github.com/2436041978-ops/semantic-pipeline/tree/main/contracts)
-- [前端接入指南](./FRONTEND-GUIDE.md)
+- [设计师使用指南](./DESIGNER-GUIDE.md)
 - [DesignOps 规范同步指南](./DESIGNOPS-GUIDE.md)
+- [技术设计方案](./technical-design.md)
 
 ---
 
-> **最后一句**：你不是在写代码，你是在写规矩。规矩写好了，AI 就会按规矩生成。规矩没写好，AI 就会自由发挥——而自由发挥的结果，往往是用户看不懂、前端返工、老板摇头。
+> **最后一句**：你不是在写语义规则，你是在消费语义规则。规则写好了，AI 生成代码时自动遵守；规则没写好，你修语义 bug 的时间占 30%——而有了这套体系，可以降到 5%。

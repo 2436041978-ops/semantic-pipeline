@@ -1,0 +1,39 @@
+{
+  "id": "STP-001",
+  "version": "1.0.0",
+  "componentType": "Alert",
+  "componentLibrary": "Ant Design",
+  "symptoms": {
+    "description": "通知与警告视觉权重相同，用户无法区分紧急程度",
+    "evidence": [
+      "https://community.openai.com/t/alert-notification-ux"
+    ],
+    "products": [
+      "ChatGPT",
+      "文心一言",
+      "通义千问",
+      "Kimi",
+      "豆包"
+    ]
+  },
+  "rootCause": {
+    "missingToken": "info_weight",
+    "description": "缺少信息权重语义令牌，系统无法区分 urgent / important / notice / feedback"
+  },
+  "componentSpec": {
+    "props": [
+      "type",
+      "message",
+      "description",
+      "icon"
+    ],
+    "missingSemanticProps": [
+      "weight"
+    ]
+  },
+  "contractRef": "contracts/STP-001.yaml",
+  "validationMethod": "状态提示语义权重分级器",
+  "status": "published",
+  "createdAt": "2026-06-23",
+  "updatedAt": "2026-06-23"
+}

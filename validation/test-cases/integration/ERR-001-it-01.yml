@@ -1,0 +1,19 @@
+# Integration Test Case: ERR-001-IT-01
+# 目标：验证端到端错误状态流程的语义一致性
+test_id: "ERR-001-IT-01"
+pattern_id: "ERR-001"
+type: "integration"
+flow: "error-state-end-to-end"
+steps:
+  - step: 1
+    action: "trigger_api_error"
+    expected_component: "error-toast"
+  - step: 2
+    action: "click_retry"
+    expected_component: "loading-spinner"
+  - step: 3
+    action: "api_recover"
+    expected_component: "success-toast"
+assertions:
+  - "All error components use status.error color token"
+  - "Retry button follows ACT-001 if destructive"

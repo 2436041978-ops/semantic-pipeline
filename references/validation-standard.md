@@ -1,7 +1,7 @@
 # 验证通过标准
 
 > **适用对象**：Schema-As-Code 语义流水线所有产出物
-> **版本**：v1.0.1
+> **版本**：v1.0.2
 > **更新日期**：2026-07-04
 > **关联文档**：`references/contract-schema.md` v1.1.0
 
@@ -29,10 +29,9 @@ Permalink: 二、单元测试：YAML 契约结构校验
 
 Permalink: 2.1 必检字段（8 字段）
 
-> **变更说明（v1.0.0 → v1.0.1）**：
-> - 字段数从 6 个扩展为 8 个，与 `contract-schema.md` v1.1.0 对齐
-> - 新增 `schema_version`、`component_spec`、`version_history` 3 个必填字段
-> - `applicable_products` 统一为必填（原 v1.0.0 表述与 `contract-schema.md` 矛盾，已修正）
+> **变更说明（v1.0.0 → v1.0.1 → v1.0.2）**：
+> - v1.0.1：字段数从 6 个扩展为 8 个，与 `contract-schema.md` v1.1.0 对齐；修正 `applicable_products` 必填性矛盾
+> - v1.0.2：修正 `description` 长度限制矛盾（contract-schema.md 要求 ≤30 字，validation-standard.md v1.0.0/v1.0.1 误写为 ≤50 字，统一为 ≤30 字）
 
 每条契约必须包含以下 8 个字段，缺任意一项即判定为 **不通过**：
 
@@ -41,16 +40,17 @@ Permalink: 2.1 必检字段（8 字段）
 | `schema_version`| string| 语义化版本，如 `"1.1.0"`，与 `contract-schema.md` 版本一致| 缺失或使用 `"version"` 旧字段名 |
 | `intent_id`| string| 大写 + 连字符，如 `ERR-001`| `err001`（小写）|
 | `semantic_domain`| string| 从枚举中选：transactional / observational / navigational / destructive / informational| 随意填写 |
-| `description`| string| 一句话人话，不超过 30 字| 超过 30 字或含技术术语 |
+| `description`| string| **一句话人话，不超过 30 字**，让不会代码的设计师也能看懂 | 超过 30 字或含技术术语 |
 | `immutable_boundaries`| array| 不少于 3 条红线，每条含 `rule` + `violation_action` + `boundary_type`| 只有 1 条 |
 | `semantic_tokens`| object| 至少 1 个令牌，含 `visual_mapping` + `llm_constraints` + `description`| 缺少 `llm_constraints` |
 | `applicable_products`| array| **必填**，至少 1 个产品名。通用场景填写 `["通用"]` 或描述性值，不可省略| 空数组 `[]` 或缺失字段 |
 | `component_spec`| object| 含 `component` + `component_library` + `props_reference`（数组 ≥1 项）| 缺失或 `props_reference` 为空 |
 | `version_history`| array| 至少 1 条记录，每条含 `version` + `date` + `change`| 缺失或记录结构不完整 |
 
-> **v1.0.0 遗留问题修正**：
-> - 原 v1.0.0 中 `applicable_products` 表述为"至少 1 个产品名"，但 `contract-schema.md` v1.0.0 标注为 ❌（可选），导致内部文档矛盾。v1.0.1 统一为必填，与 `contract-schema.md` v1.1.0 一致。
-> - 通用场景不允许省略 `applicable_products`，应填写 `["通用"]` 或 `["所有含...的 AI 生成界面"]` 等占位值。
+> **v1.0.2 修正说明**：
+> - 原 v1.0.0 / v1.0.1 中 `description` 长度限制误写为"不超过 50 字"，与 `contract-schema.md` v1.1.0 §3.4 要求的"不超过 30 个字"矛盾。
+> - 统一为 **30 字**：契约描述是"一句话人话"，30 字足以说清场景，超过则易混入技术术语或抽象表述。
+> - 现有 5 个契约文件描述长度：ERR-001（17 字）、ACT-001（12 字）、PRO-001（14 字）、BND-001（16 字）、ALR-001（10 字），均符合 ≤30 字，无破坏性变更。
 
 ### 2.2 YAML 语法校验
 
@@ -191,8 +191,11 @@ Permalink: 5.1 语法推演（Syntax Inference）
 | Schema 版本一致| `schema_version` 与 `contract-schema.md` 当前版本一致 |
 | 组件规格完整| `component_spec` 含 `component` + `component_library` + `props_reference` |
 | 版本历史完整| `version_history` 至少 1 条，含 `version` + `date` + `change` |
+| **描述长度合规**| **`description` 不超过 30 字** |
 
 **判定**：机器自动，100% 通过。
+
+> **v1.0.2 新增**：`description` 长度纳入语法推演检查项，统一为 30 字上限。
 
 ### 5.2 语义推演（Semantic Inference）
 
@@ -225,9 +228,11 @@ Permalink: 5.4 美感推演（Aesthetics Inference）
 
 | 检查项| 通过标准| 结果 | 调整建议 |
 |--------|----------|------|----------|
-| 文案长度合规| 标题 ≤20 字，描述 ≤50 字 | ⬜ | — |
+| 文案长度合规| 标题 ≤20 字，描述 ≤30 字 | ⬜ | — |
 | 信息密度适中| 单组件操作项 ≤5 个 | ⬜ | — |
 | 视觉层级清晰| 主操作与次操作视觉权重区分明显 | ⬜ | — |
+
+> **v1.0.2 修正**：美感推演中"描述"长度从 50 字修正为 30 字，与 contract-schema.md 一致。
 
 **判定**：机器自动 + 人工审核，允许 ≤10% 调整建议。
 
@@ -246,6 +251,9 @@ Permalink: 六、量化指标与验收阈值
 | **漂移拦截率**| 被四层推演拦截的语义漂移数 / 总漂移数| ≥90%| 运行时日志 |
 | **用户投诉归因率**| 可归因到语义漂移的投诉数 / 总投诉数| 可量化| 工单分析 |
 | **Schema 一致性**| 契约文件字段与 contract-schema.md 一致的比例 | 100%| 自动化校验 |
+| **描述长度合规率**| description ≤30 字的契约数 / 总契约数 | 100%| 脚本统计 |
+
+> **v1.0.2 新增**：描述长度合规率指标，确保所有契约描述简洁人话化。
 
 * * *
 
@@ -274,9 +282,10 @@ Permalink: 八、版本与变更记录
 
 | 版本| 日期| 变更内容| 负责人|
 | ---| ---| ---| ---|
-| v1.0.1| 2026-07-04| 修正 `applicable_products` 必填性矛盾（统一为必填）；字段数从 6 扩展为 8，新增 `schema_version`、`component_spec`、`version_history` 校验规则；新增 §2.4 组件规格完整性、§2.5 版本历史完整性；更新 §5.1 语法推演检查项 | Schema-As-Code 团队 |
+| v1.0.2| 2026-07-04| 修正 `description` 长度限制矛盾：统一为 ≤30 字（原 validation-standard.md 误写为 ≤50 字，与 contract-schema.md 不一致）；更新 §5.1 语法推演和 §5.4 美感推演检查项；新增"描述长度合规率"量化指标 | Schema-As-Code 团队 |
+| v1.0.1| 2026-07-04| 修正 `applicable_products` 必填性矛盾（统一为必填）；字段数从 6 扩展为 8，新增 `schema_version`、`component_spec`、`version_history` 校验规则；新增 §2.4 组件规格完整性、§2.5 版本历史完整性 | Schema-As-Code 团队 |
 | v1.0.0| 2026-06-24| 初始版本，覆盖三级测试 + 四层推演 + 量化指标| Schema-As-Code 团队 |
 
 * * *
 
-> **附注**：本标准为「活的定义」，每季度由设计系统负责人、前端 TL、DesignOps 三方共同 review 一次，根据实际运行数据调整阈值。v1.0.0 中发现的 `applicable_products` 必填性矛盾已于 v1.0.1 修复，所有契约文件需同步升级至 `schema_version: "1.1.0"`。
+> **附注**：本标准为「活的定义」，每季度由设计系统负责人、前端 TL、DesignOps 三方共同 review 一次，根据实际运行数据调整阈值。v1.0.0 中发现的 `applicable_products` 必填性矛盾已于 v1.0.1 修复；v1.0.1 中发现的 `description` 长度限制矛盾（30 字 vs 50 字）已于 v1.0.2 修复。所有契约文件描述长度均符合 ≤30 字，无破坏性变更。

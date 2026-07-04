@@ -1,39 +1,60 @@
 # 验证通过标准
 
 > **适用对象**：Schema-As-Code 语义流水线所有产出物
-> **版本**：v1.0.0
-> **更新日期**：2026-06-24
+> **版本**：v1.0.1
+> **更新日期**：2026-07-04
+> **关联文档**：`references/contract-schema.md` v1.1.0
 
----
+* * *
 
 ## 一、三级测试体系
 
+Permalink: 一、三级测试体系
+
 所有语义契约在入库前，必须通过三级测试。未通过任意一级，不得标记为「已验证」。
 
-| 级别 | 测试对象 | 通过标准 | 执行方 |
-|------|---------|---------|--------|
-| **单元测试** | 单条 YAML 契约 | 100% 通过 | 机器自动 |
-| **集成测试** | 契约 + AI 工具消费 | 100% 通过 | 机器自动 + 人工抽查 |
-| **回归测试** | 历史模式复测 | 100% 通过 | 机器自动 |
+| 级别| 测试对象| 通过标准| 执行方|
+| ---| ---| ---| ---|
+| **单元测试**| 单条 YAML 契约| 100% 通过| 机器自动|
+| **集成测试**| 契约 + AI 工具消费| 100% 通过| 机器自动 + 人工抽查|
+| **回归测试**| 历史模式复测| 100% 通过| 机器自动|
 
----
+* * *
 
 ## 二、单元测试：YAML 契约结构校验
 
-### 2.1 必检字段（6 字段）
+Permalink: 二、单元测试：YAML 契约结构校验
 
-每条契约必须包含以下字段，缺任意一项即判定为 **不通过**：
+### 2.1 必检字段（8 字段）
 
-| 字段 | 类型 | 填写规范 | 失败示例 |
-|------|------|---------|---------|
-| `intent_id` | string | 大写 + 连字符，如 `ERR-001` | `err001`（小写） |
-| `semantic_domain` | string | 从枚举中选：transactional / observational / navigational | 随意填写 |
-| `description` | string | 一句话人话，不超过 50 字 | 超过 50 字或含技术术语 |
-| `immutable_boundaries` | array | 不少于 3 条红线，每条含 `rule` + `violation_action` | 只有 1 条 |
-| `semantic_tokens` | object | 至少 1 个令牌，含 `visual_mapping` + `llm_constraints` | 缺少 `llm_constraints` |
-| `applicable_products` | array | 至少 1 个产品名 | 空数组 |
+Permalink: 2.1 必检字段（8 字段）
+
+> **变更说明（v1.0.0 → v1.0.1）**：
+> - 字段数从 6 个扩展为 8 个，与 `contract-schema.md` v1.1.0 对齐
+> - 新增 `schema_version`、`component_spec`、`version_history` 3 个必填字段
+> - `applicable_products` 统一为必填（原 v1.0.0 表述与 `contract-schema.md` 矛盾，已修正）
+
+每条契约必须包含以下 8 个字段，缺任意一项即判定为 **不通过**：
+
+| 字段| 类型| 填写规范| 失败示例|
+| ---| ---| ---| ---|
+| `schema_version`| string| 语义化版本，如 `"1.1.0"`，与 `contract-schema.md` 版本一致| 缺失或使用 `"version"` 旧字段名 |
+| `intent_id`| string| 大写 + 连字符，如 `ERR-001`| `err001`（小写）|
+| `semantic_domain`| string| 从枚举中选：transactional / observational / navigational / destructive / informational| 随意填写 |
+| `description`| string| 一句话人话，不超过 30 字| 超过 30 字或含技术术语 |
+| `immutable_boundaries`| array| 不少于 3 条红线，每条含 `rule` + `violation_action` + `boundary_type`| 只有 1 条 |
+| `semantic_tokens`| object| 至少 1 个令牌，含 `visual_mapping` + `llm_constraints` + `description`| 缺少 `llm_constraints` |
+| `applicable_products`| array| **必填**，至少 1 个产品名。通用场景填写 `["通用"]` 或描述性值，不可省略| 空数组 `[]` 或缺失字段 |
+| `component_spec`| object| 含 `component` + `component_library` + `props_reference`（数组 ≥1 项）| 缺失或 `props_reference` 为空 |
+| `version_history`| array| 至少 1 条记录，每条含 `version` + `date` + `change`| 缺失或记录结构不完整 |
+
+> **v1.0.0 遗留问题修正**：
+> - 原 v1.0.0 中 `applicable_products` 表述为"至少 1 个产品名"，但 `contract-schema.md` v1.0.0 标注为 ❌（可选），导致内部文档矛盾。v1.0.1 统一为必填，与 `contract-schema.md` v1.1.0 一致。
+> - 通用场景不允许省略 `applicable_products`，应填写 `["通用"]` 或 `["所有含...的 AI 生成界面"]` 等占位值。
 
 ### 2.2 YAML 语法校验
+
+Permalink: 2.2 YAML 语法校验
 
 - 必须通过 YAML 1.2 语法解析，无缩进错误
 - 无重复键名
@@ -41,58 +62,102 @@
 
 ### 2.3 语义令牌完整性
 
+Permalink: 2.3 语义令牌完整性
+
 每个 `semantic_tokens` 下的令牌必须包含：
 
-| 子字段 | 必填 | 说明 |
-|--------|------|------|
-| `description` | 是 | 该令牌在这个场景下代表什么 |
-| `visual_mapping.color_token` | 是 | 对应 Design Token 颜色 |
-| `visual_mapping.motion_token` | 否 | 动画效果，如 `pulse.red.urgent` |
-| `visual_mapping.icon_token` | 否 | 图标标识 |
-| `user_action` | 是 | 用户看到这个状态后，能做什么 |
-| `llm_constraints` | 是 | AI 生成时绝对不能做什么 |
+| 子字段| 必填| 说明|
+| ---| ---| ---|
+| `description`| 是| 该令牌在这个场景下代表什么 |
+| `visual_mapping.color_token`| 是| 对应 Design Token 颜色 |
+| `visual_mapping.motion_token`| 否| 动画效果，如 `pulse.red.urgent` |
+| `visual_mapping.icon_token`| 否| 图标标识 |
+| `user_action`| 是| 用户看到这个状态后，能做什么（至少 1 项） |
+| `llm_constraints`| 是| AI 生成时绝对不能做什么（至少 2 条） |
+| `trigger_keywords`| 否| 触发关键词列表，用于模式匹配 |
+| `user_impact`| 否| 用户影响描述（高危操作/边界动作建议填写） |
 
----
+### 2.4 组件规格完整性（新增）
+
+Permalink: 2.4 组件规格完整性
+
+`component_spec` 必须包含：
+
+| 子字段| 必填| 说明| 失败示例 |
+| ---| ---| ---| --- |
+| `component`| 是| 组件名称，如 `"Alert"`、`"Button"` | 缺失或空字符串 |
+| `component_library`| 是| 组件库来源，如 `"Ant Design"` | 缺失或空字符串 |
+| `props_reference`| 是| 属性引用列表，数组长度 ≥ 1 | 空数组 `[]` |
+| `required_composition`| 否| 必需组合（如高危操作需 Modal + Button）| — |
+
+### 2.5 版本历史完整性（新增）
+
+Permalink: 2.5 版本历史完整性
+
+`version_history` 必须包含：
+
+| 子字段| 必填| 说明| 失败示例 |
+| ---| ---| ---| --- |
+| `version`| 是| 语义化版本号 | 缺失或格式错误 |
+| `date`| 是| 变更日期，ISO 8601 格式 `YYYY-MM-DD` | 缺失或格式错误 |
+| `change`| 是| 变更摘要，不超过 50 字 | 超过 50 字 |
+
+* * *
 
 ## 三、集成测试：契约 + AI 工具消费验证
 
+Permalink: 三、集成测试：契约 + AI 工具消费验证
+
 ### 3.1 测试方法
+
+Permalink: 3.1 测试方法
 
 将 YAML 契约编译为 **Prompt 前缀**，注入到 AI 编程助手（Claude Code / Cursor）或 AI 原型工具（v0）中，观察生成结果。
 
 ### 3.2 通过标准
 
-| 检查项 | 通过标准 | 判定方式 |
-|--------|---------|---------|
-| 视觉合规 | AI 生成的组件颜色、样式与 `visual_mapping` 一致 | 截图对比 |
-| 文案合规 | AI 生成的文案未触发 `synonym_firewall` 拦截 | 文本匹配 |
-| 交互合规 | AI 生成的组件包含 `user_action` 中定义的所有操作 | 功能测试 |
-| 红线未破 | AI 生成结果未触发任何 `immutable_boundaries` | 规则引擎检查 |
+Permalink: 3.2 通过标准
+
+| 检查项| 通过标准| 判定方式|
+| ---| ---| ---|
+| 视觉合规| AI 生成的组件颜色、样式与 `visual_mapping` 一致| 截图对比 |
+| 文案合规| AI 生成的文案未触发 `synonym_firewall` 拦截| 文本匹配 |
+| 交互合规| AI 生成的组件包含 `user_action` 中定义的所有操作| 功能测试 |
+| 红线未破| AI 生成结果未触发任何 `immutable_boundaries`| 规则引擎检查 |
+| 组件规格合规| AI 生成结果使用 `component_spec` 中指定的组件库和属性| 代码审查 |
 
 ### 3.3 每个模式的最低测试用例数
 
-| 模式 | 单元测试用例 | 集成测试用例 |
-|------|-------------|-------------|
-| ERR-001 错误状态 | 10 | 3 |
-| ACT-001 高危操作 | 6 | 2 |
-| PRO-001 过程状态 | 4 | 1 |
-| BND-001 边界动作 | 3 | 1 |
-| ALR-001 告警文案 | 4 | 1 |
+Permalink: 3.3 每个模式的最低测试用例数
 
----
+| 模式| 单元测试用例| 集成测试用例|
+| ---| ---| ---|
+| ERR-001 错误状态| 10| 3|
+| ACT-001 高危操作| 6| 2|
+| PRO-001 过程状态| 4| 1|
+| BND-001 边界动作| 3| 1|
+| ALR-001 告警文案| 4| 1|
+
+* * *
 
 ## 四、回归测试：历史模式复测
 
+Permalink: 四、回归测试：历史模式复测
+
 ### 4.1 触发条件
+
+Permalink: 4.1 触发条件
 
 以下情况必须执行回归测试：
 
 - 契约库 YAML 结构升级（如新增字段）
-- 编译脚本（`scripts/compile-contract.js`）更新
+- 编译脚本（ `scripts/compile-contract.js`）更新
 - 模式卡片 Schema 版本变更
 - 新季度开始前
 
 ### 4.2 测试范围
+
+Permalink: 4.2 测试范围
 
 - 所有已标记为「已验证」的模式
 - 所有已生成的 Prompt 前缀模板
@@ -100,72 +165,93 @@
 
 ### 4.3 通过标准
 
+Permalink: 4.3 通过标准
+
 - 历史模式复测通过率 **100%**
 - 若发现历史模式因契约升级而失效，必须：
-  1. 标记该模式为「待更新」
-  2. 生成兼容性报告
-  3. 在 3 个工作日内完成修复或废弃
+1. 标记该模式为「待更新」
+2. 生成兼容性报告
+3. 在 3 个工作日内完成修复或废弃
 
----
+* * *
 
 ## 五、四层推演引擎验证标准
 
+Permalink: 五、四层推演引擎验证标准
+
 ### 5.1 语法推演（Syntax Inference）
 
-| 检查项 | 通过标准 |
-|--------|---------|
-| JSON 结构完整 | 所有必填字段存在 |
-| 数据类型正确 | 字符串/数组/对象无混用 |
-| 无非法字符 | 无换行符、控制字符污染 |
+Permalink: 5.1 语法推演（Syntax Inference）
+
+| 检查项| 通过标准|
+| ---| ---|
+| JSON 结构完整| 所有必填字段存在（8 字段） |
+| 数据类型正确| 字符串/数组/对象无混用 |
+| 无非法字符| 无换行符、控制字符污染 |
+| Schema 版本一致| `schema_version` 与 `contract-schema.md` 当前版本一致 |
+| 组件规格完整| `component_spec` 含 `component` + `component_library` + `props_reference` |
+| 版本历史完整| `version_history` 至少 1 条，含 `version` + `date` + `change` |
 
 **判定**：机器自动，100% 通过。
 
 ### 5.2 语义推演（Semantic Inference）
 
-| 检查项 | 通过标准 |
-|--------|---------|
-| 语义令牌引用正确 | `color_token` 存在于 Design Token 库中 |
-| 同义词未触发 | 输出文案未命中 `synonym_firewall.prohibited` |
-| 场景匹配 | 组件类型与 `semantic_domain` 匹配 |
+Permalink: 5.2 语义推演（Semantic Inference）
+
+| 检查项| 通过标准| 结果 |
+|--------|--------|------|
+| 语义令牌引用正确| color_token 存在于 Design Token 库中 | ⬜ |
+| 同义词未触发| 输出文案未命中 synonym_firewall.prohibited | ⬜ |
+| 场景匹配| 组件类型与 semantic_domain 匹配 | ⬜ |
+| 组件库匹配| component_spec.component_library 在支持列表中 | ⬜ |
 
 **判定**：机器自动 + 人工抽查，允许 ≤5% 误判率。
 
 ### 5.3 安全推演（Safety Inference）
 
-| 检查项 | 通过标准 |
-|--------|---------|
-| 红线未破 | 未触发任何 `immutable_boundaries` |
-| 高危操作有确认 | `destructive_action` 必须含二次确认 |
-| 无越权操作 | 边界动作未越界 |
+Permalink: 5.3 安全推演（Safety Inference）
+
+| 检查项| 通过标准| 结果 |
+|--------|----------|------|
+| 红线未破| 未触发任何 immutable_boundaries | ⬜ |
+| 高危操作有确认| destructive_action 必须含二次确认 | ⬜ |
+| 无越权操作| 边界动作未越界 | ⬜ |
 
 **判定**：机器自动，100% 通过。触发即 **阻断（BLOCK）**。
 
 ### 5.4 美感推演（Aesthetics Inference）
 
-| 检查项 | 通过标准 |
-|--------|---------|
-| 文案长度合规 | 标题 ≤20 字，描述 ≤50 字 |
-| 信息密度适中 | 单组件操作项 ≤5 个 |
-| 视觉层级清晰 | 主操作与次操作视觉权重区分明显 |
+Permalink: 5.4 美感推演（Aesthetics Inference）
+
+| 检查项| 通过标准| 结果 | 调整建议 |
+|--------|----------|------|----------|
+| 文案长度合规| 标题 ≤20 字，描述 ≤50 字 | ⬜ | — |
+| 信息密度适中| 单组件操作项 ≤5 个 | ⬜ | — |
+| 视觉层级清晰| 主操作与次操作视觉权重区分明显 | ⬜ | — |
 
 **判定**：机器自动 + 人工审核，允许 ≤10% 调整建议。
 
----
+* * *
 
 ## 六、量化指标与验收阈值
 
-| 指标 | 定义 | 验收阈值 | 测量方式 |
-|------|------|---------|---------|
-| **语义返工率** | 前端因语义错误返工的工时 / 总工时 | ≤5% | 工时统计 |
-| **规范同步时间** | 规范变更到全量生效的耗时 | ≤0.5 天 | 日志记录 |
-| **走查覆盖率** | 机器自动走查的页面数 / 总页面数 | 100% | 脚本统计 |
-| **契约通过率** | 通过三级测试的契约数 / 总契约数 | ≥95% | 测试报告 |
-| **漂移拦截率** | 被四层推演拦截的语义漂移数 / 总漂移数 | ≥90% | 运行时日志 |
-| **用户投诉归因率** | 可归因到语义漂移的投诉数 / 总投诉数 | 可量化 | 工单分析 |
+Permalink: 六、量化指标与验收阈值
 
----
+| 指标| 定义| 验收阈值| 测量方式|
+| ---| ---| ---| ---|
+| **语义返工率**| 前端因语义错误返工的工时 / 总工时| ≤5%| 工时统计 |
+| **规范同步时间**| 规范变更到全量生效的耗时| ≤0.5 天| 日志记录 |
+| **走查覆盖率**| 机器自动走查的页面数 / 总页面数| 100%| 脚本统计 |
+| **契约通过率**| 通过三级测试的契约数 / 总契约数| ≥95%| 测试报告 |
+| **漂移拦截率**| 被四层推演拦截的语义漂移数 / 总漂移数| ≥90%| 运行时日志 |
+| **用户投诉归因率**| 可归因到语义漂移的投诉数 / 总投诉数| 可量化| 工单分析 |
+| **Schema 一致性**| 契约文件字段与 contract-schema.md 一致的比例 | 100%| 自动化校验 |
+
+* * *
 
 ## 七、不通过的处置流程
+
+Permalink: 七、不通过的处置流程
 
 ```
 测试不通过
@@ -180,14 +266,17 @@
 复测不通过 → 降级为「草稿」或废弃
 ```
 
----
+* * *
 
 ## 八、版本与变更记录
 
-| 版本 | 日期 | 变更内容 | 负责人 |
-|------|------|---------|--------|
-| v1.0.0 | 2026-06-24 | 初始版本，覆盖三级测试 + 四层推演 + 量化指标 | Schema-As-Code 团队 |
+Permalink: 八、版本与变更记录
 
----
+| 版本| 日期| 变更内容| 负责人|
+| ---| ---| ---| ---|
+| v1.0.1| 2026-07-04| 修正 `applicable_products` 必填性矛盾（统一为必填）；字段数从 6 扩展为 8，新增 `schema_version`、`component_spec`、`version_history` 校验规则；新增 §2.4 组件规格完整性、§2.5 版本历史完整性；更新 §5.1 语法推演检查项 | Schema-As-Code 团队 |
+| v1.0.0| 2026-06-24| 初始版本，覆盖三级测试 + 四层推演 + 量化指标| Schema-As-Code 团队 |
 
-> **附注**：本标准为「活的定义」，每季度由设计系统负责人、前端 TL、DesignOps 三方共同 review 一次，根据实际运行数据调整阈值。
+* * *
+
+> **附注**：本标准为「活的定义」，每季度由设计系统负责人、前端 TL、DesignOps 三方共同 review 一次，根据实际运行数据调整阈值。v1.0.0 中发现的 `applicable_products` 必填性矛盾已于 v1.0.1 修复，所有契约文件需同步升级至 `schema_version: "1.1.0"`。

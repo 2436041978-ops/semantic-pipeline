@@ -73,14 +73,22 @@ function spScrollToAction() {
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
   :root {
-    --primary: #1677ff;
-    --primary-hover: #4096ff;
-    --bg: #0f0f12;
-    --card-bg: #1a1a1e;
-    --text-primary: rgba(255,255,255,0.92);
-    --text-secondary: rgba(255,255,255,0.65);
-    --text-tertiary: rgba(255,255,255,0.45);
-    --border: #2a2a2e;
+    --primary: #3b82f6;
+    --primary-hover: #60a5fa;
+    --accent-cyan: #06b6d4;
+    --accent-green: #10b981;
+    --accent-yellow: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-purple: #8b5cf6;
+    --bg: #0a0a0f;
+    --bg-secondary: #12121a;
+    --card-bg: #1a1a24;
+    --bg-elevated: #22222e;
+    --text-primary: #e8e8ec;
+    --text-secondary: #8a8a96;
+    --text-tertiary: #5a5a66;
+    --border: #2a2a36;
+    --border-light: #333340;
     --radius: 12px;
   }
 
@@ -931,8 +939,62 @@ function spScrollToAction() {
     color: var(--text-tertiary);
     font-size: 16px;
   }
+  /* ===== Role Cards (Overview) ===== */
+  .role-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 8px; }
+  .role-entry-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; cursor: pointer; transition: all 0.2s; }
+  .role-entry-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+  .role-entry-card .role-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .role-entry-card .role-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); }
+  .role-entry-card .role-name { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+  .role-entry-card .role-chain { font-size: 13px; color: var(--text-secondary); line-height: 1.9; }
+  .role-entry-card .role-chain b { color: var(--text-primary); font-weight: 600; }
+  .role-entry-card .role-go { margin-top: 14px; font-size: 13px; font-weight: 600; color: var(--primary); }
+
+  /* ===== Workbench 四段式 ===== */
+  .wb-scenario-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+  .wb-scenario-chip { padding: 10px 18px; border-radius: 100px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-secondary); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .wb-scenario-chip:hover { border-color: var(--primary); color: var(--primary); }
+  .wb-scenario-chip.active { background: rgba(59,130,246,0.12); border-color: var(--primary); color: var(--primary); }
+  .wb-segment { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; }
+  .wb-segment-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px; }
+  .wb-segment-num { width: 24px; height: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: var(--primary); }
+  .wb-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .wb-opt-chip { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .wb-opt-chip:hover { border-color: var(--primary); color: var(--primary); }
+  .wb-opt-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .wb-detail { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; font-size: 13px; color: var(--text-secondary); line-height: 1.8; }
+  .wb-detail b { color: var(--text-primary); }
+  .wb-output-box { background: var(--bg); border: 1px solid rgba(16,185,129,0.3); border-radius: 10px; padding: 16px; font-family: 'SF Mono', monospace; font-size: 13px; line-height: 1.7; color: #e8e8ec; white-space: pre-wrap; margin-bottom: 14px; display: none; }
+  .wb-btn { padding: 10px 20px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; }
+  .wb-btn:hover { background: var(--primary-hover); }
+  .wb-btn-ghost { padding: 10px 20px; border-radius: 8px; background: transparent; color: var(--primary); font-size: 14px; font-weight: 600; border: 1px solid var(--primary); cursor: pointer; transition: all 0.2s; }
+  .wb-btn-ghost:hover { background: rgba(59,130,246,0.1); }
+  .wb-check-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+  .wb-check-row:last-child { border-bottom: none; }
+  .wb-check-row .box { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .wb-check-row.done .box { background: var(--accent-green); border-color: var(--accent-green); color: #fff; font-size: 12px; }
+  .wb-check-row.done { color: var(--text-primary); }
+
+  /* ===== 历史验证报告（操作日志） ===== */
+  .wb-log-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+  .wb-log-item:hover { border-color: var(--border-light); }
+  .wb-log-item .log-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .wb-log-item .log-meta { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+  .wb-log-empty { font-size: 13px; color: var(--text-tertiary); padding: 16px; text-align: center; }
+
+  /* ===== 演示数据水印 ===== */
+  .demo-watermark { position: relative; }
+  .demo-watermark::after { content: '演示数据'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-18deg); font-size: 40px; font-weight: 800; color: rgba(138,138,150,0.12); pointer-events: none; letter-spacing: 8px; }
+  .demo-tag { display: inline-block; padding: 2px 10px; border-radius: 100px; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); color: var(--accent-yellow); font-size: 12px; font-weight: 600; }
+
+  /* ===== Dictionary 页 ===== */
+  .dict-entry { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; }
+  .dict-entry:hover { border-color: var(--border-light); }
+  .dict-entry.active { border-color: var(--primary); }
+  .dict-level { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .dict-level:last-child { border-bottom: none; }
+  .dict-level .lv { font-weight: 700; color: var(--text-primary); min-width: 90px; }
 </style>
-<base target="_blank">
 </head>
 <body>
 
@@ -992,33 +1054,49 @@ function spScrollToAction() {
 <!-- ==================== PAGE: OVERVIEW (首页只保留 Hero) ==================== -->
 <div class="page active" id="page-overview">
   <div class="cards-section">
-    <div style="margin-bottom: 32px;">
-      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 16px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+    <div style="margin-bottom: 28px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); padding: 5px 14px; border-radius: 100px; font-size: 16px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
         <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
-        <span>Schema-As-Code 工程实现 · 三阶段流水线</span>
+        <span>Schema-As-Code 语义治理</span>
       </div>
-      <h1 style="font-size: 40px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; color: var(--text-primary); letter-spacing: -0.02em;">
-        <span style="background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Schema-As-Code</span>
+      <h1 style="font-size: 40px; font-weight: 500; line-height: 1.2; margin-bottom: 16px; color: var(--text-primary); letter-spacing: -0.02em;">
+        角色工作台 <span style="font-size: 20px; font-weight: 700; color: var(--text-tertiary);">Role Workbench</span>
       </h1>
-      <p style="font-size: 16px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; margin-bottom: 28px; font-weight: 500;">
-        Schema-As-Code 是一条三阶段流水线：发现问题（Guard）→ 写契约（Contract）→ 证明有效（Verify）。<br>
-        不是三个工具，是一个工作流。让 AI 生成的内容在到达视觉层和工程层之前，先过一遍语义审查。
+      <p style="font-size: 16px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; margin-bottom: 8px; font-weight: 500;">
+        Schema-As-Code 不是单一工具，而是三阶段工作流：发现问题 → 写出规则 → 证明有用。三个阶段环环相扣，缺一不可。
       </p>
+    </div>
 
-      <!-- Search -->
-      <div style="display: flex; align-items: center; gap: 12px; max-width: 600px;">
-        <div class="pipeline-search-box" style="flex: 1;">
-          <span class="search-icon">🔍</span>
-          <input type="text" placeholder="搜索模式、组件类型、语义令牌..." onclick="switchPage('semantic-pipeline')" style="cursor: pointer;">
-        </div>
-        <button onclick="switchPage('semantic-pipeline')" style="padding: 14px 28px; border-radius: 10px; background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; border: none; cursor: pointer; white-space: nowrap; transition: all 0.2s;">
-          进入诊断 →
-        </button>
+    <!-- Role Cards -->
+    <div class="role-cards-grid">
+      <div class="role-entry-card" onclick="enterRoleWorkbench('designer')">
+        <div class="role-head"><div class="role-icon">🎨</div><div class="role-name">设计师与产品经理</div></div>
+        <div class="role-chain">设计前 → 打开<b>语义字典</b> → 查 <b>error_severity</b><br>→ 输出<b>带语义标注的设计稿</b></div>
+        <div class="role-go">进入工作台 →</div>
+      </div>
+      <div class="role-entry-card" onclick="enterRoleWorkbench('frontend')">
+        <div class="role-head"><div class="role-icon">💻</div><div class="role-name">前端与 AI 工程师</div></div>
+        <div class="role-chain">生成前 → 打开<b>Prompt 前缀</b> → 查<b>语义分级与红线</b><br>→ 输出<b>注入约束的生成任务</b></div>
+        <div class="role-go">进入工作台 →</div>
+      </div>
+      <div class="role-entry-card" onclick="enterRoleWorkbench('designops')">
+        <div class="role-head"><div class="role-icon">📋</div><div class="role-name">DesignOps 与设计系统负责人</div></div>
+        <div class="role-chain">变更前 → 打开<b>契约库</b> → 查<b>版本与消费面</b><br>→ 输出<b>变更评审结论</b></div>
+        <div class="role-go">进入工作台 →</div>
+      </div>
+      <div class="role-entry-card" onclick="enterRoleWorkbench('translator')">
+        <div class="role-head"><div class="role-icon">🔍</div><div class="role-name">语义翻译设计师</div></div>
+        <div class="role-chain">诊断时 → 打开<b>快照模板</b> → 查<b>三层判定</b><br>→ 输出<b>模式卡片</b></div>
+        <div class="role-go">进入工作台 →</div>
+      </div>
+      <div class="role-entry-card" onclick="enterRoleWorkbench('exec')">
+        <div class="role-head"><div class="role-icon">📊</div><div class="role-name">管理层与决策者</div></div>
+        <div class="role-chain">评审时 → 打开<b>验证报告</b> → 查<b>通过率与消费追踪</b><br>→ 输出<b>验收结论</b></div>
+        <div class="role-go">进入工作台 →</div>
       </div>
     </div>
 
-    <!-- Empty below -->
-    <div style="min-height: 40vh;"></div>
+
   </div>
 </div>
 
@@ -1034,7 +1112,7 @@ function spScrollToAction() {
       <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Semantic Pipeline</span>
     </div>
 
-    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Semantic Pipeline <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">阶段一 · 模式诊断</span></h1>
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">结构化诊断 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Semantic Pipeline</span></h1>
     <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 32px; font-weight: 500;">6 个已验证漂移模式 · 结构化问诊 · 语义分级器。从症状到契约，一站式诊断。</p>
 
     <!-- Search Area -->
@@ -1242,9 +1320,14 @@ function spScrollToAction() {
                 <p class="text-xs" style="color: #666;">三层判定完成 · 置信度基于关键词匹配度 + 视觉校验一致性</p>
               </div>
             </div>
-            <button onclick="showAllPatterns()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
-              查看全部模式 →
-            </button>
+            <div style="display: flex; gap: 10px;">
+              <button onclick="exportPatternCard()" style="padding: 10px 20px; border-radius: 8px; border: 1px solid var(--primary); background: transparent; color: var(--primary); font-size: 14px; font-weight: 600; cursor: pointer;">
+                导出模式卡片
+              </button>
+              <button onclick="showAllPatterns()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
+                查看全部模式 →
+              </button>
+            </div>
           </div>
 
           <div id="sp-result-content" class="space-y-4">
@@ -1493,6 +1576,88 @@ function spScrollToAction() {
 </div>
 
 <!-- ==================== PAGE: CONTRACT LIBRARY (阶段二) ==================== -->
+<!-- ==================== PAGE: DICTIONARY (阶段二产出 · 角色 1 资产) ==================== -->
+<div class="page" id="page-dictionary">
+  <div class="cards-section" style="padding-top: 80px;">
+    <div style="margin-bottom: 24px;">
+      <button onclick="switchPage('contract')" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+        <span>←</span> Contract Library
+      </button>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Dictionary</span>
+    </div>
+
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">语义字典 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Semantic Dictionary · 阶段二产出</span></h1>
+    <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; font-weight: 500;">组织级语义码本：语义域 / 语义令牌 / 场景映射。所有 YAML 契约必须引用字典中的已定义项，不可自创。</p>
+
+    <!-- 场景提示条（静态展示，无需交互） -->
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px;">
+      <span style="padding: 8px 16px; border-radius: 100px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); color: var(--primary); font-size: 13px; font-weight: 600;">设计前 · 查询语义定义</span>
+      <span style="padding: 8px 16px; border-radius: 100px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-tertiary); font-size: 13px; font-weight: 600;">设计中 · 统一沟通术语</span>
+      <span style="padding: 8px 16px; border-radius: 100px; background: var(--card-bg); border: 1px solid var(--border); color: var(--text-tertiary); font-size: 13px; font-weight: 600;">写 PRD · 引用场景映射</span>
+    </div>
+
+    <!-- 查询区 -->
+    <div class="wb-segment">
+      <div class="wb-segment-title"><div class="wb-segment-num">②</div>打开语义字典 · 查条目</div>
+      <div class="wb-chip-row" id="dictTagBar">
+        <div class="wb-opt-chip active" onclick="filterDict('all', this)">全部</div>
+        <div class="wb-opt-chip" onclick="filterDict('field', this)">字段级定义</div>
+        <div class="wb-opt-chip" onclick="filterDict('scenario', this)">场景映射</div>
+      </div>
+      <div id="dictEntries"></div>
+    </div>
+
+    <!-- 输出区 -->
+    <div class="wb-segment">
+      <div class="wb-segment-title"><div class="wb-segment-num">④</div>输出：带语义标注的设计稿注释</div>
+      <div class="wb-output-box" id="dictOutputBox"></div>
+      <div style="display: flex; gap: 12px;">
+        <button class="wb-btn" onclick="copyDictOutput()">复制并记入验证日志</button>
+        <button class="wb-btn-ghost" onclick="enterRoleWorkbench('designer')">进入设计师工作台 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: ROLE WORKBENCH (四段式工作台) ==================== -->
+<div class="page" id="page-workbench">
+  <div class="cards-section" style="padding-top: 80px;">
+    <div style="margin-bottom: 24px;">
+      <button onclick="switchPage('overview')" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+        <span>←</span> 重新选择角色
+      </button>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;" id="wbCrumbRole">角色工作台</span>
+    </div>
+
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;" id="wbRoleTitle">角色工作台</h1>
+    <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 24px; font-weight: 500;" id="wbRoleDesc"></p>
+
+    <!-- ① 场景条（交互：分角色的分场景选择） -->
+    <div class="wb-scenario-bar" id="wbScenarioBar"></div>
+
+    <!-- ② 打开什么 -->
+    <div class="wb-segment" id="wbAssetPanel"></div>
+
+    <!-- ③ 查什么 -->
+    <div class="wb-segment" id="wbQueryPanel"></div>
+
+    <!-- ④ 输出什么 -->
+    <div class="wb-segment" id="wbOutputPanel"></div>
+
+    <!-- 历史验证报告（用户操作日志） -->
+    <div class="wb-segment">
+      <div class="wb-segment-title">
+        <div class="wb-segment-num">☰</div>历史验证报告
+        <span class="demo-tag" style="margin-left: 8px;">演示数据</span>
+      </div>
+      <p style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 14px;">本工作台每次「复制并记入验证日志」的输出都会留档在此，点击可回看全文。</p>
+      <div id="wbLogList"></div>
+    </div>
+  </div>
+</div>
+
 <div class="page" id="page-contract">
   <div class="cards-section" style="padding-top: 80px;">
     <!-- Breadcrumb -->
@@ -1504,7 +1669,7 @@ function spScrollToAction() {
       <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Contract Library</span>
     </div>
 
-    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">契约工作台 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Contract Library</span></h1>
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">语义契约化 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Contract Library</span></h1>
     <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 32px; font-weight: 500;">6 个漂移模式 → 机器可读规则 → 4 种消费格式。设计师、DesignOps、前端、效能，各取所需。</p>
 
     <!-- Role Selector -->
@@ -1528,6 +1693,24 @@ function spScrollToAction() {
       <!-- Filled by JS -->
     </div>
 
+    <!-- 语义字典入口 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 40px;">
+      <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">语义字典</h3>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.7;">查询组织级语义码本，统一语义域、语义令牌与场景映射定义。</p>
+      <button class="wb-btn" onclick="switchPage('dictionary')">进入语义字典 →</button>
+    </div>
+
+    <!-- Bottom CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">拿到契约了？去验证实验室跑一下</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">输入你的 AI 生成文案，看是否符合契约约束</p>
+      </div>
+      <button onclick="switchPage('verify')" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s;">
+        进入验证实验室 →
+      </button>
+    </div>
+
     <!-- Version Management -->
     <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 40px;">
       <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 20px;">版本管理</h3>
@@ -1544,17 +1727,6 @@ function spScrollToAction() {
         </div>
       </div>
     </div>
-
-    <!-- Bottom CTA -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
-      <div>
-        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">拿到契约了？去验证实验室跑一下</p>
-        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">输入你的 AI 生成文案，看是否符合契约约束</p>
-      </div>
-      <button onclick="switchPage('verify')" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s;">
-        进入验证实验室 →
-      </button>
-    </div>
   </div>
 </div>
 
@@ -1570,7 +1742,7 @@ function spScrollToAction() {
       <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Validation Toolkit</span>
     </div>
 
-    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">验证实验室 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Validation Toolkit</span></h1>
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">验证闭环 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Validation Toolkit</span></h1>
     <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 32px; font-weight: 500;">三层验证工具：语义分级器 · JSON 输入 · 快照模板。证明"加了规则后有效"。</p>
 
     <!-- Toolkit Tabs -->
@@ -1712,6 +1884,7 @@ function spScrollToAction() {
         <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">粘贴 JSON 到"JSON 输入"工具，即可自动匹配模式。</p>
       </div>
     </div>
+
   </div>
 </div>
 
@@ -2314,6 +2487,7 @@ let currentRole = 'designer';
 let currentDetailId = null;
 let previousPage = 'overview';
 let previousView = 'diagnosisReport';  // 'diagnosisReport' | 'allPatterns'
+let workbenchReturnContext = null;
 let modalCurrentFormat = 'yaml';
 let modalCurrentId = null;
 
@@ -2322,12 +2496,62 @@ let spSelections = { layer1: null, layer2: [], layer3: [] };
 let spDiagnosisFlowOpen = false;
 
 // ===== Page Switching =====
+function captureWorkbenchReturnContext() {
+  if (!wbRole || !wbScenario) return;
+  workbenchReturnContext = {
+    role: wbRole,
+    scenario: wbScenario,
+    sel: { ...(wbSel || {}) },
+    checked: [...(wbChecked || [])]
+  };
+}
+
+function updateWorkbenchReturnTabs() {
+  const shouldShow = !!workbenchReturnContext;
+  document.querySelectorAll('.page').forEach(pageEl => {
+    if (pageEl.id === 'page-workbench') return;
+    const btn = pageEl.querySelector('.cards-section > div:first-child > button:first-child');
+    if (!btn) return;
+
+    if (btn.dataset.wbOriginalHtml === undefined) {
+      btn.dataset.wbOriginalHtml = btn.innerHTML;
+      btn.dataset.wbOriginalOnclick = btn.getAttribute('onclick') || '';
+    }
+
+    if (shouldShow) {
+      btn.innerHTML = '<span>←</span> 回到工作台';
+      btn.setAttribute('onclick', 'returnToWorkbench()');
+    } else {
+      btn.innerHTML = btn.dataset.wbOriginalHtml;
+      if (btn.dataset.wbOriginalOnclick) {
+        btn.setAttribute('onclick', btn.dataset.wbOriginalOnclick);
+      } else {
+        btn.removeAttribute('onclick');
+      }
+    }
+  });
+}
+
+function returnToWorkbench() {
+  if (!workbenchReturnContext) return;
+  workbenchReturnContext = null;
+  switchPage('workbench');
+}
+
 function switchPage(page) {
+  const activePageEl = document.querySelector('.page.active');
+  const activePage = activePageEl ? activePageEl.id.replace('page-', '') : null;
+  if (activePage === 'workbench' && page !== 'workbench') {
+    captureWorkbenchReturnContext();
+  }
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
 
   document.querySelectorAll('.nav-center a').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-center a[data-nav="' + page + '"]').forEach(el => el.classList.add('active'));
+
+  updateWorkbenchReturnTabs();
 
   if (page === 'contract') renderContractLibrary();
   if (page === 'semantic-pipeline') {
@@ -3118,6 +3342,7 @@ function showPatternDetail(id) {
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-detail').classList.add('active');
+  updateWorkbenchReturnTabs();
 
   document.getElementById('detailBreadcrumbId').textContent = data.tag;
   document.getElementById('detailPageTag').textContent = data.tag;
@@ -3480,8 +3705,424 @@ function parseVTJson() {
   }
 }
 
+// ==================== 角色工作台（四段式） ====================
+
+// ---- 字典数据 ----
+const dictData = [
+  {
+    key: 'error_severity', cat: 'field', title: 'error_severity · 错误状态语义分级',
+    desc: '四种后果不同的错误，必须使用四种不同的视觉表达。',
+    levels: [
+      { lv: 'fatal', def: '对话/数据可能丢失', visual: 'status.critical 红 + 脉冲动画', action: '必须提供恢复路径（刷新 / 导出历史）' },
+      { lv: 'transient', def: '短暂网络问题，自动恢复', visual: '灰色 + 时钟图标', action: '自动重试，禁止红色' },
+      { lv: 'retryable', def: '限流，需等待', visual: '黄色 + 倒计时', action: '显示具体等待秒数，禁止红色' },
+      { lv: 'degraded', def: '部分功能受损', visual: '蓝色 + 说明', action: '必须说明哪些功能仍可用' }
+    ],
+    annotation: '[语义标注] error_severity\n- fatal → status.critical + pulse.red.urgent + 恢复路径\n- transient → 灰 + 时钟 + 自动重试\n- retryable → 黄 + 倒计时（禁止红色）\n- degraded → 蓝 + 可用功能说明\n（基于语义字典 v1.0.0 / ERR-001 v1.1.0）'
+  },
+  {
+    key: 'action_type', cat: 'field', title: 'action_type · 操作按钮语义',
+    desc: '高危操作与普通操作必须在视觉权重上区分。',
+    levels: [
+      { lv: 'destructive', def: '不可逆操作（删除账户等）', visual: 'action.destructive 红色描边', action: '必须二次确认 + 后果说明' },
+      { lv: 'primary', def: '常规主操作', visual: 'action.primary 实心主按钮', action: '无特殊约束' }
+    ],
+    annotation: '[语义标注] action_type\n- destructive → action.destructive 红色描边 + 二次确认 + 后果说明\n- primary → action.primary 实心主按钮\n（基于语义字典 v1.0.0 / ACT-001 v1.0.0）'
+  },
+  {
+    key: 'SCN-001', cat: 'scenario', title: 'SCN-001 · 删除账户（场景映射）',
+    desc: '完整场景语义方案，可直接引用。',
+    levels: [
+      { lv: '覆盖层', def: 'transactional（交易与操作）', visual: '—', action: '用户必须主动确认' },
+      { lv: '语义绑定', def: 'status.critical + action.destructive', visual: '红色系', action: '—' },
+      { lv: '组件组合', def: 'Alert + Button + Modal', visual: '—', action: 'Modal 必须输入账户名二次确认' },
+      { lv: '文案约束', def: '必须包含"此操作不可恢复"', visual: '—', action: '禁止模糊文案' }
+    ],
+    annotation: '[语义标注] SCN-001 删除账户\n- 覆盖层 transactional，绑定 status.critical + action.destructive\n- 组件组合 Alert + Button + Modal，输入账户名二次确认\n- 文案必须包含"此操作不可恢复"\n（基于语义字典 v1.0.0）'
+  }
+];
+
+// ---- Prompt 前缀数据（前端） ----
+const prefixInfo = {
+  'ERR-001': {
+    summary: '<b>语义分级</b>：fatal 红+脉冲 / transient 灰 / retryable 黄+倒计时 / degraded 蓝<br><b>红线</b>：禁止致命错误做成普通文字 · 禁止限流提示用红色 · 禁止省略恢复路径',
+    task: '【Prompt 前缀 · ERR-001 v1.1.0】\n错误状态必须按四级语义分级：fatal（红+脉冲+恢复路径）、transient（灰+自动重试）、retryable（黄+倒计时）、degraded（蓝+可用功能说明）。\n红线：禁止致命错误做成普通文字；禁止限流提示使用红色；禁止省略恢复路径。\n\n【生成任务】\n请基于以上约束生成：<在此描述你的界面任务>'
+  },
+  'ACT-001': {
+    summary: '<b>语义分级</b>：destructive 红色描边+二次确认 / primary 实心主按钮<br><b>红线</b>：高危操作禁止使用普通主按钮 · 禁止省略二次确认',
+    task: '【Prompt 前缀 · ACT-001 v1.0.0】\n高危操作（删除、注销等不可逆行为）必须使用 action.destructive：红色描边按钮 + 二次确认弹窗 + 后果说明文案。\n红线：禁止高危操作使用普通主按钮样式；禁止省略二次确认。\n\n【生成任务】\n请基于以上约束生成：<在此描述你的界面任务>'
+  }
+};
+
+// ---- 消费面数据（DesignOps） ----
+const consumptionMap = {
+  'ERR-001': {
+    version: 'v1.1.0',
+    rows: [
+      ['Prompt 前缀', '前端与 AI 工程师', '产品 A · B'],
+      ['JSON Schema', '组件 Props 校验', '产品 A · B'],
+      ['走查 Checklist', '设计师与产品经理', '产品 A'],
+      ['CI 规则', '流水线自动拦截', '全产品']
+    ]
+  },
+  'ACT-001': {
+    version: 'v1.0.0',
+    rows: [
+      ['Prompt 前缀', '前端与 AI 工程师', '产品 A'],
+      ['走查 Checklist', '设计师与产品经理', '产品 A'],
+      ['CI 规则', '流水线自动拦截', '全产品']
+    ]
+  }
+};
+
+// ---- 验证报告数据（管理层 · 演示数据） ----
+const reportData = {
+  passRate: '92%',
+  passNote: '实测：基于 50 条 Checklist 走查记录',
+  breaks: ['retryable 误用红色（3 次）', '限流倒计时缺失（2 次）', 'fatal 缺恢复路径（1 次）'],
+  tracking: ['ERR-001 → 4 个角色消费', 'ACT-001 → 2 个角色消费', 'ALR-001 → 2 个角色消费'],
+  roi: '返工轮次 3-5 → 1（推演，模型假设：8 个产品线、每线每月 20 个 AI 生成界面）'
+};
+
+// ---- 工作台定义 ----
+const workbenchData = {
+  designer: {
+    icon: '🎨', name: '设计师与产品经理', desc: '消费语义字典与走查 Checklist：决策前查定义，验收时逐项核对。',
+    scenarios: [
+      { id: 'pre', label: '设计前', asset: '语义字典', assetDesc: '组织级语义码本，决策与沟通时查询。', assetPage: 'dictionary',
+        query: { type: 'dictLevels', label: '查 error_severity：选择级别查看语义定义' },
+        output: { title: '带语义标注的设计稿注释' } },
+      { id: 'accept', label: '验收时', asset: '走查 Checklist', assetDesc: '编译管线产出，逐项核对替代主观判断。', assetPage: 'contract',
+        query: { type: 'checklist', label: '逐项核对（错误状态组件 · 基于 ERR-001 v1.1.0）', items: ['错误状态按级别区分了颜色', '致命错误使用了脉冲动画', '限流提示显示了具体倒计时', '文案说明"对话可能已丢失"', '未把致命错误做成普通文字（红线）', '未把限流提示做成红色（红线）'] },
+        output: { title: '验收结论' } },
+      { id: 'unsure', label: '验收拿不准', asset: '语义分级器（验收辅助）', assetDesc: '输入文案，获得分级参考结论。', assetPage: 'verify',
+        query: { type: 'cta', label: '分级器在验证实验室中运行，输出为参考结论，最终判定以 Checklist 人工核对为准。', ctaLabel: '打开语义分级器 →', ctaPage: 'verify' },
+        output: { title: '分级参考结论说明', staticText: '语义分级器输出为参考结论，最终判定以 Checklist 人工核对为准。\n工具入口：Validation Toolkit → 语义分级器。\n输入错误文案 → 输出 fatal / transient / retryable / degraded 分级建议。' } },
+      { id: 'miss', label: '发现遗漏', asset: '模式库反馈通道', assetDesc: '字典未覆盖的场景，按 6 字段快照格式回流。', assetPage: 'semantic-pipeline',
+        query: { type: 'snapshotForm', label: '按 6 字段快照格式记录新场景' },
+        output: { title: '新场景快照（提交模式库）' } }
+    ]
+  },
+  frontend: {
+    icon: '💻', name: '前端与 AI 工程师', desc: '消费 Prompt 前缀与 JSON Schema：生成前注入约束，生成后跑校验。',
+    scenarios: [
+      { id: 'pre', label: '生成前', asset: 'Prompt 前缀', assetDesc: '契约编译产物，注入 AI 生成上下文。', assetPage: 'contract',
+        query: { type: 'prefix', label: '查语义分级与红线：选择契约' },
+        output: { title: '注入约束的生成任务' } },
+      { id: 'post', label: '生成后校验', asset: '验证实验室 Lazy Mode', assetDesc: '自然语言 → 字段提取 → 模式匹配。', assetPage: 'verify',
+        query: { type: 'cta', label: '粘贴 AI 生成的文案/描述，自动提取字段并匹配模式，可一键填充到 JSON 编辑器。', ctaLabel: '打开 Lazy Mode →', ctaPage: 'verify' },
+        output: { title: '校验说明', staticText: '生成后校验在 Validation Toolkit 完成：\n- Lazy Mode：自然语言 → 字段提取 → 模式匹配\n- JSON 输入：组件语义快照 → 诊断\n匹配结果可直接填充到 JSON 编辑器。' } }
+    ]
+  },
+  designops: {
+    icon: '📋', name: 'DesignOps 与设计系统负责人', desc: '运营契约库与编译管线：变更前评审影响面，变更后广播下游。',
+    scenarios: [
+      { id: 'pre', label: '变更前', asset: '契约库', assetDesc: 'Git 管理，版本可追溯、变更可回滚。', assetPage: 'contract',
+        query: { type: 'consumption', label: '查版本与消费面：选择契约' },
+        output: { title: '变更评审结论' } },
+      { id: 'post', label: '变更后', asset: '编译管线（Git 钩子触发）', assetDesc: '契约变更自动重编译，产物全量换版。', assetPage: 'contract',
+        query: { type: 'broadcast', label: '契约变更后，Git 钩子触发编译管线自动生成四种新格式，由 DesignOps 广播下游，无需人工追认。' },
+        output: { title: '变更广播通知', staticText: '【契约变更通知】\nERR-001 v1.1.0 已发布（变更：增加 degraded 级别；优化同义词防火墙）。\n编译管线已重新生成：Prompt 前缀 / JSON Schema / 走查 Checklist / CI 规则。\n请以下角色同步：设计师与产品经理（Checklist 换版）、前端与 AI 工程师（前缀换版）。\n—— DesignOps 广播' } }
+    ]
+  },
+  translator: {
+    icon: '🔍', name: '语义翻译设计师', desc: '产出模式库与语义字典：快照记录、三层判定、模式归档。',
+    scenarios: [
+      { id: 'diagnose', label: '诊断时', asset: '快照模板 + 三层判定', assetDesc: '6 字段快照 → 三层判定 → 模式卡片。', assetPage: 'semantic-pipeline',
+        query: { type: 'cta', label: '三层判定在 Semantic Pipeline 页运行：组件类型识别 → 语义缺失判定 → 视觉表达校验，输出 matched_pattern 与置信度。诊断报告区可一键导出模式卡片。', ctaLabel: '进入三层判定 →', ctaPage: 'semantic-pipeline' },
+        output: { title: '模式卡片（模板）', staticText: '模式卡片（组件语义快照诊断）\nsnapshot_id: SNAP-XXXX-XXX\nproduct: <产品名>\ncomponent_type: <第一层：组件类型>\nsemantic_gaps: <第二层：语义缺失>\nvisual_checks: <第三层：视觉校验>\nmatched_pattern: <如 ERR-001>\nconfidence_score: <0-1>\n归档路径: pattern-library/<类型>/<模式 ID>\n\n完成三层判定后，可在诊断报告区点击「导出模式卡片」自动填充以上字段。' } }
+    ]
+  },
+  exec: {
+    icon: '📊', name: '管理层与决策者', desc: '消费验证报告：通过率、断裂点、消费追踪与 ROI 推演。',
+    scenarios: [
+      { id: 'review', label: '评审时', asset: '验证报告', assetDesc: '阶段三产出，实测与推演分注。', assetPage: null,
+        query: { type: 'reportView', label: '查通过率与消费追踪' },
+        output: { title: '验收结论' } }
+    ]
+  }
+};
+
+// ---- 工作台状态 ----
+let wbRole = null;
+let wbScenario = null;
+let wbSel = {};
+let wbChecked = [];
+let reportLog = [];
+
+function enterRoleWorkbench(role) {
+  workbenchReturnContext = null;
+  wbRole = role;
+  wbScenario = workbenchData[role].scenarios[0].id;
+  switchPage('workbench');
+  renderWorkbench();
+}
+
+function wbSelectScenario(id) {
+  wbScenario = id;
+  renderWorkbench();
+}
+
+function renderWorkbench() {
+  const role = workbenchData[wbRole];
+  document.getElementById('wbRoleTitle').textContent = role.icon + ' ' + role.name;
+  document.getElementById('wbCrumbRole').textContent = role.name;
+  document.getElementById('wbRoleDesc').textContent = role.desc;
+
+  // ① 场景条（交互）
+  document.getElementById('wbScenarioBar').innerHTML = role.scenarios.map(s =>
+    `<div class="wb-scenario-chip ${s.id === wbScenario ? 'active' : ''}" onclick="wbSelectScenario('${s.id}')">① ${s.label}</div>`
+  ).join('');
+
+  const sc = role.scenarios.find(s => s.id === wbScenario);
+  wbSel = {};
+  wbChecked = (sc.query.items || []).map(() => false);
+
+  // ② 打开什么
+  document.getElementById('wbAssetPanel').innerHTML = `
+    <div class="wb-segment-title"><div class="wb-segment-num">②</div>打开什么：${sc.asset}</div>
+    <div class="wb-detail" style="margin-bottom: 14px;">${sc.assetDesc}</div>
+    ${sc.assetPage ? `<button class="wb-btn-ghost" onclick="switchPage('${sc.assetPage}')">打开完整资产 →</button>` : '<span style="font-size: 13px; color: var(--text-tertiary);">验证报告在本工作台下方直接查看（④输出 + 历史验证报告）。</span>'}
+  `;
+
+  // ③ 查什么
+  renderQueryPanel(sc);
+
+  // ④ 输出什么
+  document.getElementById('wbOutputPanel').innerHTML = `
+    <div class="wb-segment-title"><div class="wb-segment-num">④</div>输出什么：${sc.output.title}</div>
+    <div class="wb-output-box" id="wbOutputBox"></div>
+    <div style="display: flex; gap: 12px;">
+      <button class="wb-btn" onclick="wbGenOutput()">生成输出</button>
+      <button class="wb-btn-ghost" onclick="wbCopyOutput()">复制并记入验证日志</button>
+    </div>
+  `;
+
+  renderLog();
+}
+
+function renderQueryPanel(sc) {
+  const q = sc.query;
+  let html = `<div class="wb-segment-title"><div class="wb-segment-num">③</div>查什么</div>`;
+  html += `<p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">${q.label}</p>`;
+
+  if (q.type === 'dictLevels') {
+    html += `<div class="wb-chip-row">` + dictData[0].levels.map((l, i) =>
+      `<div class="wb-opt-chip ${wbSel.level === i ? 'active' : ''}" onclick="wbPickLevel(${i})">${l.lv}</div>`).join('') + `</div>`;
+    html += `<div class="wb-detail" id="wbLevelDetail">选择一个级别，查看字典定义。</div>`;
+  } else if (q.type === 'checklist') {
+    html += q.items.map((item, i) => `
+      <div class="wb-check-row ${wbChecked[i] ? 'done' : ''}" onclick="wbToggle(${i})">
+        <div class="box">${wbChecked[i] ? '✓' : ''}</div><span>${item}</span>
+      </div>`).join('');
+  } else if (q.type === 'cta') {
+    html += `<button class="wb-btn" onclick="switchPage('${q.ctaPage}')">${q.ctaLabel}</button>`;
+  } else if (q.type === 'snapshotForm') {
+    html += `
+      <div style="display: grid; gap: 10px; max-width: 560px;">
+        <input id="wbSnapProduct" placeholder="product：产品名（如：某 AI 对话产品）" style="padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 13px; outline: none;">
+        <input id="wbSnapType" placeholder="component_type：组件类型（如：边界动作）" style="padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 13px; outline: none;">
+        <input id="wbSnapConfusion" placeholder="user_confusion：用户困惑（如：不知道注销后能否恢复）" style="padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 13px; outline: none;">
+      </div>`;
+  } else if (q.type === 'prefix' || q.type === 'consumption') {
+    const keys = Object.keys(q.type === 'prefix' ? prefixInfo : consumptionMap);
+    html += `<div class="wb-chip-row">` + keys.map(k =>
+      `<div class="wb-opt-chip ${wbSel.contract === k ? 'active' : ''}" onclick="wbPickContract('${k}','${q.type}')">${k}</div>`).join('') + `</div>`;
+    html += `<div class="wb-detail" id="wbContractDetail">选择一份契约，查看${q.type === 'prefix' ? '语义分级与红线' : '版本与消费面'}。</div>`;
+  } else if (q.type === 'broadcast') {
+    html += `<div class="wb-detail">契约库 Git 钩子 → 编译管线 → 四种格式全部换版 → DesignOps 广播。版本声明嵌入每份产物头部（契约 ID + 版本号 + 编译时间）。</div>`;
+  } else if (q.type === 'reportView') {
+    html += `
+      <div class="demo-watermark" style="background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div><div style="font-size: 32px; font-weight: 800; color: var(--accent-green);">${reportData.passRate}</div><div style="font-size: 12px; color: var(--text-tertiary);">${reportData.passNote}</div></div>
+          <div><div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">断裂点 TOP3</div>${reportData.breaks.map(b => `<div style="font-size: 12px; color: var(--text-secondary);">· ${b}</div>`).join('')}</div>
+          <div><div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">消费追踪</div>${reportData.tracking.map(t => `<div style="font-size: 12px; color: var(--text-secondary);">· ${t}</div>`).join('')}</div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 14px;">ROI：${reportData.roi} <span class="demo-tag" style="margin-left: 8px;">演示数据</span></div>
+      </div>`;
+  }
+
+  document.getElementById('wbQueryPanel').innerHTML = html;
+}
+
+function wbPickLevel(i) {
+  wbSel.level = i;
+  const l = dictData[0].levels[i];
+  document.querySelectorAll('#wbQueryPanel .wb-opt-chip').forEach((el, idx) => el.classList.toggle('active', idx === i));
+  document.getElementById('wbLevelDetail').innerHTML =
+    `<b>${l.lv}</b>：${l.def}<br>视觉：${l.visual}<br>行动：${l.action}`;
+}
+
+function wbToggle(i) {
+  wbChecked[i] = !wbChecked[i];
+  const sc = workbenchData[wbRole].scenarios.find(s => s.id === wbScenario);
+  renderQueryPanel(sc);
+}
+
+function wbPickContract(k, type) {
+  wbSel.contract = k;
+  document.querySelectorAll('#wbQueryPanel .wb-opt-chip').forEach(el => el.classList.toggle('active', el.textContent === k));
+  const detail = document.getElementById('wbContractDetail');
+  if (type === 'prefix') {
+    detail.innerHTML = prefixInfo[k].summary;
+  } else {
+    const c = consumptionMap[k];
+    detail.innerHTML = `<b>${k} ${c.version}</b> 的消费面：<br>` + c.rows.map(r => `· ${r[0]} → ${r[1]}（${r[2]}）`).join('<br>');
+  }
+}
+
+function wbBuildOutput(sc) {
+  if (sc.output.staticText) return sc.output.staticText;
+  const roleKey = wbRole;
+  if (roleKey === 'designer' && sc.id === 'pre') {
+    const note = wbSel.level !== undefined ? `\n（本次查询级别：${dictData[0].levels[wbSel.level].lv}）` : '';
+    return dictData[0].annotation + note;
+  }
+  if (roleKey === 'designer' && sc.id === 'accept') {
+    const items = sc.query.items;
+    const passed = wbChecked.filter(Boolean).length;
+    const failed = items.filter((_, i) => !wbChecked[i]);
+    const redlineFailed = failed.filter(f => f.includes('红线'));
+    return `验收结论（错误状态组件 · 基于 ERR-001 v1.1.0）\n通过 ${passed}/${items.length} 项\n${failed.length ? '未通过：\n' + failed.map(f => '- ' + f).join('\n') : '全部通过'}\n结论：${failed.length === 0 ? '✓ 验收通过' : (redlineFailed.length ? '✗ 不通过（红线项未过，必须修改）' : '△ 限期修复后可进入开发')}`;
+  }
+  if (roleKey === 'designer' && sc.id === 'miss') {
+    const p = (document.getElementById('wbSnapProduct') || {}).value || '<未填写>';
+    const t = (document.getElementById('wbSnapType') || {}).value || '<未填写>';
+    const c = (document.getElementById('wbSnapConfusion') || {}).value || '<未填写>';
+    return `snapshot_id: SNAP-${Date.now().toString().slice(-6)}\nproduct: ${p}\ncomponent_type: ${t}\nvisual_record: 界面素材 + 语义标注框（待补充）\nuser_confusion: "${c}"\ncontext: <触发场景，待补充>\n\n提交至模式库反馈通道 → 触发 ERR/PRO/BND/ACT/ALR/INF 新编号或版本更新`;
+  }
+  if (roleKey === 'frontend' && sc.id === 'pre') {
+    return wbSel.contract ? prefixInfo[wbSel.contract].task : '请先在③中选择一份契约（ERR-001 / ACT-001）';
+  }
+  if (roleKey === 'designops' && sc.id === 'pre') {
+    if (!wbSel.contract) return '请先在③中选择一份契约（ERR-001 / ACT-001）';
+    const c = consumptionMap[wbSel.contract];
+    return `变更评审结论（${wbSel.contract} ${c.version}）\n影响面：\n` + c.rows.map(r => `- ${r[0]} → ${r[1]}（${r[2]}）`).join('\n') +
+      `\n结论：变更影响 ${c.rows.length} 种消费格式，编译管线将自动重编译；Checklist 与 Prompt 前缀消费方需回归验证后发布。`;
+  }
+  if (roleKey === 'exec' && sc.id === 'review') {
+    return `验收结论（演示数据）\n通过率 ${reportData.passRate}（${reportData.passNote}）\n断裂点 TOP3：${reportData.breaks.join('；')}\n消费追踪：${reportData.tracking.join('；')}\nROI 推演：${reportData.roi}\n结论：通过验收，建议推广至全产品线（实测与推演已分注）`;
+  }
+  return sc.output.title;
+}
+
+function wbGenOutput() {
+  const sc = workbenchData[wbRole].scenarios.find(s => s.id === wbScenario);
+  const box = document.getElementById('wbOutputBox');
+  box.textContent = wbBuildOutput(sc);
+  box.style.display = 'block';
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function wbCopyOutput() {
+  const box = document.getElementById('wbOutputBox');
+  const text = box.textContent.trim();
+  if (!text || box.style.display === 'none') { alert('请先生成输出'); return; }
+  const role = workbenchData[wbRole];
+  const sc = role.scenarios.find(s => s.id === wbScenario);
+  navigator.clipboard.writeText(text).then(() => {
+    pushLog(role.name, sc.label, sc.output.title, text);
+    showToast('已复制并记入验证日志');
+  });
+}
+
+// ---- 历史验证报告（用户操作日志） ----
+function pushLog(roleName, scenarioLabel, title, content) {
+  const now = new Date();
+  const time = `${now.getMonth() + 1}-${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  reportLog.unshift({ time, role: roleName, scenario: scenarioLabel, title, content });
+  if (reportLog.length > 20) reportLog.pop();
+  renderLog();
+}
+
+function renderLog() {
+  const list = document.getElementById('wbLogList');
+  if (!list) return;
+  if (reportLog.length === 0) {
+    list.innerHTML = '<div class="wb-log-empty">暂无记录。生成输出并点击「复制并记入验证日志」后，在此留档。</div>';
+    return;
+  }
+  list.innerHTML = reportLog.map((l, i) => `
+    <div class="wb-log-item" onclick="viewLog(${i})">
+      <div>
+        <div class="log-title">${l.title}</div>
+        <div class="log-meta">${l.role} · ${l.scenario} · ${l.time}</div>
+      </div>
+      <span style="font-size: 12px; color: var(--primary); font-weight: 600; flex-shrink: 0;">查看 →</span>
+    </div>`).join('');
+}
+
+function viewLog(i) {
+  const l = reportLog[i];
+  openModal(`${l.title}（${l.time} · 演示数据）`, l.content, null, 'yaml');
+}
+
+// ---- Dictionary 页 ----
+let dictFilter = 'all';
+let dictOutput = '';
+
+function filterDict(cat, el) {
+  dictFilter = cat;
+  document.querySelectorAll('#dictTagBar .wb-opt-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderDict();
+}
+
+function renderDict() {
+  const entries = dictData.filter(d => dictFilter === 'all' || d.cat === dictFilter);
+  document.getElementById('dictEntries').innerHTML = entries.map(d => `
+    <div class="dict-entry" id="dict-${d.key}">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="font-size: 15px; font-weight: 700; color: var(--text-primary);">${d.title}</div>
+        <button class="wb-btn" style="padding: 6px 14px; font-size: 13px;" onclick="event.stopPropagation(); genDictAnnotation('${d.key}')">生成语义标注 →</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">${d.desc}</p>
+      ${d.levels.map(l => `<div class="dict-level"><span class="lv">${l.lv}</span><span>${l.def} · ${l.visual} · ${l.action}</span></div>`).join('')}
+    </div>`).join('');
+}
+
+function genDictAnnotation(key) {
+  const d = dictData.find(x => x.key === key);
+  dictOutput = d.annotation;
+  const box = document.getElementById('dictOutputBox');
+  box.textContent = d.annotation;
+  box.style.display = 'block';
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function copyDictOutput() {
+  if (!dictOutput) { alert('请先生成语义标注'); return; }
+  navigator.clipboard.writeText(dictOutput).then(() => {
+    pushLog('设计师与产品经理', '设计前', '语义标注（语义字典）', dictOutput);
+    showToast('已复制并记入验证日志');
+  });
+}
+
+// ---- 角色 4：导出模式卡片 ----
+function exportPatternCard() {
+  if (!spSelections.layer1) { alert('请先完成三层判定选择'); return; }
+  const typeNames = { error: '错误状态', process: '过程状态', boundary: '边界动作', action: '操作按钮', status: '信息状态' };
+  const opts = (spLayer2Options[spSelections.layer1] || []).filter(o => spSelections.layer2.includes(o.id));
+  const patterns = [...new Set(opts.map(o => o.pattern))];
+  const card = `模式卡片（组件语义快照诊断）
+snapshot_id: SNAP-${Date.now().toString().slice(-6)}
+product: 演示产品
+component_type: ${typeNames[spSelections.layer1] || spSelections.layer1}
+semantic_gaps: ${opts.map(o => o.desc).join('；') || '<未选择>'}
+visual_checks: 已完成 ${spSelections.layer3.length} 项视觉校验
+matched_pattern: ${patterns.join(' / ') || '<未匹配>'}
+confidence_score: 0.87（演示）
+归档路径: pattern-library/${spSelections.layer1}/${patterns[0] || 'unmatched'}`;
+  navigator.clipboard.writeText(card).then(() => {
+    pushLog('语义翻译设计师', '诊断时', '模式卡片', card);
+    showToast('模式卡片已复制并记入验证日志');
+  });
+}
+
 // Init
 renderContractLibrary();
+renderDict();
 
 function spScrollToYAML() {
   document.getElementById('sp-result-yaml').scrollIntoView({ behavior: 'smooth', block: 'center' });

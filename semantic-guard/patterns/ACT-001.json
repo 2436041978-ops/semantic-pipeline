@@ -1,33 +1,72 @@
 {
-  "id": "ACT-001",
+  "pattern_id": "ACT-001",
   "version": "1.0.0",
-  "componentType": "Button",
-  "componentLibrary": "Ant Design",
-  "symptoms": {
-    "description": "AI 把不可逆的高危操作（如删除账户）设计为普通蓝色实心按钮，缺少二次确认弹窗和后果说明，导致用户误触即执行不可逆操作",
-    "evidence": [
-      "截图：v0 生成的删除账户弹窗，按钮为蓝色实心，文案为确认",
-      "截图：Framer AI 生成的退出组织界面，无数据归属说明"
-    ],
-    "products": [
-      "v0",
-      "Framer AI",
-      "Claude Design"
+  "status": "published",
+  "component_type": "Action",
+  "fault_name": "高危操作风险未约束",
+  "symptom": {
+    "description": "不可逆操作按钮被做成普通蓝色实心样式，无二次确认，用户可能误触",
+    "user_confusion": "点了会出大事吗？能撤销吗？为什么删除按钮和保存按钮长得一样？",
+    "visual_manifestation": [
+      "蓝色实心按钮",
+      "无二次确认",
+      "文案弱化"
     ]
   },
-  "rootCause": {
-    "missingToken": "destructive_action",
-    "description": "缺少 destructive_action 语义约束，系统无法将不可逆操作绑定到危险样式 + 二次确认"
+  "root_cause": {
+    "description": "系统缺少 destructive_action 语义令牌，前端只接收 onClick 事件",
+    "semantic_token_missing": "destructive_action",
+    "why_happens": "LLM 生成按钮时按视觉惯性输出主按钮样式，未识别不可逆操作的语义风险"
   },
-  "componentSpec": {
-    "props": [
-      "type",
-      "danger",
-      "ghost"
+  "product_evidence": [
+    {
+      "product_name": "v0",
+      "evidence_type": "screenshot",
+      "description": "删除项目按钮为蓝色实心，无二次确认",
+      "file_path": "samples/dogfood/before/v0-destructive.png"
+    },
+    {
+      "product_name": "Claude Code",
+      "evidence_type": "screenshot",
+      "description": "数据管理按钮与常规操作按钮视觉权重相同",
+      "file_path": "samples/dogfood/before/claude-code-destructive.png"
+    },
+    {
+      "product_name": "ChatGPT",
+      "evidence_type": "screenshot",
+      "description": "删除对话历史无明确后果说明",
+      "file_path": "samples/dogfood/before/chatgpt-destructive.png"
+    }
+  ],
+  "linked_contract": {
+    "contract_id": "ACT-001",
+    "file_path": "contracts/ACT-001.yaml",
+    "applicable_products": [
+      "通用",
+      "v0",
+      "Claude Code",
+      "ChatGPT"
+    ]
+  },
+  "validation_method": {
+    "unit_tests": 10,
+    "integration_tests": 3,
+    "regression_tests": 5,
+    "pass_criteria": "高危操作误触率从行业平均 8% 降到趋近于 0%",
+    "ab_comparison_required": true
+  },
+  "metadata": {
+    "author": "体验架构设计师",
+    "created_at": "2026-06-24",
+    "updated_at": "2026-06-24",
+    "reviewers": [
+      "前端 TL",
+      "DesignOps"
     ],
-    "semanticExtension": "semantic_domain: destructive"
-  },
-  "contractRef": "contracts/ACT-001.yaml",
-  "validationMethod": "高危操作语义检查器",
-  "status": "published"
+    "tags": [
+      "高危操作",
+      "破坏性操作",
+      "通用模式"
+    ]
+  }
 }

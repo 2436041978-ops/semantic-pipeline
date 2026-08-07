@@ -1,25 +1,72 @@
 {
-  "id": "BND-001",
+  "pattern_id": "BND-001",
   "version": "1.0.0",
-  "componentType": "Modal",
-  "componentLibrary": "Ant Design",
-  "symptoms": {
-    "description": "拒绝和终止混为一谈，用户不知道对话还在不在、历史丢没丢",
-    "evidence": [
-      "Claude 'I can't help with that' 截图（拒绝请求，对话继续）",
-      "Claude 'Claude has ended this chat' 截图（终止会话，上下文清空）"
+  "status": "published",
+  "component_type": "Boundary",
+  "fault_name": "边界动作权利差异未区分",
+  "symptom": {
+    "description": "AI 拒绝请求和终止会话使用同一视觉表达，用户无法判断上下文是否还在",
+    "user_confusion": "我被拒绝了还是被封号了？我的对话记录还在吗？还能继续聊吗？",
+    "visual_manifestation": [
+      "同一红色提示",
+      "无状态说明",
+      "输入框状态不明确"
+    ]
+  },
+  "root_cause": {
+    "description": "系统缺少 boundary_action 语义令牌，前端只接收 isBlocked=true",
+    "semantic_token_missing": "boundary_action",
+    "why_happens": "LLM 按安全策略输出拒绝时，没有区分'软性拒绝'和'强制终止'的语义约束"
+  },
+  "product_evidence": [
+    {
+      "product_name": "Claude",
+      "evidence_type": "screenshot",
+      "description": "拒绝帮助和终止会话的视觉表达差异不明显",
+      "file_path": "samples/dogfood/before/claude-boundary.png"
+    },
+    {
+      "product_name": "ChatGPT",
+      "evidence_type": "screenshot",
+      "description": "内容审核拒绝与系统错误提示样式混淆",
+      "file_path": "samples/dogfood/before/chatgpt-boundary.png"
+    },
+    {
+      "product_name": "文心一言",
+      "evidence_type": "screenshot",
+      "description": "敏感词拦截后用户不清楚是否可继续对话",
+      "file_path": "samples/dogfood/before/wenxin-boundary.png"
+    }
+  ],
+  "linked_contract": {
+    "contract_id": "BND-001",
+    "file_path": "contracts/BND-001.yaml",
+    "applicable_products": [
+      "Claude",
+      "ChatGPT",
+      "文心一言",
+      "Kimi"
+    ]
+  },
+  "validation_method": {
+    "unit_tests": 6,
+    "integration_tests": 2,
+    "regression_tests": 3,
+    "pass_criteria": "用户能正确判断权利边界保留情况的比例从 50% 提升到 95%",
+    "ab_comparison_required": true
+  },
+  "metadata": {
+    "author": "体验架构设计师",
+    "created_at": "2026-06-24",
+    "updated_at": "2026-06-24",
+    "reviewers": [
+      "前端 TL",
+      "DesignOps"
     ],
-    "products": ["Claude"]
-  },
-  "rootCause": {
-    "missingToken": "boundary_action",
-    "description": "缺少边界动作语义令牌，没有区分 refusal / termination / escalation"
-  },
-  "componentSpec": {
-    "modalType": ["confirm", "info", "success", "error"],
-    "props": ["title", "content", "okText", "cancelText", "onOk", "onCancel"]
-  },
-  "contractRef": "contracts/BND-001.yaml",
-  "validationMethod": "边界动作语义分级器",
-  "status": "published"
+    "tags": [
+      "边界动作",
+      "权利差异",
+      "通用模式"
+    ]
+  }
 }

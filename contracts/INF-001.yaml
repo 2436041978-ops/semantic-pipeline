@@ -1,0 +1,61 @@
+intent_id: "INF-001"
+description: "系统通知与安全警告视觉权重相同，重要提示被淹没在普通信息中"
+version: "1.0.0"
+semantic_domain: "observational"
+applicable_products:
+  - "通用"
+  - "系统通知中心"
+  - "安全提示"
+
+semantic_tokens:
+  urgent:
+    description: "紧急通知：安全警告、账户异常，需立即处理"
+    visual_mapping:
+      color_token: "status.critical"
+      motion_token: "pulse.red.urgent"
+      icon_token: "shield.alert"
+      prominence: "sticky.top"
+    user_action:
+      - "立即处理"
+      - "查看详情"
+    llm_constraints:
+      - "必须置顶显示，禁止被其他通知覆盖"
+      - "必须提供'我知道了'确认按钮"
+      - "禁止自动消失"
+  important:
+    description: "重要通知：功能变更、政策更新，需用户知晓"
+    visual_mapping:
+      color_token: "status.warning"
+      motion_token: "static.yellow"
+      icon_token: "bell"
+      prominence: "inline.highlight"
+    user_action:
+      - "阅读详情"
+      - "稍后处理"
+    llm_constraints:
+      - "必须高亮显示，区别于普通信息"
+      - "必须提供'不再提醒'选项"
+  normal:
+    description: "普通信息：操作成功、状态更新，可自动消失"
+    visual_mapping:
+      color_token: "status.info"
+      motion_token: "static.blue"
+      icon_token: "check.circle"
+      prominence: "inline"
+    user_action:
+      - "确认"
+      - "忽略"
+    llm_constraints:
+      - "可自动消失（3-5秒）"
+      - "禁止阻断用户当前操作"
+
+immutable_boundaries:
+  - boundary_type: "semantic"
+    rule: "禁止安全警告与普通通知使用同一视觉权重"
+    violation_action: "block"
+  - boundary_type: "safety"
+    rule: "禁止紧急通知自动消失而不等待用户确认"
+    violation_action: "block"
+  - boundary_type: "consistency"
+    rule: "禁止同一产品内同一级别的通知使用不同视觉表达"
+    violation_action: "warn"

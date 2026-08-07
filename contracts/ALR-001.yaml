@@ -1,98 +1,58 @@
 intent_id: "ALR-001"
-schema_version: "1.0.0"
+description: "告警文案中关键术语被 LLM 降级为低情绪权重同义词，导致用户忽略重要信息"
+version: "1.0.0"
 semantic_domain: "observational"
-description: "告警文案语义降级拦截规范"
-
-component_spec:
-  component: "Alert"
-  component_library: "Ant Design"
-  props_reference:
-    - type: "success / info / warning / error"
-    - message: "string"
-    - description: "string"
-
-semantic_tokens:
-  synonym_firewall:
-    prohibited:
-      - term: "严重"
-        standard_token: "Critical"
-        context: "system_alert"
-        reason: "情绪权重降级，用户可能低估故障严重性"
-        severity_delta: "high_to_medium"
-      - term: "紧急"
-        standard_token: "Critical"
-        context: "system_alert"
-        reason: "与 P1 告警级别混淆，边界模糊"
-        severity_delta: "high_to_medium"
-      - term: "危急"
-        standard_token: "Critical"
-        context: "system_alert"
-        reason: "非标准运维术语，不同团队理解不一致"
-        severity_delta: "high_to_medium"
-      - term: "重大"
-        standard_token: "Critical"
-        context: "system_alert"
-        reason: "情绪权重低于 Critical，延迟响应风险"
-        severity_delta: "high_to_medium"
-      - term: "重要"
-        standard_token: "Warning"
-        context: "system_alert"
-        reason: "与 Info 级别边界模糊"
-        severity_delta: "medium_to_low"
-      - term: "一般"
-        standard_token: "Info"
-        context: "system_alert"
-        reason: "与 Warning 级别边界模糊"
-        severity_delta: "low_to_none"
-
-    standard_vocabulary:
-      critical:
-        description: "系统级故障，需立即响应"
-        emotional_weight: "highest"
-        response_sla: "5_minutes"
-        visual_mapping:
-          color_token: "status.critical"
-          icon_token: "alert.octagon"
-      warning:
-        description: "潜在风险，需关注"
-        emotional_weight: "medium"
-        response_sla: "30_minutes"
-        visual_mapping:
-          color_token: "status.warning"
-          icon_token: "alert.triangle"
-      info:
-        description: "信息通知，无需立即行动"
-        emotional_weight: "low"
-        response_sla: "none"
-        visual_mapping:
-          color_token: "status.info"
-          icon_token: "info.circle"
-
-    llm_constraints:
-      - "禁止在系统告警场景使用'严重'替代'Critical'"
-      - "禁止在系统告警场景使用'紧急'替代'Critical'"
-      - "禁止在系统告警场景使用'危急'替代'Critical'"
-      - "禁止在系统告警场景使用'重大'替代'Critical'"
-      - "禁止在系统告警场景使用'重要'替代'Warning'"
-      - "禁止在系统告警场景使用'一般'替代'Info'"
-      - "必须保持标准词汇与视觉映射的一致性"
-
-immutable_boundaries:
-  - boundary_type: "safety"
-    rule: "禁止在告警文案中使用同义词替换导致语义降级"
-    violation_action: "block"
-  - boundary_type: "safety"
-    rule: "禁止在告警文案中使用非标准运维术语"
-    violation_action: "block"
-  - boundary_type: "consistency"
-    rule: "禁止同一告警级别在不同界面使用不同词汇"
-    violation_action: "block"
-
 applicable_products:
   - "通用"
-  - "所有含告警文案的 AI 生成界面"
+  - "AI 运维平台"
+  - "系统监控"
 
-version_history:
-  - version: "1.0.0"
-    date: "2026-06-23"
-    change: "初始发布，定义告警文案同义词防火墙"
+semantic_tokens:
+  critical:
+    description: "关键告警：系统故障、数据丢失风险，需立即处理"
+    visual_mapping:
+      color_token: "status.critical"
+      motion_token: "pulse.red.urgent"
+      icon_token: "alert.octagon"
+    user_action:
+      - "立即查看详情"
+      - "联系运维"
+    llm_constraints:
+      - "必须使用'Critical''致命''紧急'等高情绪权重词汇"
+      - "禁止使用'严重''注意''提示'等降级同义词"
+      - "必须提供具体故障定位和恢复指引"
+  warning:
+    description: "警告告警：限流、降级、可恢复异常，需关注但非立即"
+    visual_mapping:
+      color_token: "status.warning"
+      motion_token: "static.yellow"
+      icon_token: "alert.triangle"
+    user_action:
+      - "查看预计恢复时间"
+      - "评估影响范围"
+    llm_constraints:
+      - "必须使用'Warning''警告'等中情绪权重词汇"
+      - "禁止使用'注意''提醒'等降级同义词"
+  info:
+    description: "信息提示：功能更新、使用说明，可选择性关注"
+    visual_mapping:
+      color_token: "status.info"
+      motion_token: "static.blue"
+      icon_token: "info.circle"
+    user_action:
+      - "了解详情"
+      - "忽略"
+    llm_constraints:
+      - "使用'Info''信息'等低情绪权重词汇"
+      - "禁止滥用高情绪权重词汇"
+
+immutable_boundaries:
+  - boundary_type: "semantic"
+    rule: "禁止将 Critical 降级为'严重''重要'等低情绪同义词"
+    violation_action: "block"
+  - boundary_type: "semantic"
+    rule: "禁止将 Warning 降级为'注意''提醒'等低情绪同义词"
+    violation_action: "block"
+  - boundary_type: "clarity"
+    rule: "禁止告警文案不含具体故障定位或恢复指引"
+    violation_action: "warn"

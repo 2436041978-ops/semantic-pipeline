@@ -1,37 +1,73 @@
 {
-  "id": "PRO-001",
+  "pattern_id": "PRO-001",
   "version": "1.0.0",
-  "componentType": "Progress",
-  "componentLibrary": "Ant Design",
-  "symptoms": {
-    "description": "过程状态标签模糊，用户无法判断 AI 是在检索事实还是开始综合推理",
-    "evidence": [
-      "Perplexity Pro Search 显示 Searching... / Reading... / Wrapping up...，用户不知道 AI 是在查资料还是编答案",
-      "缺少认知阶段显化，信任度无法事中积累"
-    ],
-    "products": [
+  "status": "published",
+  "component_type": "Process",
+  "fault_name": "过程状态认知阶段未显化",
+  "symptom": {
+    "description": "AI 执行多步任务时只显示单一'思考中'，用户无法判断当前处于检索、综合还是生成阶段",
+    "user_confusion": "AI 现在是在查资料还是开始编答案？我该怎么判断可信度？",
+    "visual_manifestation": [
+      "单一加载动画",
+      "无阶段标签",
+      "无来源计数"
+    ]
+  },
+  "root_cause": {
+    "description": "系统缺少 process_phase 语义令牌，前端只接收 isLoading=true",
+    "semantic_token_missing": "process_phase",
+    "why_happens": "LLM 生成过程中没有阶段显化约束，默认输出统一加载态"
+  },
+  "product_evidence": [
+    {
+      "product_name": "Perplexity",
+      "evidence_type": "screenshot",
+      "description": "Searching/Reading/Wrapping up 阶段清晰，但国内产品普遍缺失",
+      "file_path": "samples/dogfood/before/perplexity-process.png"
+    },
+    {
+      "product_name": "秘塔搜索",
+      "evidence_type": "screenshot",
+      "description": "检索与生成阶段无明确区分",
+      "file_path": "samples/dogfood/before/mita-process.png"
+    },
+    {
+      "product_name": "Kimi",
+      "evidence_type": "screenshot",
+      "description": "长文本处理时仅显示'思考中'，无阶段细分",
+      "file_path": "samples/dogfood/before/kimi-process.png"
+    }
+  ],
+  "linked_contract": {
+    "contract_id": "PRO-001",
+    "file_path": "contracts/PRO-001.yaml",
+    "applicable_products": [
       "Perplexity",
-      "ChatGPT Search",
-      "文心一言深度搜索"
+      "秘塔搜索",
+      "Kimi",
+      "ChatGPT",
+      "Claude"
     ]
   },
-  "rootCause": {
-    "missingToken": "process_phase",
-    "description": "缺少过程阶段语义令牌，没有区分 retrieval / synthesis / verification / generation"
+  "validation_method": {
+    "unit_tests": 8,
+    "integration_tests": 2,
+    "regression_tests": 4,
+    "pass_criteria": "用户能正确识别当前认知阶段的比例从 40% 提升到 90%",
+    "ab_comparison_required": true
   },
-  "componentSpec": {
-    "props": [
-      "status",
-      "percent",
-      "steps"
+  "metadata": {
+    "author": "体验架构设计师",
+    "created_at": "2026-06-24",
+    "updated_at": "2026-06-24",
+    "reviewers": [
+      "前端 TL",
+      "DesignOps"
     ],
-    "missingProps": [
-      "phase_label",
-      "source_count",
-      "consensus_score"
+    "tags": [
+      "过程状态",
+      "认知阶段",
+      "通用模式"
     ]
-  },
-  "contractRef": "contracts/PRO-001.yaml",
-  "validationMethod": "过程状态语义分级器",
-  "status": "published"
+  }
 }

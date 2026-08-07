@@ -1,107 +1,61 @@
 intent_id: "BND-001"
-schema_version: "1.0.0"
-semantic_domain: "transactional"
-description: "AI 对话边界动作权利差异语义区分规范"
-
-component_spec:
-  component: "Modal"
-  component_library: "Ant Design"
-  props_reference:
-    - type: "confirm / info / success / error"
-    - title: "string"
-    - content: "string"
-    - okText: "string"
-    - cancelText: "string"
-    - onOk: "function"
-    - onCancel: "function"
-
-semantic_tokens:
-  boundary_action:
-    refusal:
-      description: "基于安全策略拒绝特定请求，但保留会话上下文"
-      trigger_keywords: ["I can't help", "无法协助", "不能回答", "拒绝执行", "此请求不符合", "policy violation"]
-      visual_mapping:
-        color_token: "boundary.soft"
-        icon_token: "hand.stop"
-        motion_token: "none"
-        background: "yellow.500/10"
-      user_impact:
-        session_state: "active"
-        history_retention: "full"
-        retry_allowed: true
-      user_action:
-        - label: "继续其他话题"
-          action: "continue_chat"
-          priority: 1
-      llm_constraints:
-        - "必须明确说明拒绝原因（引用具体策略条款）"
-        - "必须提供替代建议或合法路径"
-        - "禁止终止整个会话"
-
-    termination:
-      description: "检测到严重违规，强制终止会话并清空上下文"
-      trigger_keywords: ["Chat ended", "会话已终止", "对话已关闭", "terminated", "session closed", "blocked"]
-      visual_mapping:
-        color_token: "boundary.hard"
-        icon_token: "door.exit"
-        motion_token: "fade.out"
-        background: "red.500/10"
-      user_impact:
-        session_state: "terminated"
-        history_retention: "partial"
-        retry_allowed: false
-        new_session_required: true
-      user_action:
-        - label: "开始新会话"
-          action: "new_session"
-          priority: 1
-        - label: "申诉或反馈"
-          action: "appeal"
-          priority: 2
-      llm_constraints:
-        - "必须明确告知用户会话已终止且不可恢复"
-        - "必须说明数据保留政策（如：是否上报审核）"
-        - "禁止仅显示'Chat ended by Claude'等模糊文案"
-
-    escalation:
-      description: "触发人工审核机制，会话进入待审状态"
-      trigger_keywords: ["Under review", "审核中", "人工复核", "escalated", "submitted for review"]
-      visual_mapping:
-        color_token: "boundary.escalation"
-        icon_token: "shield.check"
-        motion_token: "none"
-        background: "blue.500/10"
-      user_impact:
-        session_state: "pending_review"
-        history_retention: "frozen"
-        retry_allowed: false
-      user_action:
-        - label: "查看审核进度"
-          action: "check_status"
-          priority: 1
-      llm_constraints:
-        - "必须说明预计审核时间"
-        - "必须提供审核结果通知方式"
-
-immutable_boundaries:
-  - boundary_type: "safety"
-    rule: "禁止在终止会话时不说明数据保留政策"
-    violation_action: "escalate"
-  - boundary_type: "compliance"
-    rule: "禁止将软性拒绝与硬性终止使用相同视觉表达"
-    violation_action: "block"
-  - boundary_type: "user_rights"
-    rule: "禁止在终止后不提供申诉或反馈入口"
-    violation_action: "block"
-
+description: "AI 拒绝请求或终止会话时，用户无法判断权利边界是否还在"
+version: "1.0.0"
+semantic_domain: "conversational"
 applicable_products:
   - "Claude"
   - "ChatGPT"
-  - "Kimi"
   - "文心一言"
-  - "通义千问"
+  - "Kimi"
 
-version_history:
-  - version: "1.0.0"
-    date: "2026-06-23"
-    change: "初始发布，定义边界动作三级语义区分"
+semantic_tokens:
+  soft:
+    description: "软性拒绝：拒绝当前请求，但保留会话上下文，用户可继续对话"
+    visual_mapping:
+      color_token: "boundary.soft"
+      motion_token: "static.yellow"
+      icon_token: "hand.stop"
+    user_action:
+      - "修改请求后重试"
+      - "继续其他话题"
+    llm_constraints:
+      - "必须明确说明'会话仍可继续'"
+      - "必须保留用户输入框可用状态"
+      - "必须提供替代建议（如'你可以尝试...'）"
+  hard:
+    description: "强制终止：终止当前会话，清空上下文，用户需开启新会话"
+    visual_mapping:
+      color_token: "boundary.hard"
+      motion_token: "panel.exit"
+      icon_token: "door.exit"
+    user_action:
+      - "导出当前对话"
+      - "开启新会话"
+    llm_constraints:
+      - "必须明确说明'会话已终止，上下文已清空'"
+      - "必须提供导出对话的入口"
+      - "禁止伪装成软性拒绝（如保留输入框但不可提交）"
+  review:
+    description: "升级审核：请求已提交人工审核，等待结果"
+    visual_mapping:
+      color_token: "boundary.review"
+      motion_token: "static.blue"
+      icon_token: "hourglass"
+    user_action:
+      - "查看预计审核时间"
+      - "取消请求"
+    llm_constraints:
+      - "必须显示预计审核时间"
+      - "必须提供取消请求的入口"
+      - "禁止暗示审核已通过或已拒绝"
+
+immutable_boundaries:
+  - boundary_type: "semantic"
+    rule: "禁止软性拒绝和强制终止使用同一视觉表达"
+    violation_action: "block"
+  - boundary_type: "safety"
+    rule: "禁止强制终止不告知用户上下文已清空"
+    violation_action: "block"
+  - boundary_type: "clarity"
+    rule: "禁止边界动作不提供用户下一步行动指引"
+    violation_action: "warn"

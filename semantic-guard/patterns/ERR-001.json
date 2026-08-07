@@ -1,40 +1,76 @@
 {
-  "id": "ERR-001",
+  "pattern_id": "ERR-001",
   "version": "1.0.0",
-  "componentType": "Alert",
-  "componentLibrary": "Ant Design",
-  "symptoms": {
-    "description": "多种错误共用红色，用户不知道多严重",
-    "evidence": [
-      "https://community.openai.com/t/error-in-message-stream/123456",
-      "https://v2ex.com/t/987654"
-    ],
-    "products": [
+  "status": "published",
+  "component_type": "Error",
+  "fault_name": "错误状态后果差异未分级",
+  "symptom": {
+    "description": "多种错误状态共用同一种红色视觉语言，用户无法判断后果严重程度",
+    "user_confusion": "这个红色是刷新一下就好，还是我的对话已经丢了？",
+    "visual_manifestation": [
+      "全部红色",
+      "文案只描述现象不指引行动",
+      "没有语义分级标签"
+    ]
+  },
+  "root_cause": {
+    "description": "系统缺少 error_severity 语义令牌，前端只接收 isError=true，不接收错误性质",
+    "semantic_token_missing": "error_severity",
+    "why_happens": "LLM 概率性生成时，没有语义约束来区分错误级别，默认全部使用红色"
+  },
+  "product_evidence": [
+    {
+      "product_name": "ChatGPT",
+      "evidence_type": "screenshot",
+      "description": "4 种错误状态（Error in message stream / network error / Something went wrong / Too many requests）共用红色",
+      "file_path": "samples/dogfood/before/chatgpt-error-states.png"
+    },
+    {
+      "product_name": "文心一言",
+      "evidence_type": "screenshot",
+      "description": "连接断开和网络错误共用红色提示",
+      "file_path": "samples/dogfood/before/wenxin-error-states.png"
+    },
+    {
+      "product_name": "通义千问",
+      "evidence_type": "screenshot",
+      "description": "429 限流和流式输出中断视觉表达一致",
+      "file_path": "samples/dogfood/before/tongyi-error-states.png"
+    }
+  ],
+  "linked_contract": {
+    "contract_id": "ERR-001",
+    "file_path": "contracts/ERR-001.yaml",
+    "applicable_products": [
       "ChatGPT",
       "文心一言",
       "通义千问",
       "Kimi",
-      "豆包"
+      "豆包",
+      "DeepSeek",
+      "讯飞星火"
     ]
   },
-  "rootCause": {
-    "missingToken": "error_severity",
-    "description": "缺少错误级别语义令牌，系统无法区分 fatal / transient / retryable / degraded"
+  "validation_method": {
+    "unit_tests": 10,
+    "integration_tests": 3,
+    "regression_tests": 5,
+    "pass_criteria": "语义返工率从 30% 降到 5%，走查覆盖率从 20% 提升到 100%",
+    "ab_comparison_required": true
   },
-  "componentSpec": {
-    "props": [
-      "type",
-      "message",
-      "description",
-      "icon"
+  "metadata": {
+    "author": "体验架构设计师",
+    "created_at": "2026-06-24",
+    "updated_at": "2026-06-24",
+    "reviewers": [
+      "前端 TL",
+      "DesignOps"
     ],
-    "missingSemanticProps": [
-      "severity"
+    "tags": [
+      "错误状态",
+      "语义分级",
+      "国内产品",
+      "通用模式"
     ]
-  },
-  "contractRef": "contracts/ERR-001.yaml",
-  "validationMethod": "错误状态语义分级器",
-  "status": "published",
-  "createdAt": "2026-06-23",
-  "updatedAt": "2026-06-23"
+  }
 }

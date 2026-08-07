@@ -1,71 +1,64 @@
 intent_id: "ACT-001"
-schema_version: "1.0.0"
+description: "不可逆操作按钮未按危险级别约束，用户可能误触导致数据永久丢失"
+version: "1.0.0"
 semantic_domain: "transactional"
-description: "不可逆高危操作语义约束规范"
-
-component_spec:
-  component: "Button"
-  component_library: "Ant Design"
-  props_reference:
-    - type: "primary / default / dashed / link / text"
-    - danger: "true / false"
-    - ghost: "true / false"
-    - disabled: "true / false"
-  required_composition:
-    - component: "Modal"
-      props:
-        - type: "confirm"
-        - okType: "danger"
+applicable_products:
+  - "通用"
+  - "v0"
+  - "Claude Code"
+  - "ChatGPT"
 
 semantic_tokens:
-  destructive_action:
-    description: "不可逆的数据销毁操作，用户误触后无法恢复"
-    trigger_keywords: ["删除", "销毁", "清空", "注销", "移除", "delete", "remove", "destroy", "purge"]
+  destructive:
+    description: "破坏性操作：删除、清空、注销等不可逆行为"
     visual_mapping:
-      color_token: "status.critical"
+      color_token: "action.destructive"
       button_style: "outline_danger"
-      icon_token: "trash"
-      background: "transparent"
-    user_impact:
-      reversibility: "irreversible"
-      data_loss_scope: "user_account / user_data / system_data"
-      recovery_path: "none_or_contact_admin"
+      icon_token: "trash.warning"
     user_action:
-      - label: "取消"
-        action: "cancel"
-        priority: 1
-        visual_weight: "equal_or_higher_than_confirm"
-      - label: "确认删除"
-        action: "confirm_destructive"
-        priority: 2
-        requires: "secondary_confirmation_input"
+      - "输入账户名二次确认"
+      - "阅读后果说明"
+      - "取消操作"
     llm_constraints:
-      - "禁止将删除按钮设计为普通主按钮样式（contained primary）"
-      - "禁止将删除按钮颜色设为蓝色、绿色或中性色"
-      - "必须包含二次确认弹窗（Modal.confirm）"
-      - "二次确认弹窗必须包含'此操作不可恢复'的明确警告"
-      - "必须提供取消选项，且取消按钮的视觉权重不低于确认按钮"
-      - "禁止在二次确认前使用默认勾选（如默认选中'我已知晓'）"
+      - "必须使用红色空心描边样式，禁止蓝色实心"
+      - "必须包含二次确认弹窗"
+      - "文案必须明确说明'此操作不可恢复'"
+      - "必须禁用快速双击提交"
+  constructive:
+    description: "建设性操作：保存、提交、创建等正向行为"
+    visual_mapping:
+      color_token: "action.constructive"
+      button_style: "solid_primary"
+      icon_token: "check.circle"
+    user_action:
+      - "确认提交"
+      - "查看成功反馈"
+    llm_constraints:
+      - "使用品牌色实心按钮"
+      - "操作后必须提供成功反馈"
+  neutral:
+    description: "中性操作：取消、关闭、返回等无后果行为"
+    visual_mapping:
+      color_token: "action.neutral"
+      button_style: "ghost"
+      icon_token: "x.circle"
+    user_action:
+      - "取消当前操作"
+      - "返回上一步"
+    llm_constraints:
+      - "使用灰色描边或幽灵按钮"
+      - "禁止与破坏性操作视觉权重相同"
 
 immutable_boundaries:
   - boundary_type: "safety"
     rule: "禁止直接执行删除操作而不显示二次确认"
     violation_action: "block"
   - boundary_type: "safety"
-    rule: "禁止将高危操作按钮设计为普通主按钮样式"
+    rule: "禁止破坏性操作按钮与普通操作按钮样式相同"
     violation_action: "block"
-  - boundary_type: "safety"
-    rule: "禁止在文案中省略操作后果说明"
+  - boundary_type: "clarity"
+    rule: "禁止二次确认弹窗使用模糊文案（如'确定吗？'）"
     violation_action: "block"
-  - boundary_type: "accessibility"
-    rule: "禁止仅依赖颜色区分高危操作，必须有文案或图标辅助"
+  - boundary_type: "consistency"
+    rule: "禁止同一产品内不同级别的destructive操作使用不同确认强度"
     violation_action: "warn"
-
-applicable_products:
-  - "通用"
-  - "所有含不可逆操作的 AI 生成界面"
-
-version_history:
-  - version: "1.0.0"
-    date: "2026-06-23"
-    change: "初始发布，定义不可逆高危操作语义约束"

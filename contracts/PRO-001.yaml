@@ -1,54 +1,72 @@
 intent_id: "PRO-001"
-schema_version: "1.0.0"
-semantic_domain: "observational"
-description: "AI 推理过程状态语义显化规范"
-
-component_spec:
-  component: "Progress"
-  component_library: "Ant Design"
-  props_reference:
-    - percent: "number"
-    - status: "active / success / exception / normal"
-    - steps: "Step[]"
-    - type: "line / circle / dashboard"
+description: "AI 执行多步任务时，用户无法判断当前处于什么认知阶段"
+version: "1.0.0"
+semantic_domain: "conversational"
+applicable_products:
+  - "Perplexity"
+  - "秘塔搜索"
+  - "Kimi"
+  - "ChatGPT"
+  - "Claude"
 
 semantic_tokens:
-  process_phase:
-    retrieval:
-      description: "从外部来源获取原始信息"
-      trigger_keywords: ["Searching", "搜索中", "检索中", "查找中", "fetching"]
-      visual_mapping:
-        color_token: "phase.research"
-        icon_token: "search.magnifier"
-        motion_token: "spinner.blue"
-      llm_constraints:
-        - "必须显示已检索到的来源数量"
-        - "禁止跳过此阶段直接显示答案"
-      user_perception: "AI 正在查资料，内容是'找出来的'"
+  research:
+    description: "AI 正在检索信息、查找来源"
+    visual_mapping:
+      color_token: "phase.research"
+      motion_token: "magnifier.pulse"
+      icon_token: "search"
+    user_action:
+      - "查看已找到的来源数量"
+      - "等待检索完成"
+    llm_constraints:
+      - "必须显示'检索中'或'Searching'阶段标签"
+      - "必须显示已找到的来源计数"
+      - "禁止跳过此阶段直接显示最终答案"
+  analysis:
+    description: "AI 正在综合多源信息、识别分歧"
+    visual_mapping:
+      color_token: "phase.analysis"
+      motion_token: "brain.thinking"
+      icon_token: "brain"
+    user_action:
+      - "查看共识度指标"
+      - "查看分歧来源"
+    llm_constraints:
+      - "必须显示'综合中'或'Analyzing'阶段标签"
+      - "必须显示多源共识度（如'3/5 来源一致'）"
+  check:
+    description: "AI 正在核对链接、验证事实"
+    visual_mapping:
+      color_token: "phase.check"
+      motion_token: "shield.verify"
+      icon_token: "shield"
+    user_action:
+      - "查看验证状态"
+      - "查看待核实项"
+    llm_constraints:
+      - "必须显示'验证中'或'Checking'阶段标签"
+      - "必须标注验证通过/失败的来源"
+  output:
+    description: "AI 正在生成最终答案、输出结果"
+    visual_mapping:
+      color_token: "phase.output"
+      motion_token: "document.write"
+      icon_token: "document"
+    user_action:
+      - "查看引用索引"
+      - "复制答案"
+    llm_constraints:
+      - "必须显示'生成中'或'Generating'阶段标签"
+      - "必须附带引用索引，指向检索阶段来源"
 
-    synthesis:
-      description: "对比多源信息，识别共识与分歧"
-      trigger_keywords: ["Reading", "阅读中", "分析中", "综合中", "synthesizing"]
-      visual_mapping:
-        color_token: "phase.analysis"
-        icon_token: "brain.neural"
-        motion_token: "wave.pulse"
-      llm_constraints:
-        - "必须显化'共识度'指标（如 5/7 来源一致）"
-        - "禁止隐藏来源冲突"
-      user_perception: "AI 正在对比不同来源，开始主观推理"
-
-    verification:
-      description: "核对引用锚点与原文一致性"
-      trigger_keywords: ["Verifying", "验证中", "核对中", "checking sources", "cross-referencing"]
-      visual_mapping:
-        color_token: "phase.check"
-        icon_token: "shield.check"
-        motion_token: "checkmark.sequence"
-      llm_constraints:
-        - "必须验证每个引用链接可访问"
-        - "禁止引用已失效或 404 的来源"
-      user_perception: "AI 在验证来源可信度，我可以信任接下来的答案"
-
-    generation:
-      description: "基于验证后的信息生成
+immutable_boundaries:
+  - boundary_type: "clarity"
+    rule: "禁止用单一'思考中'文案覆盖所有认知阶段"
+    violation_action: "block"
+  - boundary_type: "semantic"
+    rule: "禁止认知阶段标签与实际行动不符（如显示'验证中'但实际在检索）"
+    violation_action: "block"
+  - boundary_type: "consistency"
+    rule: "禁止同一对话流中阶段标签前后不一致"
+    violation_action: "warn"

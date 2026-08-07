@@ -7,25 +7,37 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
   :root {
-    --primary: #1677ff;
-    --bg: #0f0f12;
-    --card-bg: #1a1a1e;
-    --text-primary: rgba(255,255,255,0.92);
-    --text-secondary: rgba(255,255,255,0.65);
-    --text-tertiary: rgba(255,255,255,0.45);
-    --border: #2a2a2e;
+    --primary: #3b82f6;
+    --primary-hover: #60a5fa;
+    --accent-cyan: #06b6d4;
+    --accent-green: #10b981;
+    --accent-yellow: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-purple: #8b5cf6;
+    --bg: #0a0a0f;
+    --bg-secondary: #12121a;
+    --card-bg: #1a1a24;
+    --bg-elevated: #22222e;
+    --text-primary: #e8e8ec;
+    --text-secondary: #8a8a96;
+    --text-tertiary: #5a5a66;
+    --border: #2a2a36;
+    --border-light: #333340;
     --radius: 12px;
   }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { 
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
-    background: var(--bg); 
-    color: var(--text-primary); 
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
     line-height: 1.6;
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
   }
+
   .top-nav {
     background: rgba(15,15,18,0.92);
     backdrop-filter: blur(16px);
@@ -64,11 +76,13 @@
     font-size: 14px;
     font-weight: 800;
   }
+
   .page-content {
     max-width: 1200px;
     margin: 0 auto;
     padding: 100px 24px 60px;
   }
+
   .card {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -78,28 +92,9 @@
     transition: all 0.3s;
   }
   .card:hover {
-    border-color: #3a3a3e;
+    border-color: var(--border-light);
   }
-  .evidence-chain {
-    display: grid;
-    grid-template-columns: 60px 1fr;
-    gap: 0;
-    align-items: stretch;
-  }
-  .chain-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    border-right: 2px solid var(--border);
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    letter-spacing: 0.1em;
-  }
-  .chain-content {
-    padding-left: 20px;
-  }
+
   .tag {
     display: inline-flex;
     align-items: center;
@@ -108,24 +103,31 @@
     border-radius: 4px;
     font-size: 12px;
     font-weight: 700;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
   }
-  .tag-b { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
-  .tag-c { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
-  .tag-d { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
-  .tag-role { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .tag-b { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
+  .tag-c { background: rgba(245,158,11,0.12); color: #f5a623; border: 1px solid rgba(245,158,11,0.25); }
+  .tag-d { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
+  .tag-role { background: rgba(168,85,247,0.12); color: #a78bfa; border: 1px solid rgba(168,85,247,0.25); }
+  .tag-info { background: rgba(6,182,212,0.12); color: #06b6d4; border: 1px solid rgba(6,182,212,0.25); }
+
   .link-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 13px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
     font-weight: 600;
     text-decoration: none;
     transition: all 0.2s;
     border: 1px solid var(--border);
     color: var(--text-secondary);
     background: var(--bg);
+    cursor: pointer;
+    white-space: nowrap;
   }
   .link-btn:hover {
     border-color: var(--primary);
@@ -137,42 +139,84 @@
     border-color: var(--primary);
   }
   .link-btn.primary:hover {
-    background: #4096ff;
+    background: var(--primary-hover);
   }
+
+  /* 表格统一规范 */
+  .matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .matrix-table thead th {
+    text-align: left;
+    padding: 14px 16px;
+    color: var(--text-tertiary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    vertical-align: middle;
+  }
+  .matrix-table tbody td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.7;
+  }
+  .matrix-table tbody tr:hover td {
+    background: rgba(255,255,255,0.02);
+  }
+  .matrix-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* 演示卡片网格 */
+  .demo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .demo-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-decoration: none;
+    display: block;
+    transition: all 0.3s;
+  }
+  .demo-card:hover {
+    border-color: var(--border-light);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
   .footer {
     border-top: 1px solid var(--border);
     padding: 40px 24px;
     text-align: center;
     background: var(--bg);
   }
-  .matrix-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-  .matrix-table th {
-    text-align: left;
-    padding: 12px 16px;
-    color: var(--text-tertiary);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    border-bottom: 1px solid var(--border);
-  }
-  .matrix-table td {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: top;
-  }
-  .matrix-table tr:hover td {
-    background: rgba(255,255,255,0.02);
-  }
+
   @media (max-width: 768px) {
-    .evidence-chain { grid-template-columns: 1fr; }
-    .chain-label { writing-mode: horizontal-tb; border-right: none; border-bottom: 2px solid var(--border); padding: 10px 0; }
-    .chain-content { padding-left: 0; padding-top: 16px; }
+    .page-content { padding: 80px 16px 40px; }
+    .demo-grid { grid-template-columns: 1fr; }
+    .matrix-table thead { display: none; }
+    .matrix-table tbody td {
+      display: block;
+      padding: 10px 16px;
+      border-bottom: none;
+    }
+    .matrix-table tbody tr {
+      display: block;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
   }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -182,7 +226,7 @@
       <div class="nav-brand-icon">S</div>
       <span>Schema-As-Code</span>
     </a>
-    <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">
+    <div style="font-size: 14px; color: var(--text-tertiary); font-weight: 600;">
       机制主题 ① · 语义令牌与字典（离散码本）
     </div>
   </div>
@@ -192,7 +236,7 @@
 
   <!-- Header -->
   <div style="margin-bottom: 32px;">
-    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 13px; color: var(--primary); margin-bottom: 16px; font-weight: 600;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 16px; font-weight: 600;">
       <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
       机制主题 ① / 四条证据链共享同一套机制
     </div>
@@ -211,74 +255,91 @@
       <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">#</div>
       <div>
         <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">映射总表：以主题为锚点的证据链</h3>
-        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">每一行 = 一条完整证据链 · 行与行通过角色和交付件交叉成网</p>
+        <p style="font-size: 14px; color: var(--text-tertiary); font-weight: 500;">每一行 = 一条完整证据链 · 行与行通过角色和交付件交叉成网</p>
       </div>
     </div>
 
-    <table class="matrix-table">
-      <thead>
-        <tr>
-          <th style="width: 80px;">证据链</th>
-          <th style="width: 180px;">文章</th>
-          <th>定位</th>
-          <th style="width: 200px;">交付件 / 链接</th>
-          <th style="width: 120px;">接手角色</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><span class="tag tag-b">B 全景+背书</span></td>
-          <td style="font-weight: 700; color: var(--text-primary);">B1 语义令牌表</td>
-          <td style="color: var(--text-secondary); font-weight: 500;">语义概念如何被编码为机器可运算的离散值。Schema-As-Code 证据链的"框架设计"站。</td>
-          <td>
-            <a href="./semantic-token-table.html" class="link-btn primary" style="margin-bottom: 6px; display: block; text-align: center;">📄 语义令牌表 →</a>
-            <a href="https://www.yuque.com/u222739/lxcrw1/gslgkfgtyf1cl560" class="link-btn" style="display: block; text-align: center;" target="_blank">📝 语雀原文</a>
-          </td>
-          <td><span class="tag tag-role">语义翻译设计师</span><br><span class="tag tag-role" style="margin-top:4px;">前端 / AI 工程师</span></td>
-        </tr>
-        <tr>
-          <td><span class="tag tag-b">B 全景+背书</span></td>
-          <td style="font-weight: 700; color: var(--text-primary);">B3 语义字典</td>
-          <td style="color: var(--text-secondary); font-weight: 500;">组织级语义注册表。全组织同一术语坐标系，契约的唯一信源。</td>
-          <td>
-            <a href="./semantic-dictionary.html" class="link-btn primary" style="margin-bottom: 6px; display: block; text-align: center;">📄 语义字典 →</a>
-            <a href="https://www.yuque.com/u222739/lxcrw1/wh2m3fuonvd9gugc" class="link-btn" style="display: block; text-align: center;" target="_blank">📝 语雀原文</a>
-          </td>
-          <td><span class="tag tag-role">DesignOps</span><br><span class="tag tag-role" style="margin-top:4px;">语义翻译设计师</span></td>
-        </tr>
-        <tr>
-          <td><span class="tag tag-c">C 差异+案例</span></td>
-          <td style="font-weight: 700; color: var(--text-primary);">C-D2 Token 层差异</td>
-          <td style="color: var(--text-secondary); font-weight: 500;">Design Token vs 语义令牌。从颜色值到语义状态的三层跃迁。真实踩坑案例与跨角色反馈矩阵。</td>
-          <td>
-            <a href="./token-layer-difference.html" class="link-btn primary" style="margin-bottom: 6px; display: block; text-align: center;">📄 Token 层差异 →</a>
-            <a href="https://www.yuque.com/u222739/lxcrw1/vyp6z5mttcgx8cbu" class="link-btn" style="display: block; text-align: center;" target="_blank">📝 语雀原文</a>
-          </td>
-          <td><span class="tag tag-role">设计师</span><br><span class="tag tag-role" style="margin-top:4px;">前端 / AI 工程师</span></td>
-        </tr>
-        <tr>
-          <td><span class="tag tag-d">D 验证+工具</span></td>
-          <td style="font-weight: 700; color: var(--text-primary);">D-T4 字典引用的机器防线</td>
-          <td style="color: var(--text-secondary); font-weight: 500;">契约加载验证、拦截强度测试、引用关系追踪。编译前置校验五项 + violation_action 三档。</td>
-          <td>
-            <a href="./2.1-contract-loading.html" class="link-btn" style="margin-bottom: 4px; display: block; text-align: center;">2.1 契约加载 →</a>
-            <a href="./2.2-interception-test.html" class="link-btn" style="margin-bottom: 4px; display: block; text-align: center;">2.2 拦截强度 →</a>
-            <a href="./2.3-reference-tracking.html" class="link-btn" style="margin-bottom: 6px; display: block; text-align: center;">2.3 引用追踪 →</a>
-            <a href="https://www.yuque.com/u222739/lxcrw1/osrbwpt1mr08lgh7" class="link-btn" style="display: block; text-align: center;" target="_blank">📝 语雀原文</a>
-          </td>
-          <td><span class="tag tag-role">前端 / AI 工程师</span><br><span class="tag tag-role" style="margin-top:4px;">DesignOps</span></td>
-        </tr>
-        <tr>
-          <td><span class="tag tag-role">框架映射</span></td>
-          <td style="font-weight: 700; color: var(--text-primary);">入口-角色篇</td>
-          <td style="color: var(--text-secondary); font-weight: 500;">角色与交付件的映射总表。谁用哪个交付件接手，交付件之间的依赖关系。</td>
-          <td>
-            <a href="https://www.yuque.com/u222739/lxcrw1/fnzs9lrhmu0quman" class="link-btn" style="display: block; text-align: center;" target="_blank">📝 语雀原文</a>
-          </td>
-          <td><span class="tag tag-role">管理层</span><br><span class="tag tag-role" style="margin-top:4px;">全角色</span></td>
-        </tr>
-      </tbody>
-    </table>
+    <div style="overflow-x: auto;">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th style="width: 100px;">证据链</th>
+            <th style="width: 180px;">文章</th>
+            <th>定位</th>
+            <th style="width: 220px;">交付件 / 链接</th>
+            <th style="width: 140px;">接手角色</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tag tag-b">B 全景+背书</span></td>
+            <td style="font-weight: 700; color: var(--text-primary);">B1 语义令牌表</td>
+            <td style="color: var(--text-secondary); font-weight: 500;">语义概念如何被编码为机器可运算的离散值。Schema-As-Code 证据链的"框架设计"站。</td>
+            <td>
+              <a href="./语义令牌表.html" class="link-btn primary" style="margin-bottom: 8px; display: block;">语义令牌表 →</a>
+              <a href="https://www.yuque.com/u222739/lxcrw1/gslgkfgtyf1cl560" class="link-btn" style="display: block;" target="_blank">语雀原文</a>
+            </td>
+            <td>
+              <span class="tag tag-role">语义翻译设计师</span>
+              <span class="tag tag-role" style="margin-top: 6px;">前端 / AI 工程师</span>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-b">B 全景+背书</span></td>
+            <td style="font-weight: 700; color: var(--text-primary);">B3 语义字典</td>
+            <td style="color: var(--text-secondary); font-weight: 500;">组织级语义注册表。全组织同一术语坐标系，契约的唯一信源。</td>
+            <td>
+              <a href="./语义字典.html" class="link-btn primary" style="margin-bottom: 8px; display: block;">语义字典 →</a>
+              <a href="https://www.yuque.com/u222739/lxcrw1/wh2m3fuonvd9gugc" class="link-btn" style="display: block;" target="_blank">语雀原文</a>
+            </td>
+            <td>
+              <span class="tag tag-role">DesignOps</span>
+              <span class="tag tag-role" style="margin-top: 6px;">语义翻译设计师</span>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-c">C 差异+案例</span></td>
+            <td style="font-weight: 700; color: var(--text-primary);">C-D2 Token 层差异</td>
+            <td style="color: var(--text-secondary); font-weight: 500;">Design Token vs 语义令牌。从颜色值到语义状态的三层跃迁。真实踩坑案例与跨角色反馈矩阵。</td>
+            <td>
+              <a href="./Token层差异.html" class="link-btn primary" style="margin-bottom: 8px; display: block;">Token 层差异 →</a>
+              <a href="https://www.yuque.com/u222739/lxcrw1/vyp6z5mttcgx8cbu" class="link-btn" style="display: block;" target="_blank">语雀原文</a>
+            </td>
+            <td>
+              <span class="tag tag-role">设计师</span>
+              <span class="tag tag-role" style="margin-top: 6px;">前端 / AI 工程师</span>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-d">D 验证+工具</span></td>
+            <td style="font-weight: 700; color: var(--text-primary);">D-T4 字典引用的机器防线</td>
+            <td style="color: var(--text-secondary); font-weight: 500;">契约加载验证、拦截强度测试、引用关系追踪。编译前置校验五项 + violation_action 三档。</td>
+            <td>
+              <a href="./2.1 契约加载与解析验证——契约能被正确读入吗？.html" class="link-btn" style="margin-bottom: 6px; display: block;">2.1 契约加载 →</a>
+              <a href="./2.2 拦截强度测试——非法引用能被拦住吗？.html" class="link-btn" style="margin-bottom: 6px; display: block;">2.2 拦截强度 →</a>
+              <a href="./2.3 引用关系追踪——入库之后，引用会持续对账吗？.html" class="link-btn" style="margin-bottom: 8px; display: block;">2.3 引用追踪 →</a>
+              <a href="https://www.yuque.com/u222739/lxcrw1/osrbwpt1mr08lgh7" class="link-btn" style="display: block;" target="_blank">语雀原文</a>
+            </td>
+            <td>
+              <span class="tag tag-role">前端 / AI 工程师</span>
+              <span class="tag tag-role" style="margin-top: 6px;">DesignOps</span>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-role">框架映射</span></td>
+            <td style="font-weight: 700; color: var(--text-primary);">入口-角色篇</td>
+            <td style="color: var(--text-secondary); font-weight: 500;">角色与交付件的映射总表。谁用哪个交付件接手，交付件之间的依赖关系。</td>
+            <td>
+              <a href="https://www.yuque.com/u222739/lxcrw1/fnzs9lrhmu0quman" class="link-btn" style="display: block;" target="_blank">语雀原文</a>
+            </td>
+            <td>
+              <span class="tag tag-role">管理层</span>
+              <span class="tag tag-role" style="margin-top: 6px;">全角色</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- 证据链可视化 -->
@@ -287,38 +348,38 @@
       <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">→</div>
       <div>
         <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">单条证据链的流动逻辑</h3>
-        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">B → C → D → 角色，四站串联</p>
+        <p style="font-size: 14px; color: var(--text-tertiary); font-weight: 500;">B → C → D → 角色，四站串联</p>
       </div>
     </div>
 
     <div style="display: flex; align-items: stretch; gap: 0; margin-bottom: 20px;">
-      <div style="flex: 1; background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.25); border-radius: 10px 0 0 10px; padding: 20px; text-align: center;">
-        <div style="font-size: 24px; margin-bottom: 8px;">🏗️</div>
-        <div style="font-size: 14px; font-weight: 700; color: #4a9eff; margin-bottom: 4px;">B 全景+背书</div>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">凭什么成立？<br>框架设计 · 概念定义</div>
+      <div style="flex: 1; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 10px 0 0 10px; padding: 20px; text-align: center;">
+        <div style="font-size: 20px; margin-bottom: 8px;">🏗️</div>
+        <div style="font-size: 14px; font-weight: 700; color: #60a5fa; margin-bottom: 4px;">B 全景+背书</div>
+        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">凭什么成立？<br>框架设计 · 概念定义</div>
       </div>
       <div style="display: flex; align-items: center; padding: 0 8px; color: var(--text-tertiary); font-size: 20px; font-weight: 700;">→</div>
       <div style="flex: 1; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); padding: 20px; text-align: center;">
-        <div style="font-size: 24px; margin-bottom: 8px;">📊</div>
+        <div style="font-size: 20px; margin-bottom: 8px;">📊</div>
         <div style="font-size: 14px; font-weight: 700; color: #f5a623; margin-bottom: 4px;">C 差异+案例</div>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">真的发生过吗？<br>真实案例 · 踩坑记录</div>
+        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">真的发生过吗？<br>真实案例 · 踩坑记录</div>
       </div>
       <div style="display: flex; align-items: center; padding: 0 8px; color: var(--text-tertiary); font-size: 20px; font-weight: 700;">→</div>
-      <div style="flex: 1; background: rgba(82,196,26,0.08); border: 1px solid rgba(82,196,26,0.25); padding: 20px; text-align: center;">
-        <div style="font-size: 24px; margin-bottom: 8px;">🛡️</div>
-        <div style="font-size: 14px; font-weight: 700; color: #6abe4a; margin-bottom: 4px;">D 验证+工具</div>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">一直在工作吗？<br>自动化验证 · 机器防线</div>
+      <div style="flex: 1; background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.25); padding: 20px; text-align: center;">
+        <div style="font-size: 20px; margin-bottom: 8px;">🛡️</div>
+        <div style="font-size: 14px; font-weight: 700; color: #4ade80; margin-bottom: 4px;">D 验证+工具</div>
+        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">一直在工作吗？<br>自动化验证 · 机器防线</div>
       </div>
       <div style="display: flex; align-items: center; padding: 0 8px; color: var(--text-tertiary); font-size: 20px; font-weight: 700;">→</div>
       <div style="flex: 1; background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.25); border-radius: 0 10px 10px 0; padding: 20px; text-align: center;">
-        <div style="font-size: 24px; margin-bottom: 8px;">👤</div>
-        <div style="font-size: 14px; font-weight: 700; color: #a855f7; margin-bottom: 4px;">角色接手</div>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">谁用哪个交付件？<br>消费路径 · 协作关系</div>
+        <div style="font-size: 20px; margin-bottom: 8px;">👤</div>
+        <div style="font-size: 14px; font-weight: 700; color: #a78bfa; margin-bottom: 4px;">角色接手</div>
+        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">谁用哪个交付件？<br>消费路径 · 协作关系</div>
       </div>
     </div>
 
-    <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+    <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
         <strong style="color: var(--text-primary);">行内闭环：</strong>每一行从"凭什么成立"到"谁接手"形成完整闭环，不跳站、不遗漏。<br>
         <strong style="color: var(--text-primary);">行间交叉：</strong>语义翻译设计师产出 B1/B3，前端工程师消费 D 的编译产物，DesignOps 维护字典版本——角色和交付件在行与行之间交叉引用，构成组织级语义治理网络。
       </p>
@@ -331,57 +392,57 @@
       <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">🖥</div>
       <div>
         <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">静态演示页面导航</h3>
-        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">6 个 HTML 演示页面 · 可直接在浏览器中查看</p>
+        <p style="font-size: 14px; color: var(--text-tertiary); font-weight: 500;">6 个 HTML 演示页面 · 可直接在浏览器中查看</p>
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-      <a href="./semantic-token-table.html" class="card" style="text-decoration: none; display: block;">
-        <div style="font-size: 13px; font-weight: 700; color: #4a9eff; margin-bottom: 6px;">语义令牌表</div>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">离散编码 · 视觉映射 · 三种消费格式编译</div>
-        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
+    <div class="demo-grid">
+      <a href="./语义令牌表.html" class="demo-card">
+        <div style="font-size: 14px; font-weight: 700; color: #60a5fa; margin-bottom: 6px;">语义令牌表</div>
+        <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px; line-height: 1.6;">离散编码 · 视觉映射 · 三种消费格式编译</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
       </a>
-      <a href="./semantic-dictionary.html" class="card" style="text-decoration: none; display: block;">
-        <div style="font-size: 13px; font-weight: 700; color: #4a9eff; margin-bottom: 6px;">语义字典</div>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">覆盖层目录 · 语义重绑定 · 场景映射 · 注册纪律</div>
-        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
+      <a href="./语义字典.html" class="demo-card">
+        <div style="font-size: 14px; font-weight: 700; color: #60a5fa; margin-bottom: 6px;">语义字典</div>
+        <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px; line-height: 1.6;">覆盖层目录 · 语义重绑定 · 场景映射 · 注册纪律</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
       </a>
-      <a href="./token-layer-difference.html" class="card" style="text-decoration: none; display: block;">
-        <div style="font-size: 13px; font-weight: 700; color: #f5a623; margin-bottom: 6px;">Token 层差异</div>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">Before/After 对比 · 跨角色反馈矩阵 · 三则线上案例</div>
-        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
+      <a href="./Token层差异.html" class="demo-card">
+        <div style="font-size: 14px; font-weight: 700; color: #f5a623; margin-bottom: 6px;">Token 层差异</div>
+        <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px; line-height: 1.6;">Before/After 对比 · 跨角色反馈矩阵 · 三则线上案例</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
       </a>
-      <a href="./2.1-contract-loading.html" class="card" style="text-decoration: none; display: block;">
-        <div style="font-size: 13px; font-weight: 700; color: #6abe4a; margin-bottom: 6px;">2.1 契约加载验证</div>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">YAML 解析 · 规则树生成 · 引用对账 · 12ms 单点验证</div>
-        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
+      <a href="./2.1 契约加载与解析验证——契约能被正确读入吗？.html" class="demo-card">
+        <div style="font-size: 14px; font-weight: 700; color: #4ade80; margin-bottom: 6px;">2.1 契约加载验证</div>
+        <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px; line-height: 1.6;">YAML 解析 · 规则树生成 · 引用对账 · 12ms 单点验证</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
       </a>
-      <a href="./2.2-interception-test.html" class="card" style="text-decoration: none; display: block;">
-        <div style="font-size: 13px; font-weight: 700; color: #6abe4a; margin-bottom: 6px;">2.2 拦截强度测试</div>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">五项前置校验 · 三档 violation_action · 对抗用例 100% 拦截</div>
-        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
+      <a href="./2.2 拦截强度测试——非法引用能被拦住吗？.html" class="demo-card">
+        <div style="font-size: 14px; font-weight: 700; color: #4ade80; margin-bottom: 6px;">2.2 拦截强度测试</div>
+        <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px; line-height: 1.6;">五项前置校验 · 三档 violation_action · 对抗用例 100% 拦截</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
       </a>
-      <a href="./2.3-reference-tracking.html" class="card" style="text-decoration: none; display: block;">
-        <div style="font-size: 13px; font-weight: 700; color: #6abe4a; margin-bottom: 6px;">2.3 引用关系追踪</div>
-        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">消费追踪 · 版本兼容 · 弃用策略 · 失败判定 · 单文件链路验证</div>
-        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
+      <a href="./2.3 引用关系追踪——入库之后，引用会持续对账吗？.html" class="demo-card">
+        <div style="font-size: 14px; font-weight: 700; color: #4ade80; margin-bottom: 6px;">2.3 引用关系追踪</div>
+        <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px; line-height: 1.6;">消费追踪 · 版本兼容 · 弃用策略 · 失败判定 · 单文件链路验证</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">点击查看演示 →</div>
       </a>
     </div>
   </div>
 
   <!-- Wiki 知识库入口 -->
-  <div class="card" style="border-color: rgba(22,119,255,0.3); background: linear-gradient(135deg, rgba(22,119,255,0.03), transparent);">
+  <div class="card" style="border-color: rgba(59,130,246,0.3); background: linear-gradient(135deg, rgba(59,130,246,0.03), transparent);">
     <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-      <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800;">W</div>
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800;">W</div>
       <div>
         <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Wiki 知识库</h3>
-        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">语雀文章同步 · 角色交付件映射 · 持续更新</p>
+        <p style="font-size: 14px; color: var(--text-tertiary); font-weight: 500;">语雀文章同步 · 角色交付件映射 · 持续更新</p>
       </div>
     </div>
-    <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 16px;">
+    <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 16px; line-height: 1.7;">
       Wiki 中同步了语雀原文的 Markdown 版本，包含完整的证据链描述、角色消费路径、交付件定义。演示页面（本页及上方 6 个 HTML）与 Wiki 知识库双向链接，形成"可演示 + 可阅读"的双层知识网络。
     </p>
-    <a href="https://github.com/2436041978-ops/semantic-pipeline/wiki" class="link-btn primary" target="_blank" style="display: inline-flex;">
+    <a href="https://github.com/2436041978-ops/semantic-pipeline/wiki" class="link-btn primary" target="_blank">
       进入 Wiki 知识库 →
     </a>
   </div>

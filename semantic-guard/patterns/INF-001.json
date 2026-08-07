@@ -1,0 +1,71 @@
+{
+  "pattern_id": "INF-001",
+  "version": "1.0.0",
+  "status": "published",
+  "component_type": "Alert",
+  "fault_name": "信息状态权重未对齐",
+  "symptom": {
+    "description": "系统通知与安全警告视觉权重相同，重要提示被淹没在普通信息中",
+    "user_confusion": "这个要立即处理吗？会自己消失吗？为什么安全警告和保存成功长得一样？",
+    "visual_manifestation": [
+      "同一蓝色信息条",
+      "无置顶区分",
+      "自动消失规则不一致"
+    ]
+  },
+  "root_cause": {
+    "description": "系统缺少 info_weight 语义令牌，所有通知共用同一视觉模板",
+    "semantic_token_missing": "info_weight",
+    "why_happens": "LLM 生成通知时未区分紧急/重要/普通三级权重，默认使用统一 info 样式"
+  },
+  "product_evidence": [
+    {
+      "product_name": "系统通知中心",
+      "evidence_type": "screenshot",
+      "description": "安全警告与普通功能更新通知视觉权重相同",
+      "file_path": "samples/dogfood/before/notification-center.png"
+    },
+    {
+      "product_name": "安全提示",
+      "evidence_type": "screenshot",
+      "description": "账户异常登录提示与保存成功提示样式一致",
+      "file_path": "samples/dogfood/before/security-info.png"
+    },
+    {
+      "product_name": "通用",
+      "evidence_type": "user_complaint",
+      "description": "用户反馈'重要通知被淹没，没看到'",
+      "file_path": "samples/dogfood/before/info-complaints.png"
+    }
+  ],
+  "linked_contract": {
+    "contract_id": "INF-001",
+    "file_path": "contracts/INF-001.yaml",
+    "applicable_products": [
+      "通用",
+      "系统通知中心",
+      "安全提示"
+    ]
+  },
+  "validation_method": {
+    "unit_tests": 6,
+    "integration_tests": 2,
+    "regression_tests": 3,
+    "pass_criteria": "紧急通知用户触达率从 70% 提升到 99%",
+    "ab_comparison_required": true
+  },
+  "metadata": {
+    "author": "体验架构设计师",
+    "created_at": "2026-06-24",
+    "updated_at": "2026-06-24",
+    "reviewers": [
+      "前端 TL",
+      "DesignOps"
+    ],
+    "tags": [
+      "信息状态",
+      "权重对齐",
+      "通用模式"
+    ]
+  }
+}

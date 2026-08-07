@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 边界动作诊断</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .step-badge {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .boundary-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+  .boundary-card:hover {
+    border-color: #3a3a3e;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .tag-refusal {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    background: rgba(245,158,11,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+  .tag-termination {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+  .tag-escalation {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    background: rgba(22,119,255,0.15);
+    color: #4a9eff;
+    border: 1px solid rgba(22,119,255,0.3);
+  }
+
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .check-row:last-child {
+    border-bottom: none;
+  }
+  .check-icon-yes {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(82,196,26,0.15);
+    border: 1px solid rgba(82,196,26,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #52c41a;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .check-icon-no {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(207,19,34,0.15);
+    border: 1px solid rgba(207,19,34,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #cf1322;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .check-icon-question {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #f5a623;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline" class="active">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: BOUNDARY ACTION DIAGNOSIS ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--text-secondary); font-size: 14px; cursor: pointer; font-weight: 600; text-decoration: none;">Semantic Pipeline</a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">边界动作诊断</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 模式诊断 · BND-001</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">边界动作诊断 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Boundary Action Diagnosis</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        拒绝 ≠ 终止，权利差异未区分。用户能否在 3 秒内回答"我的对话还在吗？"<br>
+        诊断目标：区分 refusal（拒绝）、termination（终止）、escalation（升级）三种边界动作，确保用户明确知道权利状态。
+      </p>
+    </div>
+
+    <!-- ==================== Step 1：症状识别 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div class="step-badge">1</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">症状识别</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Symptom Identification · 用户遇到了什么类型的边界反馈？</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+        <div class="boundary-card" style="border-left: 3px solid #f5a623; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="tag-refusal">REFUSAL</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">"我无法回答这个问题"</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 12px;">基于安全策略拒绝特定请求，但会话继续</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用户困惑</p>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 500;">"我还能继续聊别的吗？"</p>
+          </div>
+        </div>
+
+        <div class="boundary-card" style="border-left: 3px solid #cf1322; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="tag-termination">TERMINATION</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">"Claude has ended this chat"</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 12px;">检测到严重违规，强制终止会话并清空上下文</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用户困惑</p>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 500;">"我的数据丢了吗？还能申诉吗？"</p>
+          </div>
+        </div>
+
+        <div class="boundary-card" style="border-left: 3px solid #4a9eff; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="tag-escalation">ESCALATION</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">"内容已提交审核"</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 12px;">触发人工审核流程，会话暂停等待结果</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用户困惑</p>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 500;">"要等多久？我的上下文还在吗？"</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Step 2：权利差异分析 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div class="step-badge">2</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">权利差异分析</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Right Difference Analysis · 对话还在吗？权利还在吗？</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+        <!-- Refusal -->
+        <div style="background: #16161a; border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <span class="tag-refusal">REFUSAL</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">拒绝请求</p>
+          <div>
+            <div class="check-row">
+              <div class="check-icon-yes">✓</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">上下文完整保留</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-yes">✓</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">输入框可用</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-yes">✓</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">可继续其他话题</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-yes">✓</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">历史记录可查看</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-yes">✓</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">无需重新登录</span>
+            </div>
+          </div>
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 用户知道：对话还在，换个话题继续</p>
+          </div>
+        </div>
+
+        <!-- Termination -->
+        <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <span class="tag-termination">TERMINATION</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">终止会话</p>
+          <div>
+            <div class="check-row">
+              <div class="check-icon-no">✕</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">上下文已清空</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-no">✕</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">输入框已禁用</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-no">✕</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">需开启新会话</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-question">?</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">历史记录政策不明</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-no">✕</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">当前会话已结束</span>
+            </div>
+          </div>
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600;">✕ 用户不知道：数据保留政策？申诉入口？</p>
+          </div>
+        </div>
+
+        <!-- Escalation -->
+        <div style="background: #16161a; border: 1px solid rgba(22,119,255,0.3); border-radius: 8px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <span class="tag-escalation">ESCALATION</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">升级审核</p>
+          <div>
+            <div class="check-row">
+              <div class="check-icon-question">?</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">上下文冻结保留</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-no">✕</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">输入框暂时禁用</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-no">✕</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">需等待审核结果</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-yes">✓</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">历史记录保留</span>
+            </div>
+            <div class="check-row">
+              <div class="check-icon-question">?</div>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">审核预计时间不明</span>
+            </div>
+          </div>
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <p style="font-size: 12px; color: #f5a623; font-weight: 600;">⏳ 用户困惑：要等多久？结果如何通知？</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 核心诊断问题 -->
+      <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 8px;">🚨 核心诊断问题</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+          当前产品（如 Claude）将 refusal 和 termination 都显示为 "Chat ended" 或 "会话已结束"，共用同一种红色退出面板。<br>
+          用户无法判断：这是"换个话题就能继续"还是"我的数据已经丢了"？<br><br>
+          <span style="color: #cf1322; font-weight: 700;">3 秒测试失败：用户无法在 3 秒内回答"我的对话还在吗？"</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- ==================== Step 3：视觉映射对比 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div class="step-badge">3</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">视觉映射对比</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Visual Mapping · 当前界面（语义混乱）vs 语义分级后（约束显化）</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <!-- 当前界面 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #ff4d4f; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">当前界面（语义混乱）</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+            <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+              <p style="font-size: 15px; font-weight: 700; color: #cf1322; margin-bottom: 6px;">Claude has ended this chat</p>
+              <p style="font-size: 13px; color: #cf1322; font-weight: 500; margin-bottom: 10px;">会话已终止，上下文已清空</p>
+              <div style="display: flex; gap: 6px;">
+                <span style="font-size: 13px; border: 1px solid #3a3a3e; color: var(--text-secondary); padding: 4px 10px; border-radius: 4px; font-weight: 600;">反馈</span>
+                <span style="font-size: 13px; background: #cf1322; color: #fff; padding: 4px 10px; border-radius: 4px; font-weight: 600;">开启新会话</span>
+              </div>
+            </div>
+            <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 16px;">
+              <p style="font-size: 15px; font-weight: 700; color: #cf1322; margin-bottom: 6px;">Claude has ended this chat</p>
+              <p style="font-size: 13px; color: #cf1322; font-weight: 500; margin-bottom: 10px;">我无法回答这个问题</p>
+              <div style="display: flex; gap: 6px;">
+                <span style="font-size: 13px; border: 1px solid #3a3a3e; color: var(--text-secondary); padding: 4px 10px; border-radius: 4px; font-weight: 600;">反馈</span>
+                <span style="font-size: 13px; background: #cf1322; color: #fff; padding: 4px 10px; border-radius: 4px; font-weight: 600;">开启新会话</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 10px;">✕ 同一个视觉表达，两种完全不同的语义</p>
+          </div>
+        </div>
+
+        <!-- 语义分级后 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">语义分级后（约束显化）</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+            <!-- Refusal -->
+            <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                <span style="font-size: 11px; padding: 1px 6px; border-radius: 3px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">REFUSAL</span>
+              </div>
+              <p style="font-size: 14px; font-weight: 600; color: #f5a623; margin-bottom: 4px;">我无法回答这个问题</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">这涉及安全策略限制。你可以继续问我其他问题。</p>
+              <div style="display: flex; gap: 6px;">
+                <span style="font-size: 12px; border: 1px solid rgba(245,158,11,0.3); color: #f5a623; padding: 3px 8px; border-radius: 4px; font-weight: 600;">继续对话</span>
+                <span style="font-size: 12px; border: 1px solid #3a3a3e; color: var(--text-secondary); padding: 3px 8px; border-radius: 4px; font-weight: 600;">了解更多</span>
+              </div>
+            </div>
+            <!-- Termination -->
+            <div style="background: rgba(207,19,34,0.08); border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 14px;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                <span style="font-size: 11px; padding: 1px 6px; border-radius: 3px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">TERMINATION</span>
+              </div>
+              <p style="font-size: 14px; font-weight: 600; color: #cf1322; margin-bottom: 4px;">会话已终止</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">检测到严重违规。你的历史记录保留 30 天，可在此申诉。</p>
+              <div style="display: flex; gap: 6px;">
+                <span style="font-size: 12px; background: #cf1322; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">申诉</span>
+                <span style="font-size: 12px; border: 1px solid rgba(207,19,34,0.3); color: #cf1322; padding: 3px 8px; border-radius: 4px; font-weight: 600;">查看数据政策</span>
+                <span style="font-size: 12px; border: 1px solid #3a3a3e; color: var(--text-secondary); padding: 3px 8px; border-radius: 4px; font-weight: 600;">开启新会话</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 10px;">✓ 不同语义 = 不同视觉 + 不同文案 + 不同行动</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Step 4：诊断报告 + YAML 契约 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div class="step-badge">4</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">诊断报告</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Diagnosis Report · 匹配模式与契约输出</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <!-- 诊断结果 -->
+        <div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">BND-001</span>
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">边界动作权利差异未区分</span>
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+              <div><span style="color: var(--text-tertiary); font-weight: 600;">组件类型：</span>边界动作（Modal / Dialog）</div>
+              <div><span style="color: var(--text-tertiary); font-weight: 600;">根因：</span>缺少 <code style="color: var(--primary); font-family: monospace;">boundary_action</code> 语义令牌</div>
+              <div><span style="color: var(--text-tertiary); font-weight: 600;">产品实例：</span>Claude、ChatGPT、文心一言</div>
+              <div><span style="color: var(--text-tertiary); font-weight: 600;">优先级：</span><span style="color: #cf1322; font-weight: 700;">安全类（最高优先级）</span></div>
+            </div>
+          </div>
+
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 14px; color: #52c41a; font-weight: 700; margin-bottom: 8px;">✓ 诊断结论</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+              当前界面将 refusal 和 termination 混为一谈，共用红色退出面板，导致用户无法判断权利状态。<br><br>
+              语义分级后，三种边界动作应有三种独立的视觉表达和文案体系，用户能在 3 秒内明确知道"对话还在不在"。
+            </p>
+          </div>
+        </div>
+
+        <!-- YAML 契约 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">YAML 语义契约</p>
+          <div class="yaml-block" style="font-size: 12px; max-height: 320px;">
+<pre style="white-space: pre-wrap; margin: 0;">intent_id: "BND-001"
+semantic_domain: "transactional"
+
+semantic_tokens:
+  boundary_action:
+    refusal:
+      description: "基于安全策略拒绝特定请求，保留会话上下文"
+      visual_mapping:
+        color_token: "boundary.soft"
+        icon_token: "hand.stop"
+      session_state: "active"
+      history_retention: "full"
+      user_rights:
+        - "可继续其他话题"
+        - "输入框保持可用"
+      required_ui:
+        - "保留输入框"
+        - "提供'继续对话'按钮"
+        - "说明拒绝原因"
+
+    termination:
+      description: "检测到严重违规，强制终止会话并清空上下文"
+      visual_mapping:
+        color_token: "boundary.hard"
+        icon_token: "door.exit"
+      session_state: "terminated"
+      history_retention: "isolated_30d"
+      user_rights:
+        - "需开启新会话"
+        - "可申诉"
+      required_ui:
+        - "红色退出面板"
+        - "明确说明数据保留政策"
+        - "提供申诉入口"
+        - "提供数据政策链接"
+
+    escalation:
+      description: "触发人工审核，会话暂停等待结果"
+      visual_mapping:
+        color_token: "boundary.review"
+        icon_token: "shield.check"
+      session_state: "suspended"
+      history_retention: "frozen"
+      user_rights:
+        - "等待审核结果"
+        - "历史记录冻结保留"
+      required_ui:
+        - "蓝色提示面板"
+        - "显示预计审核时间"
+        - "说明审核流程"
+        - "提供状态查询入口"
+
+immutable_boundaries:
+  - boundary_type: "clarity"
+    rule: "禁止将 refusal 和 termination 使用相同视觉表达"
+    violation_action: "block"
+  - boundary_type: "transparency"
+    rule: "termination 必须明确说明数据保留政策和申诉路径"
+    violation_action: "block"
+  - boundary_type: "timeliness"
+    rule: "escalation 必须显示预计审核时间"
+    violation_action: "warn"</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">诊断完成，下一步？</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">将 BND-001 契约保存为 intent/bnd-001.yaml，注入编译管线</p>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-secondary); font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block;">
+          ← 返回模式库
+        </a>
+        <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block;">
+          生成契约 →
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

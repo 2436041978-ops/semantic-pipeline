@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 语义域</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .overlay-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+  .overlay-card:hover {
+    border-color: #3a3a3e;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .layer-badge {
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+  .layer-l1 {
+    background: rgba(22,119,255,0.15);
+    color: #4a9eff;
+    border: 1px solid rgba(22,119,255,0.3);
+  }
+  .layer-l2 {
+    background: rgba(168,85,247,0.15);
+    color: #a855f7;
+    border: 1px solid rgba(168,85,247,0.3);
+  }
+  .layer-l0 {
+    background: #1e1e22;
+    color: #666;
+    border: 1px solid #2a2a3e;
+  }
+
+  .domain-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .domain-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .domain-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .domain-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  .alert-container {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+
+  .forbidden-box {
+    background: rgba(207,19,34,0.05);
+    border: 1px solid rgba(207,19,34,0.2);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .success-box {
+    background: rgba(82,196,26,0.05);
+    border: 1px solid rgba(82,196,26,0.2);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .feedback-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: SEMANTIC DOMAIN ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">语义域</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 语义地基 · ② 语义域</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">语义域 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Semantic Domain</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        组件是空容器，语义由场景定义。语义不由组件名称决定，而由覆盖层外赋。<br>
+        分类回答"这是什么"，语义域回答"在此场景下它意味着什么"。
+      </p>
+    </div>
+
+    <!-- 三个核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">组件不携带语义</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">&lt;Alert&gt;、&lt;Button&gt; 只是视觉形态的空壳。语义由场景外赋，而非内生于名称</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">语义外赋于覆盖层</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">每个界面点必须且只能被一个 L1 覆盖层声明。语义是"层"的属性，不是"组件"的属性</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">域内唯一、域间隔离</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">同一个术语在不同域含义不同。跨域绑定被机器拦截，域边界靠规则维护</p>
+      </div>
+    </div>
+
+    <!-- ==================== 问题展示：分类模型失效 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">?</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">问题：语义住在组件名里，还是住在场景里？</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">分类模型（Taxonomy）在 AI 生成时代系统性失效</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: #cf1322; margin-bottom: 8px;">设计系统负责人</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">"组件库一升级，语义跟着重写，返工从头来过"</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 8px;">根因：语义绑死在组件实现里</p>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: #f5a623; margin-bottom: 8px;">AI 工程师</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">"视觉对了，语义错了——高危操作被画成了普通操作"</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 8px;">根因：容器无语义身份，靠视觉惯性猜</p>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: #4a9eff; margin-bottom: 8px;">设计师</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">"'错误提示要克制'，十条产品线解读出十种实现"</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 8px;">根因：形容词无边界，不可判定</p>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: #a855f7; margin-bottom: 8px;">前端</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">"type='error' 一个参数打天下，场景信息全丢了"</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 8px;">根因：单参数无法表达场景归属</p>
+        </div>
+      </div>
+
+      <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; color: #cf1322; font-weight: 700; margin-bottom: 8px;">四条反馈指向同一个根因：语义没有自己的边界层</p>
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+          语义要么长在组件里、跟着实现走（升级即重写），要么飘在文档里、靠人解读（"要克制"十种理解）——机器拿到的只是一个 type 字符串，不知道"这个组件在此场景承担什么语义"。
+        </p>
+      </div>
+    </div>
+
+    <!-- ==================== 核心演示：同一个 Alert，不同覆盖层 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">A</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">核心演示：同一个空容器，不同语义外赋</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">&lt;Alert&gt; 只是圆角、图标位、关闭按钮的容器。语义由覆盖层注入。</p>
+        </div>
+      </div>
+
+      <!-- 覆盖层选择器 -->
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">选择覆盖层，观察同一个 Alert 的语义变化</p>
+      <div class="domain-selector">
+        <button class="domain-btn active">transactional</button>
+        <button class="domain-btn">observational</button>
+        <button class="domain-btn">navigational</button>
+        <button class="domain-btn">conversational</button>
+      </div>
+
+      <!-- transactional 演示（默认选中） -->
+      <div style="display: block;">
+        <div class="alert-container">
+          <div style="display: flex; align-items: start; gap: 16px; margin-bottom: 20px;">
+            <div style="width: 48px; height: 48px; border-radius: 10px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 20px; font-weight: 800; flex-shrink: 0;">!</div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">transactional</span>
+                <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">status.critical</span>
+              </div>
+              <p style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">阻断器</p>
+              <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">用户必须立即处理，否则系统状态恶化</p>
+            </div>
+          </div>
+
+          <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <p style="font-size: 14px; color: #cf1322; font-weight: 700; margin-bottom: 4px;">🚨 系统级故障，对话上下文可能丢失</p>
+            <p style="font-size: 13px; color: #cf1322; font-weight: 500;">建议刷新页面重新开始，或导出历史记录。</p>
+            <div style="display: flex; gap: 6px; margin-top: 10px;">
+              <span style="font-size: 13px; background: #cf1322; color: #fff; padding: 4px 12px; border-radius: 4px; font-weight: 600;">刷新页面</span>
+              <span style="font-size: 13px; border: 1px solid rgba(207,19,34,0.3); color: #cf1322; padding: 4px 12px; border-radius: 4px; font-weight: 600;">导出历史</span>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">视觉映射</p>
+              <p style="font-size: 13px; color: var(--text-primary); font-weight: 500;">红色脉冲 + 八边形图标</p>
+            </div>
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">行为约束</p>
+              <p style="font-size: 13px; color: var(--text-primary); font-weight: 500;">必须二次确认 + 恢复路径</p>
+            </div>
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">文案约束</p>
+              <p style="font-size: 13px; color: var(--text-primary); font-weight: 500;">必须说明后果严重性</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 其他三个覆盖层的静态展示（折叠在下方） -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px;">
+        <!-- observational -->
+        <div class="alert-container" style="padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">observational</span>
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">status.info</span>
+          </div>
+          <p style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">信息条</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">用户可选择性关注，不影响系统状态</p>
+          <div style="background: rgba(22,119,255,0.1); border: 1px solid rgba(22,119,255,0.3); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+            <p style="font-size: 13px; color: #4a9eff; font-weight: 600;">ℹ️ 新功能上线：智能摘要已支持 PDF 文档</p>
+          </div>
+          <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>视觉：蓝色静态 + 信息图标</div>
+            <div>行为：可自动消失</div>
+            <div>文案：禁止附加操作说明</div>
+          </div>
+        </div>
+
+        <!-- navigational -->
+        <div class="alert-container" style="padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3);">navigational</span>
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3);">action.primary</span>
+          </div>
+          <p style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">路径提示</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">用户需要方向确认，无状态风险</p>
+          <div style="background: rgba(82,196,26,0.1); border: 1px solid rgba(82,196,26,0.3); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+            <p style="font-size: 13px; color: #6abe4a; font-weight: 600;">→ 下一步：确认订单信息</p>
+          </div>
+          <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>视觉：品牌色 + 箭头图标</div>
+            <div>行为：点击后跳转</div>
+            <div>文案：显示下一步预览</div>
+          </div>
+        </div>
+
+        <!-- conversational -->
+        <div class="alert-container" style="padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3);">conversational</span>
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3);">boundary.refusal</span>
+          </div>
+          <p style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">对话边界</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">双向交流，上下文持续累积</p>
+          <div style="background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.3); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+            <p style="font-size: 13px; color: #a855f7; font-weight: 600;">💬 我无法回答这个问题。你可以尝试换个问法，或开始一个新话题。</p>
+          </div>
+          <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>视觉：紫色提示 + 对话图标</div>
+            <div>行为：保留输入框 + 提供替代建议</div>
+            <div>文案：必须说明会话状态</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 互斥规则演示 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">⊘</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">互斥规则：一个界面点只能被一个 L1 覆盖</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">L1 Mutual Exclusion · 覆盖层互斥是语义域的基石</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- 合法：单一覆盖 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">✓ 合法：单一 L1 覆盖</p>
+          <div class="success-box">
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">界面点：支付确认弹窗</p>
+            <div style="background: #0d0d0d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">&lt;Modal overlay="transactional"&gt;
+  &lt;Alert binding="status.critical" /&gt;
+  &lt;Form /&gt;
+  &lt;Button binding="action.destructive" /&gt;
+&lt;/Modal&gt;</pre>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
+              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">L1 覆盖：transactional ✓</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
+              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">L2 叠加：status.critical + action.destructive ✓</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
+              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">编译结果：通过 ✓</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 非法：双重覆盖 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">✕ 非法：双重 L1 覆盖</p>
+          <div class="forbidden-box">
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">界面点：支付确认弹窗</p>
+            <div style="background: #0d0d0d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">&lt;Modal overlay="transactional"
+       overlay="observational"&gt;  ← 冲突
+  &lt;Alert binding="status.critical" /&gt;
+  &lt;Alert binding="status.info" /&gt;   ← 冲突
+&lt;/Modal&gt;</pre>
+            </div>
+            <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; padding: 10px 12px;">
+              <p style="font-size: 12px; color: #cf1322; font-weight: 700; margin-bottom: 4px;">[CI 阻断] overlay-mutual-exclusion</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">界面点同时声明了 transactional 和 observational 两个 L1 覆盖层。</p>
+              <p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-top: 4px;">规则：每个界面点必须且只能被一个 L1 覆盖层覆盖。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 跨层禁止演示 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">🛡</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">跨层禁止：域边界的机器形态</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Anti-Corruption Layer · 域边界不是文档约定，是可判定的机器规则</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <!-- 场景：限流提示 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">场景：限流提示（observational 域）</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">AI 生成器输出：</p>
+            <div style="background: #0d0d0d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">&lt;Alert overlay="observational"
+       binding="status.critical"&gt;  ← 跨层非法
+  请求过于频繁，请稍后再试
+&lt;/Alert&gt;</pre>
+            </div>
+            <div class="forbidden-box" style="margin-bottom: 12px;">
+              <p style="font-size: 12px; color: #cf1322; font-weight: 700; margin-bottom: 4px;">[CI 阻断] cross-layer-forbidden</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">status.critical 在 observational 域为非法绑定。</p>
+              <p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-top: 4px;">期望：status.warning（黄色静态 + 时钟图标）</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: #cf1322;"></div>
+              <span style="font-size: 13px; color: #cf1322; font-weight: 600;">编译结果：阻断 ✕</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 修正后 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">修正：合法绑定</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">字典指导下的正确输出：</p>
+            <div style="background: #0d0d0d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">&lt;Alert overlay="observational"
+       binding="status.warning"&gt;  ← 合法
+  请求频率已达上限，42 分钟后重试
+&lt;/Alert&gt;</pre>
+            </div>
+            <div class="success-box" style="margin-bottom: 12px;">
+              <p style="font-size: 12px; color: #52c41a; font-weight: 700; margin-bottom: 4px;">✓ 跨层校验通过</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">status.warning 在 observational 域合法。</p>
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">视觉：黄色静态 + 时钟图标 + 倒计时</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
+              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">编译结果：通过 ✓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 跨层禁止表 -->
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">字典 v1.0.0 注册的跨层禁止规则</p>
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+        <div style="display: grid; grid-template-columns: 140px 140px 1fr 100px; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">绑定</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">所属域</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">跨层禁止</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary);">违反后果</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 140px 1fr 100px; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">status.critical</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">transactional</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600; border-right: 1px solid var(--border);">observational / navigational / conversational</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">编译阻断</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 140px 1fr 100px; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #f5a623; font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">status.warning</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">transactional</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600; border-right: 1px solid var(--border);">observational / navigational / conversational</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">编译阻断</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 140px 1fr 100px; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #4a9eff; font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">status.info</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">observational</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600; border-right: 1px solid var(--border);">transactional</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">编译阻断</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 140px 1fr 100px; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #6abe4a; font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">status.success</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">observational</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600; border-right: 1px solid var(--border);">transactional</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">编译阻断</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 140px 1fr 100px; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #ff4d4f; font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">action.destructive</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">transactional</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600; border-right: 1px solid var(--border);">observational / navigational / conversational</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">编译阻断</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 140px 1fr 100px; gap: 0;">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--primary); font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">action.primary</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">navigational</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600; border-right: 1px solid var(--border);">transactional / observational</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">编译阻断</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 四条反馈闭环 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✓</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">四条反馈闭环：踩过的坑怎么被解掉</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">覆盖层模型对四条真实反馈的闭环回应</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+        <div class="feedback-card" style="border-left: 3px solid #cf1322;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">坑 1</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">删除草稿 = 删除生产库</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">同一个按钮，可逆与不可逆被画成同一模样</p>
+          <div style="background: #16161a; border-radius: 6px; padding: 12px;">
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-bottom: 4px;">✓ 解法</p>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">声明 overlay="transactional" + action.destructive 后，高危场景被强制注入二次确认与不可恢复说明。可逆/不可逆由覆盖层区分，不再靠 type 参数猜。</p>
+          </div>
+        </div>
+
+        <div class="feedback-card" style="border-left: 3px solid #f5a623;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">坑 2</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">组件升级，语义资产清零</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">&lt;ErrorAlert&gt; 升级即语义重写，换库等于返工</p>
+          <div style="background: #16161a; border-radius: 6px; padding: 12px;">
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-bottom: 4px;">✓ 解法</p>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">覆盖层模型下语义定义在字典中，组件库换成 Ant Design / 自研库均可挂载。语义资产独立于组件实现。</p>
+          </div>
+        </div>
+
+        <div class="feedback-card" style="border-left: 3px solid #4a9eff;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">坑 3</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">"要克制"十种理解</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">形容词没有边界，规范越写越厚、分歧越来越大</p>
+          <div style="background: #16161a; border-radius: 6px; padding: 12px;">
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-bottom: 4px;">✓ 解法</p>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">observational 域把"克制"翻译为可判定约束：禁止要求输入、必须提供退出路径、文案必须说明后果。验收争议变成"违反了哪条域约束"。</p>
+          </div>
+        </div>
+
+        <div class="feedback-card" style="border-left: 3px solid #a855f7;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3);">坑 4</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">AI 把限流画成致命红</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">AI 不知道场景归属，视觉惯性替代语义判断</p>
+          <div style="background: #16161a; border-radius: 6px; padding: 12px;">
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-bottom: 4px;">✓ 解法</p>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">限流的域归属 observational，status.critical 在该域为非法绑定，CI 阻断。AI 的场景误用在生成前即无法成立。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">语义域是元规则层的地基</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">语义域（边界）→ 语义绑定（域内定义）→ 场景映射（域内实例）→ YAML 契约（引用域）→ 编译管线（校验域）</p>
+      </div>
+      <a href="./语义字典.html" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        进入语义字典 →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

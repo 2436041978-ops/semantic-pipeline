@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 字典规则树对账验证</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #3b82f6;
+    --primary-hover: #60a5fa;
+    --accent-cyan: #06b6d4;
+    --accent-green: #10b981;
+    --accent-yellow: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-purple: #8b5cf6;
+    --bg: #0a0a0f;
+    --bg-secondary: #12121a;
+    --card-bg: #1a1a24;
+    --bg-elevated: #22222e;
+    --text-primary: #e8e8ec;
+    --text-secondary: #8a8a96;
+    --text-tertiary: #5a5a66;
+    --border: #2a2a36;
+    --border-light: #333340;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center span {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .nav-center span.active {
+    color: var(--primary);
+    font-weight: 700;
+    position: relative;
+  }
+  .nav-center span.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .severity-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .severity-fatal { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; }
+  .severity-retryable { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; }
+  .severity-degraded { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #3b82f6; }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links span {
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  .static-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-secondary);
+  }
+  .static-tag-primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  .trace-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .trace-connector {
+    width: 2px;
+    height: 24px;
+    background: var(--border);
+    margin-left: 20px;
+  }
+  .trace-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
+  }
+  .trace-dot.consumed { background: var(--accent-green); box-shadow: 0 0 0 3px rgba(16,185,129,0.2); }
+  .trace-dot.blocked { background: var(--accent-red); box-shadow: 0 0 0 3px rgba(239,68,68,0.2); }
+  .trace-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .trace-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .dict-level {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .dict-level:last-child { border-bottom: none; }
+  .dict-level .lv {
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 90px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <span>Overview</span>
+      <span>Semantic Pipeline</span>
+      <span>Contract Library</span>
+      <span class="active">Validation Toolkit</span>
+    </div>
+    <div class="nav-right">
+      <span class="nav-github">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </span>
+      <span class="nav-github">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: VALIDATION TOOLKIT - DICTIONARY RULE TREE ==================== -->
+<div style="display: block;">
+  <div class="cards-section" style="padding-top: 80px;">
+
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <span style="color: var(--primary); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+        <span>←</span> Schema-As-Code
+      </span>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Validation Toolkit</span>
+    </div>
+
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">验证闭环 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Validation Toolkit</span></h1>
+    <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 32px; font-weight: 500;">三层验证工具：语义分级器 · JSON 输入 · 快照模板。证明"加了规则后有效"。</p>
+
+    <!-- Toolkit Tabs -->
+    <div style="display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;">
+      <span style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--primary); border-bottom: 2px solid var(--primary); white-space: nowrap;">🎨 语义分级器</span>
+      <span style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); border-bottom: 2px solid transparent; white-space: nowrap;">📋 JSON 输入</span>
+      <span style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); border-bottom: 2px solid transparent; white-space: nowrap;">📄 快照模板</span>
+    </div>
+
+    <!-- 语义分级器 Tab Content -->
+    <div style="display: block;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px;">
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; font-weight: 500;">输入任意错误文案，自动诊断语义分级并给出约束建议。用于快速判断一个错误提示属于哪一级 severity。</p>
+        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+          <div style="flex: 1; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; font-weight: 500;">请求过于频繁，请稍后再试</div>
+          <span class="static-tag static-tag-primary" style="padding: 10px 20px; border-radius: 8px; font-size: 14px; align-self: center;">语义分级</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">
+          <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">快速测试：</span>
+          <span class="static-tag">Error in message stream</span>
+          <span class="static-tag">network error</span>
+          <span class="static-tag" style="border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.08); color: var(--primary);">请求过于频繁</span>
+          <span class="static-tag">Something went wrong</span>
+        </div>
+
+        <!-- ==================== 正常路径：限流提示 → retryable ==================== -->
+        <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✓</div>
+            <div>
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">正常路径验证</h3>
+              <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">限流提示 → 正确映射 retryable 级别</p>
+            </div>
+            <span class="severity-badge severity-retryable" style="margin-left: auto;">RETRYABLE</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent-yellow); border-radius: var(--radius); padding: 16px;">
+              <p style="font-size: 14px; color: var(--accent-yellow); font-weight: 700; margin-bottom: 8px;">语义分级结果</p>
+              <p style="font-size: 14px; color: var(--text-primary); font-weight: 600; margin-bottom: 4px;">限流/流控，用户可自助恢复</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px;">视觉：status.warning（黄色时钟 + 倒计时）</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">行动：等待倒计时 / 升级套餐</p>
+            </div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent-green); border-radius: var(--radius); padding: 16px;">
+              <p style="font-size: 14px; color: var(--accent-green); font-weight: 700; margin-bottom: 8px;">域归属校验通过</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px;">声明域：observational</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px;">引用绑定：status.warning</p>
+              <p style="font-size: 13px; color: var(--accent-green); font-weight: 600;">✓ 绑定合法，允许入库</p>
+            </div>
+          </div>
+
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">字典规则树对账过程</p>
+            <div class="trace-row">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">Step 1：语义特征提取</p>
+                <p class="trace-desc">关键词"频繁/限流/429" → 识别为 retryable 语义特征</p>
+              </div>
+            </div>
+            <div class="trace-connector"></div>
+            <div class="trace-row">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">Step 2：匹配 ERR-001 规则树</p>
+                <p class="trace-desc">error_severity.retryable → color_token: status.warning</p>
+              </div>
+            </div>
+            <div class="trace-connector"></div>
+            <div class="trace-row">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">Step 3：域归属校验</p>
+                <p class="trace-desc">status.warning 的 allowed_domains 包含 observational → 通过</p>
+              </div>
+            </div>
+            <div class="trace-connector"></div>
+            <div class="trace-row">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">Step 4：输出语义映射</p>
+                <p class="trace-desc">黄色时钟图标 + 倒计时 + 升级入口 → 入库成功</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== 越界路径：构造非法绑定 → 被拦截 ==================== -->
+        <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #ef4444, #f59e0b); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✗</div>
+            <div>
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">越界路径验证</h3>
+              <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">构造非法绑定 → cross_layer_ban 拦截</p>
+            </div>
+            <span style="margin-left: auto; font-size: 12px; padding: 2px 8px; border-radius: 3px; font-weight: 700; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3);">BLOCKED</span>
+          </div>
+
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">构造的非法语义快照</p>
+            <div class="yaml-block" style="margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "component_type": "Alert",
+  "visual": {
+    "color": "red"
+  },
+  "copy": {
+    "title": "Too Many Requests",
+    "description": "请求过于频繁"
+  },
+  "context": "system_error"
+}</pre>
+            </div>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">⚠️ 越界点：限流场景（retryable）使用了 status.critical（致命红）</p>
+          </div>
+
+          <div style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <p style="font-size: 12px; font-weight: 700; color: #ef4444; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">🚫 越域拦截结果</p>
+            <div class="yaml-block" style="background: #0d0d0d; border: 1px solid rgba(239,68,68,0.3);">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "code": "CROSS_LAYER_BAN_VIOLATION",
+  "message": "status.critical 不可用于 observational 域",
+  "location": "semantic_tokens.error_severity.retryable.visual_mapping.color_token",
+  "suggestion": "限流提示应使用 status.warning（黄色时钟 + 倒计时）",
+  "domain": "observational",
+  "binding": "status.critical",
+  "ban_list": ["observational", "transactional"]
+}</pre>
+            </div>
+          </div>
+
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">拦截链路追踪</p>
+            <div class="trace-row">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">Step 1：语义特征提取</p>
+                <p class="trace-desc">关键词"频繁/限流" → 识别为 retryable 语义特征</p>
+              </div>
+            </div>
+            <div class="trace-connector"></div>
+            <div class="trace-row">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">Step 2：匹配 ERR-001 规则树</p>
+                <p class="trace-desc">error_severity.retryable → 期望 color_token: status.warning</p>
+              </div>
+            </div>
+            <div class="trace-connector"></div>
+            <div class="trace-row">
+              <div class="trace-dot blocked"></div>
+              <div>
+                <p class="trace-label">Step 3：域归属校验 → 命中 cross_layer_ban</p>
+                <p class="trace-desc">实际绑定 status.critical → 查 ban_list：[observational, transactional] → 命中！</p>
+                <p style="font-size: 12px; color: #ef4444; font-weight: 600; margin-top: 4px;">✗ 绑定越域，阻断入库</p>
+              </div>
+            </div>
+            <div class="trace-connector"></div>
+            <div class="trace-row">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">Step 4：返回修正建议</p>
+                <p class="trace-desc">建议替换为 status.warning（黄色时钟 + 倒计时）</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== 字典规则树结构展示 ==================== -->
+        <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">📖</div>
+            <div>
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">字典规则树（内存结构）</h3>
+              <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">编译期加载 contract/*.yaml 后生成的规则树</p>
+            </div>
+          </div>
+
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">语义令牌：error_severity</p>
+            <div class="dict-level">
+              <span class="lv">fatal</span>
+              <span style="color: var(--text-secondary);">color_token: status.critical · motion_token: pulse.red.urgent · icon_token: alert.octagon · allowed_domains: [observational]</span>
+            </div>
+            <div class="dict-level">
+              <span class="lv">transient</span>
+              <span style="color: var(--text-secondary);">color_token: status.neutral · motion_token: spinner · icon_token: loader · allowed_domains: [observational]</span>
+            </div>
+            <div class="dict-level">
+              <span class="lv">retryable</span>
+              <span style="color: var(--text-secondary);">color_token: status.warning · motion_token: none · icon_token: clock · allowed_domains: [observational]</span>
+            </div>
+            <div class="dict-level">
+              <span class="lv">degraded</span>
+              <span style="color: var(--text-secondary);">color_token: status.info · motion_token: none · icon_token: info.circle · allowed_domains: [observational]</span>
+            </div>
+          </div>
+
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">跨层禁止表（cross_layer_ban）</p>
+            <div class="dict-level">
+              <span class="lv">status.critical</span>
+              <span style="color: #ef4444; font-weight: 600;">ban_list: [observational, transactional] → 禁止用于观察域和交易域</span>
+            </div>
+            <div class="dict-level">
+              <span class="lv">status.warning</span>
+              <span style="color: var(--text-secondary);">ban_list: [] → 无限制</span>
+            </div>
+            <div class="dict-level">
+              <span class="lv">status.info</span>
+              <span style="color: var(--text-secondary);">ban_list: [] → 无限制</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== 验证结论 ==================== -->
+        <div style="background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.2); border-radius: var(--radius); padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #10b981, #06b6d4); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✓</div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">验证结论</h3>
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+            在演示环境中，语义分级器输入"限流提示"场景，输出 retryable 级别（status.warning：黄色时钟 + 倒计时）；手动构造引用 status.critical 的输入，被判定为越域并返回修正建议。<br><br>
+            <span style="color: var(--accent-green); font-weight: 700;">域归属校验逻辑在单点成立。</span>
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px;">
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+              <div style="font-size: 28px; font-weight: 800; color: var(--accent-green); margin-bottom: 4px;">✓</div>
+              <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">正常路径</div>
+              <div style="font-size: 12px; color: var(--accent-green); font-weight: 600; margin-top: 4px;">绑定合法，入库成功</div>
+            </div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+              <div style="font-size: 28px; font-weight: 800; color: #ef4444; margin-bottom: 4px;">✗</div>
+              <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">越界路径</div>
+              <div style="font-size: 12px; color: #ef4444; font-weight: 600; margin-top: 4px;">越域拦截，阻断入库</div>
+            </div>
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+              <div style="font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 4px;">2</div>
+              <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">校验层级</div>
+              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 4px;">编译期 + 安全层</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <span>Overview</span>
+    <span>GitHub</span>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

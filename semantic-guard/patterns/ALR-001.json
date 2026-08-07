@@ -1,44 +1,71 @@
 {
-  "id": "ALR-001",
+  "pattern_id": "ALR-001",
   "version": "1.0.0",
-  "componentType": "Alert",
-  "componentLibrary": "Ant Design",
-  "symptoms": {
-    "description": "AI 把高情绪权重的词汇（如 Critical）替换为低情绪权重的同义词（如“严重”），导致用户低估风险，延迟响应",
-    "evidence": [
-      "AI 生成告警卡片时，将 Critical 写成“严重”",
-      "AI 生成系统故障提示时，将“系统级故障”写成“出了点问题”"
-    ],
-    "products": [
-      "通用（所有 AI 生成告警文案的场景）",
-      "AI 运维助手",
-      "AI 客服系统"
+  "status": "published",
+  "component_type": "Alert",
+  "fault_name": "告警文案语义降级",
+  "symptom": {
+    "description": "关键告警术语被 LLM 替换为低情绪权重同义词，用户忽略重要安全信息",
+    "user_confusion": "这个词有多严重？我是不是可以忽略它？为什么 Critical 变成了'严重'？",
+    "visual_manifestation": [
+      "情绪权重降级",
+      "同义词替换",
+      "缺乏紧迫感"
     ]
   },
-  "rootCause": {
-    "missingToken": "synonym_firewall",
-    "description": "缺少同义词拦截器（Synonym Firewall），没有禁止低情绪权重词汇替代高情绪权重词汇"
+  "root_cause": {
+    "description": "系统缺少 synonym_firewall 语义令牌，LLM 按概率选择同义词时自动降级情绪权重",
+    "semantic_token_missing": "synonym_firewall",
+    "why_happens": "LLM 训练语料中'严重'出现频率远高于'Critical'，概率性输出时自动降级"
   },
-  "componentSpec": {
-    "props": [
-      "message",
-      "description",
-      "type"
-    ],
-    "semanticExtension": {
-      "alert_severity": {
-        "critical": {
-          "requiredKeywords": ["Critical", "系统级故障", "致命"],
-          "prohibitedSynonyms": ["严重", "出了点问题", "有点小毛病"]
-        },
-        "warning": {
-          "requiredKeywords": ["Warning", "警告"],
-          "prohibitedSynonyms": ["注意一下", "稍微留意"]
-        }
-      }
+  "product_evidence": [
+    {
+      "product_name": "AI 运维平台",
+      "evidence_type": "screenshot",
+      "description": "Critical 告警被翻译为'严重'，情绪权重降低",
+      "file_path": "samples/dogfood/before/ops-alert.png"
+    },
+    {
+      "product_name": "系统监控",
+      "evidence_type": "screenshot",
+      "description": "Data Loss Risk 被替换为'请稍后重试'",
+      "file_path": "samples/dogfood/before/monitor-alert.png"
+    },
+    {
+      "product_name": "通用",
+      "evidence_type": "user_complaint",
+      "description": "多个产品用户反馈告警文案'太轻了，没当回事'",
+      "file_path": "samples/dogfood/before/alert-complaints.png"
     }
+  ],
+  "linked_contract": {
+    "contract_id": "ALR-001",
+    "file_path": "contracts/ALR-001.yaml",
+    "applicable_products": [
+      "通用",
+      "AI 运维平台",
+      "系统监控"
+    ]
   },
-  "contractRef": "contracts/ALR-001.yaml",
-  "validationMethod": "同义词拦截器",
-  "status": "published"
+  "validation_method": {
+    "unit_tests": 6,
+    "integration_tests": 2,
+    "regression_tests": 3,
+    "pass_criteria": "告警文案情绪权重合规率从 60% 提升到 98%",
+    "ab_comparison_required": true
+  },
+  "metadata": {
+    "author": "体验架构设计师",
+    "created_at": "2026-06-24",
+    "updated_at": "2026-06-24",
+    "reviewers": [
+      "前端 TL",
+      "DesignOps"
+    ],
+    "tags": [
+      "告警文案",
+      "语义降级",
+      "通用模式"
+    ]
+  }
 }

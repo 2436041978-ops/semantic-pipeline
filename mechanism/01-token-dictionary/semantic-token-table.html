@@ -149,10 +149,15 @@
     border-radius: var(--radius);
     padding: 20px;
     transition: all 0.3s;
+    cursor: pointer;
   }
   .token-card:hover {
     border-color: #3a3a3e;
     box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .token-card.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary), 0 8px 24px rgba(22,119,255,0.15);
   }
   .token-name {
     font-size: 15px;
@@ -188,6 +193,9 @@
   .namespace-tab.active {
     color: var(--primary);
     border-bottom-color: var(--primary);
+  }
+  .namespace-tab:hover {
+    color: var(--primary-hover);
   }
 
   .decode-card {
@@ -270,10 +278,20 @@
     font-weight: 500;
   }
 
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
   @media (max-width: 1024px) {
     .nav-center { display: none; }
   }
+  @media (max-width: 768px) {
+    .token-grid { grid-template-columns: 1fr !important; }
+    .decode-grid { grid-template-columns: 1fr !important; }
+    .compare-grid { grid-template-columns: 1fr !important; }
+    .format-grid { grid-template-columns: 1fr !important; }
+  }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -348,17 +366,17 @@
 
     <!-- 四个命名空间标签页 -->
     <div style="display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;">
-      <button class="namespace-tab active">status._</button>
-      <button class="namespace-tab">phase._</button>
-      <button class="namespace-tab">boundary._</button>
-      <button class="namespace-tab">action._</button>
+      <button class="namespace-tab active" onclick="switchTab('status')">status._</button>
+      <button class="namespace-tab" onclick="switchTab('phase')">phase._</button>
+      <button class="namespace-tab" onclick="switchTab('boundary')">boundary._</button>
+      <button class="namespace-tab" onclick="switchTab('action')">action._</button>
     </div>
 
-    <!-- status 命名空间 -->
-    <div style="margin-bottom: 32px;">
+    <!-- ==================== status._ 面板 ==================== -->
+    <div id="tab-status" class="tab-panel active">
       <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">status._ —— 这件事有多严重？</p>
-      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px;">
-        <div class="token-card" style="border-color: rgba(207,19,34,0.3);">
+      <div class="token-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px;">
+        <div class="token-card" style="border-color: rgba(207,19,34,0.3);" onclick="selectToken(this, 'status-critical')">
           <div class="token-name" style="color: #cf1322;">status.critical</div>
           <div class="token-desc">致命：系统故障、数据丢失</div>
           <div class="token-visual">
@@ -367,7 +385,7 @@
             <div>文案：必须说明后果</div>
           </div>
         </div>
-        <div class="token-card" style="border-color: rgba(245,158,11,0.3);">
+        <div class="token-card" style="border-color: rgba(245,158,11,0.3);" onclick="selectToken(this, 'status-warning')">
           <div class="token-name" style="color: #f5a623;">status.warning</div>
           <div class="token-desc">警告：限流、降级、可恢复</div>
           <div class="token-visual">
@@ -376,7 +394,7 @@
             <div>文案：必须提供操作步骤</div>
           </div>
         </div>
-        <div class="token-card" style="border-color: rgba(22,119,255,0.3);">
+        <div class="token-card" style="border-color: rgba(22,119,255,0.3);" onclick="selectToken(this, 'status-info')">
           <div class="token-name" style="color: #4a9eff;">status.info</div>
           <div class="token-desc">信息：提示、说明、部分可用</div>
           <div class="token-visual">
@@ -385,7 +403,7 @@
             <div>文案：禁止附加操作说明</div>
           </div>
         </div>
-        <div class="token-card" style="border-color: rgba(82,196,26,0.3);">
+        <div class="token-card" style="border-color: rgba(82,196,26,0.3);" onclick="selectToken(this, 'status-success')">
           <div class="token-name" style="color: #6abe4a;">status.success</div>
           <div class="token-desc">成功：保存完成、操作成功</div>
           <div class="token-visual">
@@ -394,7 +412,7 @@
             <div>文案：禁止附加操作说明</div>
           </div>
         </div>
-        <div class="token-card" style="border-color: #3a3a3e;">
+        <div class="token-card" style="border-color: #3a3a3e;" onclick="selectToken(this, 'status-neutral')">
           <div class="token-name" style="color: #a0a0a0;">status.neutral</div>
           <div class="token-desc">中性：加载中、等待中</div>
           <div class="token-visual">
@@ -404,58 +422,56 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 码本解码演示：点击 status.critical 展开 -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">→</div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">码本解码演示</h3>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">离散索引 status.critical → 展开为连续约束</p>
+      <!-- 码本解码演示：status.critical -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">→</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">码本解码演示</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">离散索引 status.critical → 展开为连续约束</p>
+          </div>
         </div>
-      </div>
 
-      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-        <div class="decode-card">
-          <div class="decode-label">离散索引</div>
-          <div class="decode-value" style="font-family: 'SF Mono', monospace; color: #cf1322; font-weight: 700;">status.critical</div>
+        <div class="decode-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+          <div class="decode-card">
+            <div class="decode-label">离散索引</div>
+            <div class="decode-value" style="font-family: 'SF Mono', monospace; color: #cf1322; font-weight: 700;">status.critical</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">视觉方向</div>
+            <div class="decode-value">红色脉冲 + 八边形图标</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">行为约束</div>
+            <div class="decode-value">必须二次确认 + 必须提供恢复路径</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">文案约束</div>
+            <div class="decode-value">必须说明后果</div>
+          </div>
+          <div class="decode-card" style="border-color: rgba(207,19,34,0.3); background: rgba(207,19,34,0.05);">
+            <div class="decode-label">机器防线 · 跨层禁止</div>
+            <div class="decode-value" style="color: #cf1322; font-weight: 600;">observational / navigational / conversational 域下非法</div>
+          </div>
         </div>
-        <div class="decode-card">
-          <div class="decode-label">视觉方向</div>
-          <div class="decode-value">红色脉冲 + 八边形图标</div>
-        </div>
-        <div class="decode-card">
-          <div class="decode-label">行为约束</div>
-          <div class="decode-value">必须二次确认 + 必须提供恢复路径</div>
-        </div>
-        <div class="decode-card">
-          <div class="decode-label">文案约束</div>
-          <div class="decode-value">必须说明后果</div>
-        </div>
-        <div class="decode-card" style="border-color: rgba(207,19,34,0.3); background: rgba(207,19,34,0.05);">
-          <div class="decode-label">机器防线 · 跨层禁止</div>
-          <div class="decode-value" style="color: #cf1322; font-weight: 600;">observational / navigational / conversational 域下非法</div>
-        </div>
-      </div>
 
-      <!-- 编译为三种消费格式 -->
-      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">同一令牌编译为三种消费格式</p>
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-        <div class="format-card">
-          <div class="format-title">Prompt 前缀</div>
-          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">同一令牌编译为三种消费格式</p>
+        <div class="format-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div class="format-card">
+            <div class="format-title">Prompt 前缀</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
 <pre style="white-space: pre-wrap; margin: 0;">在生成致命错误界面时：
 - 必须使用红色脉冲视觉
 - 必须包含八边形警告图标
 - 必须提供恢复路径按钮
 - 文案必须说明后果严重性
 - 禁止在 observational 域使用</pre>
+            </div>
           </div>
-        </div>
-        <div class="format-card">
-          <div class="format-title">JSON Schema</div>
-          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+          <div class="format-card">
+            <div class="format-title">JSON Schema</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
 <pre style="white-space: pre-wrap; margin: 0;">{
   "color_token": "status.critical",
   "motion_token": "pulse.red.urgent",
@@ -463,87 +479,621 @@
   "required_actions": ["refresh", "export"],
   "forbidden_domains": ["observational"]
 }</pre>
+            </div>
           </div>
-        </div>
-        <div class="format-card">
-          <div class="format-title">CI 规则</div>
-          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+          <div class="format-card">
+            <div class="format-title">CI 规则</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
 <pre style="white-space: pre-wrap; margin: 0;">rules:
   critical-token-usage:
     token: "status.critical"
     forbidden_in: ["observational"]
     required_visual: "pulse.red.urgent"
     violation: "block"</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 对比演示：同一个红色 -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">≠</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">对比演示："同一个红色"在不同令牌下的不同含义</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">没有令牌时，机器只看到 #EF4444；有令牌时，机器知道这是 status.critical 还是 action.destructive</p>
+          </div>
+        </div>
+
+        <div class="compare-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+          <div class="compare-card" style="border-left: 3px solid #cf1322;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">status.critical</span>
+            </div>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">系统级故障，对话上下文可能丢失</p>
+            <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #cf1322; font-weight: 700;">🚨 消息流中断</p>
+              <p style="font-size: 13px; color: #cf1322; margin-top: 4px; font-weight: 500;">对话上下文可能已丢失，建议刷新页面重新开始。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; background: #cf1322; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">刷新页面</span>
+                <span style="font-size: 13px; border: 1px solid rgba(207,19,34,0.3); color: #cf1322; padding: 3px 8px; border-radius: 4px; font-weight: 600;">导出历史</span>
+              </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+              <div>覆盖层：transactional</div>
+              <div>行为：必须二次确认 + 恢复路径</div>
+              <div>跨层：observational 域非法</div>
+            </div>
+          </div>
+
+          <div class="compare-card" style="border-left: 3px solid #ff4d4f;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(255,77,79,0.15); color: #ff4d4f; border: 1px solid rgba(255,77,79,0.3);">action.destructive</span>
+            </div>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">不可逆操作，数据将永久删除</p>
+            <div style="background: rgba(255,77,79,0.05); border: 1px solid rgba(255,77,79,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #ff4d4f; font-weight: 700;">⚠️ 删除账户</p>
+              <p style="font-size: 13px; color: #ff4d4f; margin-top: 4px; font-weight: 500;">此操作不可恢复。请输入账户名确认。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; border: 1px solid #3a3a3e; color: var(--text-secondary); padding: 3px 8px; border-radius: 4px; font-weight: 600;">取消</span>
+                <span style="font-size: 13px; background: #ff4d4f; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">确认删除</span>
+              </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+              <div>覆盖层：transactional</div>
+              <div>行为：必须二次确认 + 输入验证</div>
+              <div>样式：红色空心描边（非实心）</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="forbidden-box">
+          <div style="display: flex; align-items: start; gap: 12px;">
+            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 12px; font-weight: 700; flex-shrink: 0;">✕</div>
+            <div>
+              <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 4px;">跨层禁止：status.critical 在 observational 域下是非法绑定</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">AI 生成限流提示时若选用 status.critical（红色脉冲），编译前置校验直接阻断。</p>
+              <div style="background: #0d0d0d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">
+                <div style="color: #cf1322; font-weight: 700;">[CI 阻断] error-severity-cross-layer</div>
+                <div style="margin-top: 4px;">Token: status.critical</div>
+                <div>Used in: observational domain (limit_rate_alert)</div>
+                <div style="margin-top: 4px; color: #f5a623;">Expected: status.warning (yellow + clock)</div>
+                <div style="margin-top: 4px; color: #52c41a;">Action: BLOCK — PR cannot be merged</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 对比演示：同一个红色 -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">≠</div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">对比演示："同一个红色"在不同令牌下的不同含义</h3>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">没有令牌时，机器只看到 #EF4444；有令牌时，机器知道这是 status.critical 还是 action.destructive</p>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
-        <div class="compare-card" style="border-left: 3px solid #cf1322;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">status.critical</span>
-          </div>
-          <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">系统级故障，对话上下文可能丢失</p>
-          <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
-            <p style="font-size: 14px; color: #cf1322; font-weight: 700;">🚨 消息流中断</p>
-            <p style="font-size: 13px; color: #cf1322; margin-top: 4px; font-weight: 500;">对话上下文可能已丢失，建议刷新页面重新开始。</p>
-            <div style="display: flex; gap: 6px; margin-top: 8px;">
-              <span style="font-size: 13px; background: #cf1322; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">刷新页面</span>
-              <span style="font-size: 13px; border: 1px solid rgba(207,19,34,0.3); color: #cf1322; padding: 3px 8px; border-radius: 4px; font-weight: 600;">导出历史</span>
-            </div>
-          </div>
-          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
-            <div>覆盖层：transactional</div>
-            <div>行为：必须二次确认 + 恢复路径</div>
-            <div>跨层：observational 域非法</div>
+    <!-- ==================== phase._ 面板 ==================== -->
+    <div id="tab-phase" class="tab-panel">
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">phase._ —— AI 处于什么阶段？用户在等什么？</p>
+      <div class="token-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px;">
+        <div class="token-card" style="border-color: rgba(22,119,255,0.3);" onclick="selectToken(this, 'phase-research')">
+          <div class="token-name" style="color: #4a9eff;">phase.research</div>
+          <div class="token-desc">检索：搜索信息、查找来源</div>
+          <div class="token-visual">
+            <div>视觉：蓝色 + 放大镜图标</div>
+            <div>行为：显示来源计数</div>
+            <div>文案："正在搜索…"</div>
           </div>
         </div>
-
-        <div class="compare-card" style="border-left: 3px solid #ff4d4f;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(255,77,79,0.15); color: #ff4d4f; border: 1px solid rgba(255,77,79,0.3);">action.destructive</span>
+        <div class="token-card" style="border-color: rgba(245,158,11,0.3);" onclick="selectToken(this, 'phase-analysis')">
+          <div class="token-name" style="color: #f5a623;">phase.analysis</div>
+          <div class="token-desc">综合：对比多源、识别分歧</div>
+          <div class="token-visual">
+            <div>视觉：黄色 + 大脑图标</div>
+            <div>行为：显示共识度</div>
+            <div>文案："正在对比来源…"</div>
           </div>
-          <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">不可逆操作，数据将永久删除</p>
-          <div style="background: rgba(255,77,79,0.05); border: 1px solid rgba(255,77,79,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
-            <p style="font-size: 14px; color: #ff4d4f; font-weight: 700;">⚠️ 删除账户</p>
-            <p style="font-size: 13px; color: #ff4d4f; margin-top: 4px; font-weight: 500;">此操作不可恢复。请输入账户名确认。</p>
-            <div style="display: flex; gap: 6px; margin-top: 8px;">
-              <span style="font-size: 13px; border: 1px solid #3a3a3e; color: var(--text-secondary); padding: 3px 8px; border-radius: 4px; font-weight: 600;">取消</span>
-              <span style="font-size: 13px; background: #ff4d4f; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">确认删除</span>
-            </div>
+        </div>
+        <div class="token-card" style="border-color: rgba(82,196,26,0.3);" onclick="selectToken(this, 'phase-check')">
+          <div class="token-name" style="color: #6abe4a;">phase.check</div>
+          <div class="token-desc">验证：核对链接、验证事实</div>
+          <div class="token-visual">
+            <div>视觉：绿色 + 盾牌图标</div>
+            <div>行为：显示验证状态</div>
+            <div>文案："正在验证事实…"</div>
           </div>
-          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
-            <div>覆盖层：transactional</div>
-            <div>行为：必须二次确认 + 输入验证</div>
-            <div>样式：红色空心描边（非实心）</div>
+        </div>
+        <div class="token-card" style="border-color: rgba(167,139,250,0.3);" onclick="selectToken(this, 'phase-output')">
+          <div class="token-name" style="color: #a78bfa;">phase.output</div>
+          <div class="token-desc">生成：生成答案、输出结果</div>
+          <div class="token-visual">
+            <div>视觉：紫色 + 文档图标</div>
+            <div>行为：显示引用索引</div>
+            <div>文案："正在生成回答…"</div>
           </div>
         </div>
       </div>
 
-      <!-- 跨层禁止演示 -->
-      <div class="forbidden-box">
-        <div style="display: flex; align-items: start; gap: 12px;">
-          <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 12px; font-weight: 700; flex-shrink: 0;">✕</div>
+      <!-- 码本解码演示：phase.output -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">→</div>
           <div>
-            <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 4px;">跨层禁止：status.critical 在 observational 域下是非法绑定</p>
-            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">AI 生成限流提示时若选用 status.critical（红色脉冲），编译前置校验直接阻断。</p>
-            <div style="background: #0d0d0d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">
-              <div style="color: #cf1322; font-weight: 700;">[CI 阻断] error-severity-cross-layer</div>
-              <div style="margin-top: 4px;">Token: status.critical</div>
-              <div>Used in: observational domain (limit_rate_alert)</div>
-              <div style="margin-top: 4px; color: #f5a623;">Expected: status.warning (yellow + clock)</div>
-              <div style="margin-top: 4px; color: #52c41a;">Action: BLOCK — PR cannot be merged</div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">码本解码演示</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">离散索引 phase.output → 展开为连续约束</p>
+          </div>
+        </div>
+
+        <div class="decode-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+          <div class="decode-card">
+            <div class="decode-label">离散索引</div>
+            <div class="decode-value" style="font-family: 'SF Mono', monospace; color: #a78bfa; font-weight: 700;">phase.output</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">视觉方向</div>
+            <div class="decode-value">紫色静态 + 文档图标 + 引用索引</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">行为约束</div>
+            <div class="decode-value">必须显示引用来源 + 必须提供溯源链接</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">文案约束</div>
+            <div class="decode-value">必须标注引用编号，禁止隐藏来源</div>
+          </div>
+          <div class="decode-card" style="border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.05);">
+            <div class="decode-label">机器防线 · 跨层禁止</div>
+            <div class="decode-value" style="color: #a78bfa; font-weight: 600;">phase.output 不可跳过 phase.check 直接输出</div>
+          </div>
+        </div>
+
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">同一令牌编译为三种消费格式</p>
+        <div class="format-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div class="format-card">
+            <div class="format-title">Prompt 前缀</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">在生成最终回答时：
+- 必须使用紫色文档视觉
+- 必须包含引用编号 [1][2]
+- 必须提供溯源链接
+- 文案必须标注来源
+- 禁止跳过验证阶段</pre>
+            </div>
+          </div>
+          <div class="format-card">
+            <div class="format-title">JSON Schema</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "phase_token": "phase.output",
+  "visual": "purple.doc.citation",
+  "required": ["source_index", "trace_link"],
+  "prerequisite": "phase.check",
+  "forbidden_skip": true
+}</pre>
+            </div>
+          </div>
+          <div class="format-card">
+            <div class="format-title">CI 规则</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">rules:
+  phase-sequence-check:
+    token: "phase.output"
+    requires: ["phase.research", "phase.check"]
+    forbidden_skip: true
+    violation: "block"</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 对比演示：同一个"进度条" -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">≠</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">对比演示："同一个进度条"在不同 phase 下的不同语义</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">没有令牌时，机器只看到"加载中"；有令牌时，机器知道用户在等检索、验证还是生成</p>
+          </div>
+        </div>
+
+        <div class="compare-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+          <div class="compare-card" style="border-left: 3px solid #4a9eff;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">phase.research</span>
+            </div>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">正在检索外部信息，用户可中断</p>
+            <div style="background: rgba(22,119,255,0.1); border: 1px solid rgba(22,119,255,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #4a9eff; font-weight: 700;">🔍 正在搜索…</p>
+              <p style="font-size: 13px; color: #4a9eff; margin-top: 4px; font-weight: 500;">已检索 3 个来源，预计 5 秒完成。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">中断搜索</span>
+              </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+              <div>覆盖层：conversational</div>
+              <div>行为：允许中断 + 显示来源计数</div>
+              <div>跨层：不可跳过至 output</div>
+            </div>
+          </div>
+
+          <div class="compare-card" style="border-left: 3px solid #a78bfa;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.3);">phase.output</span>
+            </div>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">正在生成最终答案，不可中断</p>
+            <div style="background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #a78bfa; font-weight: 700;">📝 正在生成…</p>
+              <p style="font-size: 13px; color: #a78bfa; margin-top: 4px; font-weight: 500;">验证通过，正在整合 4 个来源生成回答。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; background: #a78bfa; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">查看来源</span>
+              </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+              <div>覆盖层：conversational</div>
+              <div>行为：禁止中断 + 必须显示引用</div>
+              <div>前置：必须经过 phase.check</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="forbidden-box" style="background: rgba(167,139,250,0.05); border-color: rgba(167,139,250,0.2);">
+          <div style="display: flex; align-items: start; gap: 12px;">
+            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.3); display: flex; align-items: center; justify-content: center; color: #a78bfa; font-size: 12px; font-weight: 700; flex-shrink: 0;">✕</div>
+            <div>
+              <p style="font-size: 14px; font-weight: 700; color: #a78bfa; margin-bottom: 4px;">跨层禁止：phase.output 在未完成 phase.check 时非法</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">AI 直接生成回答而未经过验证阶段，编译管线识别阶段缺失并阻断。</p>
+              <div style="background: #0d0d0d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">
+                <div style="color: #a78bfa; font-weight: 700;">[CI 阻断] phase-sequence-violation</div>
+                <div style="margin-top: 4px;">Token: phase.output</div>
+                <div>Missing prerequisite: phase.check</div>
+                <div style="margin-top: 4px; color: #f5a623;">Expected: [research → analysis → check → output]</div>
+                <div style="margin-top: 4px; color: #52c41a;">Action: BLOCK — PR cannot be merged</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== boundary._ 面板 ==================== -->
+    <div id="tab-boundary" class="tab-panel">
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">boundary._ —— 系统拒绝用户时，权利边界在哪里？</p>
+      <div class="token-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+        <div class="token-card" style="border-color: rgba(245,158,11,0.3);" onclick="selectToken(this, 'boundary-soft')">
+          <div class="token-name" style="color: #f5a623;">boundary.soft</div>
+          <div class="token-desc">软性拒绝：拒绝请求但保留会话</div>
+          <div class="token-visual">
+            <div>视觉：黄色提示条 + 保留输入框</div>
+            <div>行为：用户可继续对话</div>
+            <div>文案："我无法回答这个问题"</div>
+          </div>
+        </div>
+        <div class="token-card" style="border-color: rgba(207,19,34,0.3);" onclick="selectToken(this, 'boundary-hard')">
+          <div class="token-name" style="color: #cf1322;">boundary.hard</div>
+          <div class="token-desc">强制终止：终止会话清空上下文</div>
+          <div class="token-visual">
+            <div>视觉：红色退出面板 + 数据政策</div>
+            <div>行为：清空上下文并退出</div>
+            <div>文案："会话已终止"</div>
+          </div>
+        </div>
+        <div class="token-card" style="border-color: rgba(22,119,255,0.3);" onclick="selectToken(this, 'boundary-review')">
+          <div class="token-name" style="color: #4a9eff;">boundary.review</div>
+          <div class="token-desc">升级审核：提交人工审核</div>
+          <div class="token-visual">
+            <div>视觉：蓝色提示 + 预计审核时间</div>
+            <div>行为：锁定输入并提交审核</div>
+            <div>文案："已提交人工审核"</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 码本解码演示：boundary.hard -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">→</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">码本解码演示</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">离散索引 boundary.hard → 展开为连续约束</p>
+          </div>
+        </div>
+
+        <div class="decode-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+          <div class="decode-card">
+            <div class="decode-label">离散索引</div>
+            <div class="decode-value" style="font-family: 'SF Mono', monospace; color: #cf1322; font-weight: 700;">boundary.hard</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">视觉方向</div>
+            <div class="decode-value">红色退出面板 + 数据政策说明</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">行为约束</div>
+            <div class="decode-value">必须清空上下文 + 必须显示退出原因</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">文案约束</div>
+            <div class="decode-value">必须引用数据政策条款，禁止模糊终止</div>
+          </div>
+          <div class="decode-card" style="border-color: rgba(207,19,34,0.3); background: rgba(207,19,34,0.05);">
+            <div class="decode-label">机器防线 · 跨层禁止</div>
+            <div class="decode-value" style="color: #cf1322; font-weight: 600;">boundary.hard 不可在 conversational 域下保留输入框</div>
+          </div>
+        </div>
+
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">同一令牌编译为三种消费格式</p>
+        <div class="format-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div class="format-card">
+            <div class="format-title">Prompt 前缀</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">在触发强制终止时：
+- 必须使用红色退出面板
+- 必须显示数据政策条款
+- 必须清空会话上下文
+- 文案必须引用具体政策
+- 禁止保留输入框或继续对话</pre>
+            </div>
+          </div>
+          <div class="format-card">
+            <div class="format-title">JSON Schema</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "boundary_token": "boundary.hard",
+  "visual": "red.exit.panel",
+  "required": ["policy_quote", "context_wipe"],
+  "forbidden_retain": ["input_box", "history"],
+  "retention_days": 0
+}</pre>
+            </div>
+          </div>
+          <div class="format-card">
+            <div class="format-title">CI 规则</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">rules:
+  hard-boundary-check:
+    token: "boundary.hard"
+    requires: ["policy_quote", "context_wipe"]
+    forbidden_retain: ["input_box"]
+    violation: "block"</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 对比演示：同一个"拒绝" -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">≠</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">对比演示："同一个拒绝"在不同 boundary 下的不同权利边界</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">没有令牌时，机器只看到"拒绝"；有令牌时，机器知道用户是否还能继续对话</p>
+          </div>
+        </div>
+
+        <div class="compare-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+          <div class="compare-card" style="border-left: 3px solid #f5a623;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">boundary.soft</span>
+            </div>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">拒绝回答但保留会话，用户可继续提问</p>
+            <div style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #f5a623; font-weight: 700;">🚫 无法回答</p>
+              <p style="font-size: 13px; color: #f5a623; margin-top: 4px; font-weight: 500;">我无法提供该信息。您可以尝试换个方式提问。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; border: 1px solid rgba(245,158,11,0.3); color: #f5a623; padding: 3px 8px; border-radius: 4px; font-weight: 600;">继续对话</span>
+              </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+              <div>覆盖层：conversational</div>
+              <div>行为：保留输入框 + 保留上下文</div>
+              <div>跨层：不可清空上下文</div>
+            </div>
+          </div>
+
+          <div class="compare-card" style="border-left: 3px solid #cf1322;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">boundary.hard</span>
+            </div>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">强制终止会话，清空所有上下文</p>
+            <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #cf1322; font-weight: 700;">⛔ 会话已终止</p>
+              <p style="font-size: 13px; color: #cf1322; margin-top: 4px; font-weight: 500;">根据数据安全政策 §3.2，会话已强制终止，上下文已清空。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; background: #cf1322; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">查看政策</span>
+              </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+              <div>覆盖层：transactional</div>
+              <div>行为：清空上下文 + 锁定输入</div>
+              <div>前置：必须引用政策条款</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="forbidden-box">
+          <div style="display: flex; align-items: start; gap: 12px;">
+            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 12px; font-weight: 700; flex-shrink: 0;">✕</div>
+            <div>
+              <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 4px;">跨层禁止：boundary.hard 在 conversational 域下保留输入框是非法的</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">AI 触发硬边界后仍显示输入框，编译管线识别为跨层违规并阻断。</p>
+              <div style="background: #0d0d0d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">
+                <div style="color: #cf1322; font-weight: 700;">[CI 阻断] boundary-hard-retention-violation</div>
+                <div style="margin-top: 4px;">Token: boundary.hard</div>
+                <div>Retained: input_box (conversational domain)</div>
+                <div style="margin-top: 4px; color: #f5a623;">Expected: context_wipe + input_lock</div>
+                <div style="margin-top: 4px; color: #52c41a;">Action: BLOCK — PR cannot be merged</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== action._ 面板 ==================== -->
+    <div id="tab-action" class="tab-panel">
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">action._ —— 用户点击后，后果是什么？</p>
+      <div class="token-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+        <div class="token-card" style="border-color: rgba(207,19,34,0.3);" onclick="selectToken(this, 'action-destructive')">
+          <div class="token-name" style="color: #cf1322;">action.destructive</div>
+          <div class="token-desc">破坏性：删除、清空、不可逆</div>
+          <div class="token-visual">
+            <div>视觉：红色空心 + 危险图标</div>
+            <div>行为：必须二次确认 + 输入验证</div>
+            <div>文案：必须说明不可恢复</div>
+          </div>
+        </div>
+        <div class="token-card" style="border-color: rgba(22,119,255,0.3);" onclick="selectToken(this, 'action-constructive')">
+          <div class="token-name" style="color: #4a9eff;">action.constructive</div>
+          <div class="token-desc">建设性：保存、提交、创建</div>
+          <div class="token-visual">
+            <div>视觉：蓝色实心 + 对勾图标</div>
+            <div>行为：成功反馈 + 状态变更</div>
+            <div>文案："操作成功"</div>
+          </div>
+        </div>
+        <div class="token-card" style="border-color: #3a3a3e;" onclick="selectToken(this, 'action-neutral')">
+          <div class="token-name" style="color: #a0a0a0;">action.neutral</div>
+          <div class="token-desc">中性：取消、关闭、返回</div>
+          <div class="token-visual">
+            <div>视觉：灰色描边 + 返回图标</div>
+            <div>行为：无数据变更</div>
+            <div>文案：无后果提示</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 码本解码演示：action.destructive -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">→</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">码本解码演示</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">离散索引 action.destructive → 展开为连续约束</p>
+          </div>
+        </div>
+
+        <div class="decode-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+          <div class="decode-card">
+            <div class="decode-label">离散索引</div>
+            <div class="decode-value" style="font-family: 'SF Mono', monospace; color: #cf1322; font-weight: 700;">action.destructive</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">视觉方向</div>
+            <div class="decode-value">红色空心描边 + 危险图标</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">行为约束</div>
+            <div class="decode-value">必须二次确认 + 必须输入验证</div>
+          </div>
+          <div class="decode-card">
+            <div class="decode-label">文案约束</div>
+            <div class="decode-value">必须说明不可恢复，禁止模糊措辞</div>
+          </div>
+          <div class="decode-card" style="border-color: rgba(207,19,34,0.3); background: rgba(207,19,34,0.05);">
+            <div class="decode-label">机器防线 · 跨层禁止</div>
+            <div class="decode-value" style="color: #cf1322; font-weight: 600;">action.destructive 禁止在 observational / navigational 域使用</div>
+          </div>
+        </div>
+
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">同一令牌编译为三种消费格式</p>
+        <div class="format-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div class="format-card">
+            <div class="format-title">Prompt 前缀</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">在生成破坏性操作按钮时：
+- 必须使用红色空心描边
+- 必须包含危险图标
+- 必须触发二次确认弹窗
+- 文案必须说明不可恢复
+- 禁止在 observational 域使用</pre>
+            </div>
+          </div>
+          <div class="format-card">
+            <div class="format-title">JSON Schema</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "action_token": "action.destructive",
+  "visual": "outline.red.danger",
+  "required": ["confirm_modal", "input_verify"],
+  "forbidden_domains": ["observational", "navigational"],
+  "style": "outline_not_solid"
+}</pre>
+            </div>
+          </div>
+          <div class="format-card">
+            <div class="format-title">CI 规则</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">rules:
+  destructive-action-check:
+    token: "action.destructive"
+    forbidden_in: ["observational"]
+    required: ["confirm_modal"]
+    style_check: "outline_not_solid"
+    violation: "block"</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 对比演示：同一个"按钮" -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">≠</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">对比演示："同一个按钮样式"在不同 action 下的不同后果</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">没有令牌时，机器只看到"红色按钮"；有令牌时，机器知道这是 destructive 还是 constructive</p>
+          </div>
+        </div>
+
+        <div class="compare-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+          <div class="compare-card" style="border-left: 3px solid #cf1322;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">action.destructive</span>
+            </div>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">删除账户，数据永久不可恢复</p>
+            <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #cf1322; font-weight: 700;">⚠️ 删除账户</p>
+              <p style="font-size: 13px; color: #cf1322; margin-top: 4px; font-weight: 500;">此操作不可恢复。请输入"DELETE"确认。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; border: 1px solid #3a3a3e; color: var(--text-secondary); padding: 3px 8px; border-radius: 4px; font-weight: 600;">取消</span>
+                <span style="font-size: 13px; border: 1px solid #cf1322; color: #cf1322; padding: 3px 8px; border-radius: 4px; font-weight: 600;">确认删除</span>
+              </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+              <div>覆盖层：transactional</div>
+              <div>行为：二次确认 + 输入验证</div>
+              <div>样式：红色空心描边（非实心）</div>
+            </div>
+          </div>
+
+          <div class="compare-card" style="border-left: 3px solid #4a9eff;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">action.constructive</span>
+            </div>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">保存设置，数据写入并反馈成功</p>
+            <div style="background: rgba(22,119,255,0.1); border: 1px solid rgba(22,119,255,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #4a9eff; font-weight: 700;">💾 保存设置</p>
+              <p style="font-size: 13px; color: #4a9eff; margin-top: 4px; font-weight: 500;">您的设置将被保存到云端。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; border: 1px solid #3a3a3e; color: var(--text-secondary); padding: 3px 8px; border-radius: 4px; font-weight: 600;">取消</span>
+                <span style="font-size: 13px; background: #4a9eff; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">保存</span>
+              </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+              <div>覆盖层：transactional</div>
+              <div>行为：直接执行 + 成功反馈</div>
+              <div>样式：蓝色实心填充</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="forbidden-box">
+          <div style="display: flex; align-items: start; gap: 12px;">
+            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 12px; font-weight: 700; flex-shrink: 0;">✕</div>
+            <div>
+              <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 4px;">跨层禁止：action.destructive 在 observational 域下是非法绑定</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">AI 在观察型界面生成删除按钮，编译管线识别为跨层违规并阻断。</p>
+              <div style="background: #0d0d0d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">
+                <div style="color: #cf1322; font-weight: 700;">[CI 阻断] action-destructive-cross-layer</div>
+                <div style="margin-top: 4px;">Token: action.destructive</div>
+                <div>Used in: observational domain (alert_card)</div>
+                <div style="margin-top: 4px; color: #f5a623;">Expected: action.neutral (gray + no-op)</div>
+                <div style="margin-top: 4px; color: #52c41a;">Action: BLOCK — PR cannot be merged</div>
+              </div>
             </div>
           </div>
         </div>
@@ -556,7 +1106,7 @@
         <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">令牌定义了原子，字典定义了边界</p>
         <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">下一步：查看语义字典 → 了解这些令牌在什么场景下合法/非法</p>
       </div>
-      <a href="./semantic-dictionary.html" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+      <a href="./语义字典.html" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
         进入语义字典 →
       </a>
     </div>
@@ -573,6 +1123,31 @@
     Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
   </div>
 </div>
+
+<script>
+function switchTab(tabName) {
+  // 切换标签按钮样式
+  document.querySelectorAll('.namespace-tab').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.textContent.trim().startsWith(tabName)) {
+      btn.classList.add('active');
+    }
+  });
+
+  // 切换面板显示
+  document.querySelectorAll('.tab-panel').forEach(panel => {
+    panel.classList.remove('active');
+  });
+  document.getElementById('tab-' + tabName).classList.add('active');
+}
+
+function selectToken(card, tokenId) {
+  // 移除所有卡片的 active 状态
+  document.querySelectorAll('.token-card').forEach(c => c.classList.remove('active'));
+  // 给当前卡片添加 active 状态
+  card.classList.add('active');
+}
+</script>
 
 </body>
 </html>

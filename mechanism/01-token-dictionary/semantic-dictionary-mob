@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Schema-As-Code · 语义字典</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .layer-badge {
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+  .layer-l1 {
+    background: rgba(22,119,255,0.15);
+    color: #4a9eff;
+    border: 1px solid rgba(22,119,255,0.3);
+  }
+  .layer-l2 {
+    background: rgba(168,85,247,0.15);
+    color: #a855f7;
+    border: 1px solid rgba(168,85,247,0.3);
+  }
+  .layer-l0 {
+    background: #1e1e22;
+    color: #666;
+    border: 1px solid #2a2a3e;
+  }
+
+  .overlay-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+  .overlay-card:hover {
+    border-color: #3a3a3e;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .rebind-row {
+    display: flex;
+    align-items: start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .scenario-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+
+  .trace-connector {
+    width: 2px;
+    height: 24px;
+    background: var(--border);
+    margin-left: 20px;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+
+  /* ==================== MOBILE RESPONSIVE ==================== */
+  @media (max-width: 768px) {
+    .cards-section {
+      padding: 80px 16px 40px;
+    }
+
+    .cards-section h1 {
+      font-size: 22px !important;
+      line-height: 1.3 !important;
+    }
+
+    .cards-section h1 span {
+      font-size: 16px !important;
+    }
+
+    .cards-section h3 {
+      font-size: 15px !important;
+    }
+
+    /* 所有 grid 改为单列 */
+    .grid-mobile-1col {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* 底部 CTA 垂直堆叠 */
+    .cards-section > div:last-child {
+      flex-direction: column !important;
+      gap: 16px !important;
+      align-items: stretch !important;
+    }
+
+    .cards-section > div:last-child a {
+      text-align: center;
+    }
+
+    /* 导航栏 */
+    .nav-center {
+      display: none !important;
+    }
+    .nav-right {
+      display: none !important;
+    }
+    .nav-brand {
+      gap: 8px;
+    }
+    .nav-brand span {
+      font-size: 16px;
+    }
+
+    /* 卡片内边距 */
+    .overlay-card, .scenario-card {
+      padding: 16px !important;
+    }
+
+    /* yaml 块 */
+    .yaml-block {
+      font-size: 11px;
+      padding: 12px;
+    }
+
+    /* 语义绑定表横向滚动 */
+    .cards-section div[style*="overflow: hidden"] {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 字段行改为垂直堆叠 */
+    .rebind-row {
+      flex-direction: column !important;
+      gap: 8px !important;
+    }
+
+    /* 面包屑换行 */
+    .cards-section > div:first-child {
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    /* 对比卡片全宽 */
+    .compare-card {
+      width: 100% !important;
+    }
+
+    /* 表格行改为块级 */
+    .cards-section div[style*="grid-template-columns: 120px"] {
+      min-width: 600px;
+    }
+  }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: SEMANTIC DICTIONARY ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">语义字典</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 组织级语义注册表 · ① 语义字典</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">语义字典 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Semantic Dictionary</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        先注册、后引用。字典是组织级唯一信源，所有 YAML 契约必须引用字典中的已定义项。<br>
+        契约只是字典的只读消费面。
+      </p>
+    </div>
+
+    <!-- 三个核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;" class="grid-mobile-1col">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">字典是唯一定义源</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">全组织同一术语坐标系，任何团队不得维护平行的"私有字典"；非法引用在编译前置校验时阻断</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">字典可被机器查询</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">覆盖层目录、语义绑定、场景映射三层结构可被编译管线查询，并编译为三种消费格式</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">字典变更可同步</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">字典单点变更 → 契约重编译 → 四种消费格式同步更新，Git Diff 可追溯</p>
+      </div>
+    </div>
+
+    <!-- ==================== 第一层：覆盖层目录 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">L1</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">第一层：覆盖层目录</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Overlay Catalog · 每个界面点必须且只能被一个 L1 覆盖层覆盖（互斥）</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;" class="grid-mobile-1col">
+        <div class="overlay-card" style="border-left: 3px solid #cf1322;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="layer-badge layer-l1">L1</span>
+            <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">transactional</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">交易与操作：用户动作会改变系统状态或数据</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>适用：支付、删除、提交、确认、撤销</div>
+            <div style="color: #cf1322;">禁止：纯信息展示、状态更新、新手引导</div>
+          </div>
+        </div>
+
+        <div class="overlay-card" style="border-left: 3px solid #4a9eff;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="layer-badge layer-l1">L1</span>
+            <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">observational</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">观察与信息：用户仅接收信息，无需立即行动</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>适用：通知、状态更新、提示、反馈</div>
+            <div style="color: #cf1322;">禁止：需要用户决策、需要二次确认、不可逆操作</div>
+          </div>
+        </div>
+
+        <div class="overlay-card" style="border-left: 3px solid #6abe4a;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="layer-badge layer-l1">L1</span>
+            <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">navigational</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">导航与引导：用户需要方向指引，无数据变更</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>适用：面包屑、步骤指示、返回、跳转</div>
+            <div style="color: #cf1322;">禁止：表单提交、数据操作、支付流程</div>
+          </div>
+        </div>
+
+        <div class="overlay-card" style="border-left: 3px solid #a855f7;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="layer-badge layer-l1">L1</span>
+            <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">conversational</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">对话与交互：用户与系统双向交流，上下文持续</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>适用：聊天、问答、建议、澄清</div>
+            <div style="color: #cf1322;">禁止：一次性操作、无上下文的状态提示</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- L2 子层 -->
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;" class="grid-mobile-1col" class="grid-mobile-1col">
+        <div class="overlay-card" style="border-left: 3px solid #f5a623;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="layer-badge layer-l2">L2</span>
+            <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">financial</span>
+            <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">transactional 子层</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">涉及资金流动：支付、转账、退款</p>
+        </div>
+        <div class="overlay-card" style="border-left: 3px solid #f5a623;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="layer-badge layer-l2">L2</span>
+            <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">data-destructive</span>
+            <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">transactional 子层</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">涉及数据删除：删除账户、清空数据</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 第二层：语义重绑定 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">L2</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">第二层：语义重绑定</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Semantic Rebinding · 同一个词，不同覆盖层下绑定为不同语义</p>
+        </div>
+      </div>
+
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">通用术语：Alert 在不同覆盖层下的语义绑定</p>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;" class="grid-mobile-1col" class="grid-mobile-1col">
+        <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="layer-badge layer-l1">transactional</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">阻断器</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">用户必须立即处理，否则系统状态恶化</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>视觉：红色脉冲 + 八边形</div>
+            <div>行为：必须二次确认</div>
+            <div>文案：必须说明后果</div>
+          </div>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid rgba(22,119,255,0.3); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="layer-badge layer-l1">observational</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">信息条</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">用户可选择性关注，不影响系统状态</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>视觉：蓝色静态 + 信息图标</div>
+            <div>行为：可自动消失</div>
+            <div>文案：禁止附加操作说明</div>
+          </div>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="layer-badge layer-l1">navigational</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">路径提示</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">用户需要方向确认，无状态风险</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>视觉：绿色静态 + 箭头图标</div>
+            <div>行为：点击后跳转</div>
+            <div>文案：显示下一步预览</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 个语义绑定表 -->
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">字典 v1.0.0 注册的 6 个语义绑定</p>
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+        <div style="display: grid; grid-template-columns: 120px 140px 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border); min-width: 600px;">
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">术语 ID</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">所属覆盖层</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">语义绑定</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">约束注入</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary);">跨层禁止</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 120px 140px 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">status.critical</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">transactional</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">阻断器：用户必须立即处理</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">红色脉冲、八边形；必须二次确认；必须说明后果</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">observational / navigational / conversational</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 120px 140px 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #f5a623; font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">status.warning</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">transactional</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">限制器：用户可自助恢复</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">黄色静态、三角图标；必须显示恢复时间；必须提供操作步骤</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-tertiary); font-weight: 600;">—</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 120px 140px 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #4a9eff; font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">status.info</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">observational</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">信息条：用户可选择性关注</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">蓝色静态、信息图标；可自动消失；禁止附加操作说明</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">transactional</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 120px 140px 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #6abe4a; font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">status.success</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">observational</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">成功条：操作已完成</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">绿色静态、对勾图标；可自动消失；禁止附加操作说明</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">transactional</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 120px 140px 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #ff4d4f; font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">action.destructive</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">transactional</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">危险动作：数据永久丢失</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">红色空心描边、危险图标；必须二次确认；必须说明不可恢复</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">observational / navigational / conversational</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 120px 140px 1fr 1fr 1fr; gap: 0;">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--primary); font-weight: 600; font-family: 'SF Mono', monospace; border-right: 1px solid var(--border);">action.primary</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">navigational</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">引导动作：帮助用户进入下一步</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">品牌色实心、箭头图标；点击后跳转；显示下一步预览</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">transactional / observational</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 第三层：场景映射 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">L3</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">第三层：场景映射</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Scenario Mapping · 业务场景的完整语义方案，设计师查询即得</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;" class="grid-mobile-1col" class="grid-mobile-1col">
+        <div class="scenario-card" style="border-left: 3px solid #cf1322;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">SCN-001</span>
+          </div>
+          <p style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">删除账户</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖层：transactional</div>
+            <div>语义绑定：status.critical + action.destructive</div>
+            <div>组件：Alert + Button + Modal</div>
+            <div>文案：必须包含"此操作不可恢复"</div>
+            <div>约束：必须输入账户名二次确认</div>
+          </div>
+        </div>
+
+        <div class="scenario-card" style="border-left: 3px solid #f5a623;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">SCN-002</span>
+          </div>
+          <p style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">网络中断</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖层：transactional</div>
+            <div>语义绑定：status.warning</div>
+            <div>组件：Alert + Button</div>
+            <div>文案：必须显示"网络不稳定"</div>
+            <div>约束：必须显示自动重试倒计时</div>
+          </div>
+        </div>
+
+        <div class="scenario-card" style="border-left: 3px solid #6abe4a;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3);">SCN-003</span>
+          </div>
+          <p style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">保存成功</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖层：observational</div>
+            <div>语义绑定：status.success</div>
+            <div>组件：Toast</div>
+            <div>文案：仅显示"保存成功"</div>
+            <div>约束：3 秒后自动消失</div>
+          </div>
+        </div>
+
+        <div class="scenario-card" style="border-left: 3px solid #4a9eff;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">SCN-004</span>
+          </div>
+          <p style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">新功能上线</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖层：observational</div>
+            <div>语义绑定：status.info</div>
+            <div>组件：Banner</div>
+            <div>文案：显示功能名称 + 一句话说明</div>
+            <div>约束：不可阻断当前操作</div>
+          </div>
+        </div>
+
+        <div class="scenario-card" style="border-left: 3px solid #cf1322;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">SCN-005</span>
+          </div>
+          <p style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">支付确认</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖层：transactional (financial)</div>
+            <div>语义绑定：status.critical</div>
+            <div>组件：Alert + Form + Button</div>
+            <div>文案：必须显示金额、收款方、支付方式</div>
+            <div>约束：必须输入支付密码或指纹</div>
+          </div>
+        </div>
+
+        <div class="scenario-card" style="border-left: 3px solid #6abe4a;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3);">SCN-006</span>
+          </div>
+          <p style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">步骤引导</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖层：navigational</div>
+            <div>语义绑定：action.primary</div>
+            <div>组件：Stepper + Button</div>
+            <div>文案：显示当前步骤和总步骤</div>
+            <div>约束：第一步禁用"上一步"</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCN-001 展开演示 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">场景查询演示：设计师查询 SCN-001（删除账户）</p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;" class="grid-mobile-1col" class="grid-mobile-1col">
+          <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">字典返回：完整语义方案</div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">scenario_id: "SCN-001"
+name: "删除账户"
+overlay: "transactional"
+semantic_bindings:
+  - "status.critical"
+  - "action.destructive"
+components:
+  - "Alert"
+  - "Button"
+  - "Modal"
+copy_constraints:
+  - "必须包含'此操作不可恢复'"
+  - "必须说明数据删除范围"
+interaction_constraints:
+  - "必须输入账户名二次确认"
+  - "必须提供取消按钮"
+  - "操作后跳转至登录页"</pre>
+            </div>
+          </div>
+          <div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">设计师获得：可直接执行的方案</div>
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+              <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">✓ 语义方案既定，视觉探索在边界内展开</p>
+              <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+                <div>• 覆盖层：transactional → 阻断性语义</div>
+                <div>• 状态：status.critical → 红色脉冲 + 八边形</div>
+                <div>• 操作：action.destructive → 红色空心 + 二次确认</div>
+                <div>• 文案：必须包含"此操作不可恢复"</div>
+                <div>• 交互：必须输入账户名确认</div>
+              </div>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 10px;">✓ 无需重新争论，跨产品线语义天然一致</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 先注册、后引用 + 非法引用阻断 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">R</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">注册纪律：先注册、后引用</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Registration Discipline · 非法引用在编译前置校验时直接阻断</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;" class="grid-mobile-1col">
+        <!-- 合法引用 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">✓ 合法引用</p>
+          <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+            <div class="yaml-block" style="font-size: 11px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">intent_id: "ERR-001"
+semantic_domain: "transactional"  # ← 字典已注册
+
+semantic_tokens:
+  error_severity:
+    fatal:
+      visual_mapping:
+        color_token: "status.critical"  # ← 字典已注册</pre>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
+              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">编译通过 ✓</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 非法引用 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">✕ 非法引用 — 被阻断</p>
+          <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 16px;">
+            <div class="yaml-block" style="font-size: 11px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">intent_id: "ERR-001"
+semantic_domain: "transactional"
+
+semantic_tokens:
+  error_severity:
+    fatal:
+      visual_mapping:
+        color_token: "status.danger"  # ← 字典未注册</pre>
+            </div>
+            <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; padding: 10px 12px;">
+              <p style="font-size: 12px; color: #cf1322; font-weight: 700; margin-bottom: 4px;">[CI 阻断] dictionary-reference-not-found</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">Token "status.danger" 未在语义字典注册。</p>
+              <p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-top: 4px;">请先走字典变更流程：快照证据 → 诊断归档 → 候选模式 → 评审入典</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">字典是元规则，契约是只读消费面</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">语义字典（上游·元规则）→ YAML 契约（中游·实例）→ 编译管线（下游·执行）</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

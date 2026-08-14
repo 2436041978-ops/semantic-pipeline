@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Schema-As-Code · 语义令牌表</title>
+<style>
+
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12;
+    --card-bg: #1a1a1e; --surface: #16161a;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text-primary);
+    line-height: 1.6; font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: calc(80px + var(--safe-bottom));
+  }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-body-sm { font-size: 14px; font-weight: 500; line-height: 1.55; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; text-transform: uppercase; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border-bottom: 1px solid var(--border);
+    padding-top: var(--safe-top);
+  }
+  .sticky-header-inner { padding: 12px 16px; }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    transition: transform 0.15s ease, border-color 0.2s ease;
+  }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
+    opacity: 0;
+  }
+  .collapsible-content.open { max-height: 2000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .h-scroll {
+    display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+  }
+  .h-scroll::-webkit-scrollbar { display: none; }
+  .h-card {
+    width: 260px; background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; flex-shrink: 0;
+    transition: transform 0.15s ease;
+  }
+  .h-card:active { transform: scale(0.97); }
+  .scroll-hint { display: flex; justify-content: center; gap: 4px; margin-top: 10px; }
+  .scroll-hint-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); transition: all 0.3s ease; }
+  .scroll-hint-dot.active { background: var(--primary); transform: scale(1.3); }
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    background: rgba(15,15,18,0.95);
+    backdrop-filter: blur(20px) saturate(1.8);
+    border-top: 1px solid var(--border);
+    padding-bottom: var(--safe-bottom);
+    display: flex; justify-content: space-around; align-items: center; height: 64px;
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; width: 64px; height: 64px; cursor: pointer;
+    transition: all 0.15s ease; border-radius: 12px;
+    color: var(--text-tertiary); text-decoration: none;
+  }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { font-size: 18px; transition: transform 0.15s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; }
+  .badge {
+    display: inline-flex; align-items: center; padding: 3px 8px;
+    border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+  }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .tab-pill {
+    padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 600;
+    white-space: nowrap; cursor: pointer; border: none; background: none; color: var(--text-secondary);
+  }
+  .tab-pill.active { background: var(--primary); color: #fff; }
+  .tab-pill.inactive { background: var(--surface); color: var(--text-secondary); border: 1px solid var(--border); }
+  .code-block {
+    background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px;
+    font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px;
+    line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .step-dot.done { background: var(--primary); }
+  .step-line { flex: 1; height: 2px; background: var(--border); }
+  .step-line.done { background: var(--primary); }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 700;
+  }
+  .status-ok { background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); }
+  .status-warn { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .status-err { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .field-row {
+    display: flex; align-items: start; gap: 10px; padding: 12px;
+    border-radius: 8px; background: var(--surface); border: 1px solid var(--border); margin-bottom: 8px;
+  }
+  .field-label { font-size: 12px; font-weight: 700; color: var(--text-primary); min-width: 110px; font-family: 'SF Mono', monospace; }
+  .field-value { font-size: 12px; color: var(--text-secondary); font-weight: 500; flex: 1; }
+  .mobile-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .mobile-table th { text-align: left; padding: 8px 10px; color: var(--text-tertiary); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: #16161a; }
+  .mobile-table td { padding: 10px; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); vertical-align: top; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .page { animation: fadeIn 0.25s ease; }
+  .sheet-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+  }
+  .sheet-overlay.open { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 301;
+    background: var(--card-bg); border-radius: var(--radius) var(--radius) 0 0;
+    border-top: 1px solid var(--border);
+    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    padding-bottom: calc(16px + var(--safe-bottom));
+  }
+  .sheet.open { transform: translateY(0); }
+  .sheet-item {
+    padding: 16px; text-align: center; font-size: 15px; font-weight: 600;
+    color: var(--text-primary); border-bottom: 1px solid var(--border); cursor: pointer;
+    transition: background 0.15s ease; text-decoration: none; display: block;
+  }
+  .sheet-item:active { background: rgba(255,255,255,0.05); }
+  .sheet-item.active { color: var(--primary); }
+  .sheet-cancel {
+    padding: 16px; text-align: center; font-size: 15px; font-weight: 600;
+    color: var(--text-tertiary); cursor: pointer; margin-top: 8px;
+  }
+  .trace-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); margin-bottom: 8px; }
+  .trace-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+  .trace-dot.consumed { background: #52c41a; box-shadow: 0 0 0 3px rgba(82,196,26,0.2); }
+  .trace-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .trace-desc { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+  .layer-badge {
+    font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 4px; font-weight: 700;
+  }
+  .layer-l1 { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .layer-l2 { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+
+  .ns-panel { display: none; }
+  .ns-panel.active { display: block; animation: fadeIn 0.25s ease; }
+</style>
+</head>
+<body>
+
+<div class="sticky-header">
+  <div class="sticky-header-inner" style="display:flex;align-items:center;gap:10px;">
+    <div style="width:28px;height:28px;background:linear-gradient(135deg,#1677ff,#36cfc9);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">S</div>
+    <div>
+      <div class="text-display" style="font-size:20px;">语义令牌表</div>
+      <div class="text-caption" style="color:var(--text-tertiary);">Semantic Token Table</div>
+    </div>
+  </div>
+</div>
+
+<div class="page" style="padding:0 16px;">
+  <div style="margin:16px 0 20px;">
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(22,119,255,0.15);border:1px solid rgba(22,119,255,0.3);padding:5px 14px;border-radius:100px;margin-bottom:12px;">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--primary);"></span>
+      <span class="text-micro" style="color:var(--primary);">Schema-As-Code 语义编码层</span>
+    </div>
+    <p class="text-body" style="color:var(--text-secondary);">把语义概念编码成离散枚举。不是"红色"，是 status.critical；不是"限流"，是 error_severity.retryable。</p>
+  </div>
+
+  <div class="h-scroll" id="propScroll">
+    <div class="h-card" style="width:240px;">
+      <div style="width:28px;height:28px;border-radius:8px;background:rgba(22,119,255,0.15);border:1px solid rgba(22,119,255,0.3);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:12px;font-weight:800;margin-bottom:10px;">1</div>
+      <div class="text-h3" style="margin-bottom:6px;">语义可被离散编码</div>
+      <p class="text-caption" style="color:var(--text-secondary);">error_severity 的四级后果差异能被编码为四个互斥枚举值</p>
+    </div>
+    <div class="h-card" style="width:240px;">
+      <div style="width:28px;height:28px;border-radius:8px;background:rgba(22,119,255,0.15);border:1px solid rgba(22,119,255,0.3);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:12px;font-weight:800;margin-bottom:10px;">2</div>
+      <div class="text-h3" style="margin-bottom:6px;">令牌绑定唯一视觉映射</div>
+      <p class="text-caption" style="color:var(--text-secondary);">每个令牌绑定且仅绑定一组视觉参数，不可被自由替换</p>
+    </div>
+    <div class="h-card" style="width:240px;">
+      <div style="width:28px;height:28px;border-radius:8px;background:rgba(22,119,255,0.15);border:1px solid rgba(22,119,255,0.3);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:12px;font-weight:800;margin-bottom:10px;">3</div>
+      <div class="text-h3" style="margin-bottom:6px;">令牌可被机器消费</div>
+      <p class="text-caption" style="color:var(--text-secondary);">同一组令牌能被编译为 Prompt 前缀、JSON Schema、CI 规则三种格式</p>
+    </div>
+  </div>
+  <div class="scroll-hint" id="propHint">
+    <div class="scroll-hint-dot active"></div>
+    <div class="scroll-hint-dot"></div>
+    <div class="scroll-hint-dot"></div>
+  </div>
+
+  <div style="margin:24px 0 16px;">
+    <div style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+      <button class="tab-pill active" onclick="switchNS('status',this)">status._</button>
+      <button class="tab-pill inactive" onclick="switchNS('phase',this)">phase._</button>
+      <button class="tab-pill inactive" onclick="switchNS('boundary',this)">boundary._</button>
+      <button class="tab-pill inactive" onclick="switchNS('action',this)">action._</button>
+    </div>
+  </div>
+
+  <div id="ns-status" class="ns-panel active">
+    <div class="text-label" style="margin-bottom:12px;color:var(--text-tertiary);">status._ —— 这件事有多严重？</div>
+    <div style="display:grid;gap:10px;">
+      <div class="card" style="padding:16px;border-left:3px solid #cf1322;">
+        <div class="text-h3" style="color:#cf1322;font-family:'SF Mono',monospace;margin-bottom:4px;">status.critical</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">致命：系统故障、数据丢失</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>视觉：红色脉冲 + 八边形</div>
+          <div>行为：必须二次确认</div>
+          <div>文案：必须说明后果</div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #f5a623;">
+        <div class="text-h3" style="color:#f5a623;font-family:'SF Mono',monospace;margin-bottom:4px;">status.warning</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">警告：限流、降级、可恢复</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>视觉：黄色静态 + 三角</div>
+          <div>行为：必须显示恢复时间</div>
+          <div>文案：必须提供操作步骤</div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #4a9eff;">
+        <div class="text-h3" style="color:#4a9eff;font-family:'SF Mono',monospace;margin-bottom:4px;">status.info</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">信息：提示、说明、部分可用</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>视觉：蓝色静态 + 信息图标</div>
+          <div>行为：可自动消失</div>
+          <div>文案：禁止附加操作说明</div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #6abe4a;">
+        <div class="text-h3" style="color:#6abe4a;font-family:'SF Mono',monospace;margin-bottom:4px;">status.success</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">成功：保存完成、操作成功</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>视觉：绿色静态 + 对勾</div>
+          <div>行为：可自动消失</div>
+          <div>文案：禁止附加操作说明</div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #3a3a3e;">
+        <div class="text-h3" style="color:#a0a0a0;font-family:'SF Mono',monospace;margin-bottom:4px;">status.neutral</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">中性：加载中、等待中</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>视觉：灰色动画 + 旋转</div>
+          <div>行为：无</div>
+          <div>文案：无</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ns-phase" class="ns-panel">
+    <div class="text-label" style="margin-bottom:12px;color:var(--text-tertiary);">phase._ —— 当前处于什么阶段？</div>
+    <div style="display:grid;gap:10px;">
+      <div class="card" style="padding:16px;border-left:3px solid var(--primary);">
+        <div class="text-h3" style="color:var(--primary);font-family:'SF Mono',monospace;margin-bottom:4px;">phase.init</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">初始化：系统准备中</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>视觉：骨架屏 + 渐进加载</div>
+          <div>行为：禁止用户操作</div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #a855f7;">
+        <div class="text-h3" style="color:#a855f7;font-family:'SF Mono',monospace;margin-bottom:4px;">phase.processing</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">处理中：请求已接收</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>视觉：进度条 + 状态文本</div>
+          <div>行为：可取消（如适用）</div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #6abe4a;">
+        <div class="text-h3" style="color:#6abe4a;font-family:'SF Mono',monospace;margin-bottom:4px;">phase.completed</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">已完成：结果已就绪</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>视觉：成功态 + 结果展示</div>
+          <div>行为：可继续或返回</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ns-boundary" class="ns-panel">
+    <div class="text-label" style="margin-bottom:12px;color:var(--text-tertiary);">boundary._ —— 不可触碰的红线</div>
+    <div style="display:grid;gap:10px;">
+      <div class="card" style="padding:16px;border-left:3px solid #cf1322;">
+        <div class="text-h3" style="color:#cf1322;font-family:'SF Mono',monospace;margin-bottom:4px;">boundary.safety</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">安全边界：禁止所有错误状态共用同一种红色视觉表达</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>违反动作：block（阻断）</div>
+          <div>优先级：最高</div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #f5a623;">
+        <div class="text-h3" style="color:#f5a623;font-family:'SF Mono',monospace;margin-bottom:4px;">boundary.clarity</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">清晰边界：每个错误级别必须提供明确的用户行动指引</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>违反动作：warn（警告）</div>
+          <div>优先级：高</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ns-action" class="ns-panel">
+    <div class="text-label" style="margin-bottom:12px;color:var(--text-tertiary);">action._ —— 用户能做什么？</div>
+    <div style="display:grid;gap:10px;">
+      <div class="card" style="padding:16px;border-left:3px solid #cf1322;">
+        <div class="text-h3" style="color:#cf1322;font-family:'SF Mono',monospace;margin-bottom:4px;">action.destructive</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">危险动作：数据永久丢失</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>视觉：红色空心描边、危险图标</div>
+          <div>行为：必须二次确认 + 输入验证</div>
+          <div>文案：必须说明不可恢复</div>
+        </div>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid var(--primary);">
+        <div class="text-h3" style="color:var(--primary);font-family:'SF Mono',monospace;margin-bottom:4px;">action.primary</div>
+        <div class="text-caption" style="color:var(--text-secondary);margin-bottom:10px;">引导动作：帮助用户进入下一步</div>
+        <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+          <div>视觉：品牌色实心、箭头图标</div>
+          <div>行为：点击后跳转</div>
+          <div>文案：显示下一步预览</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;" onclick="toggleCollapse('decode')">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#1677ff,#36cfc9);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">→</div>
+        <div>
+          <div class="text-h3">码本解码演示</div>
+          <div class="text-micro" style="color:var(--text-tertiary);">离散索引 → 连续约束</div>
+        </div>
+      </div>
+      <svg id="chevron-decode" class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="collapsible-content" id="content-decode">
+      <div style="padding:0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display:grid;gap:8px;margin-bottom:12px;">
+          <div class="field-row">
+            <div class="field-label">离散索引</div>
+            <div class="field-value" style="color:#cf1322;font-weight:700;">status.critical</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">视觉方向</div>
+            <div class="field-value">红色脉冲 + 八边形图标</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">行为约束</div>
+            <div class="field-value">必须二次确认 + 必须提供恢复路径</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">文案约束</div>
+            <div class="field-value">必须说明后果</div>
+          </div>
+          <div class="field-row" style="border-color:rgba(207,19,34,0.3);background:rgba(207,19,34,0.05);">
+            <div class="field-label" style="color:#cf1322;">跨层禁止</div>
+            <div class="field-value" style="color:#cf1322;">observational / navigational / conversational 域下非法</div>
+          </div>
+        </div>
+        <div class="text-label" style="margin-bottom:8px;">编译为三种消费格式</div>
+        <div style="display:grid;gap:8px;">
+          <div class="code-block" style="padding:10px;font-size:11px;">
+            <div style="color:var(--text-tertiary);margin-bottom:4px;">// Prompt 前缀</div>
+            <pre style="white-space:pre-wrap;margin:0;">在生成致命错误界面时：
+- 必须使用红色脉冲视觉
+- 必须包含八边形警告图标
+- 必须提供恢复路径按钮
+- 文案必须说明后果严重性
+- 禁止在 observational 域使用</pre>
+          </div>
+          <div class="code-block" style="padding:10px;font-size:11px;">
+            <div style="color:var(--text-tertiary);margin-bottom:4px;">// JSON Schema</div>
+            <pre style="white-space:pre-wrap;margin:0;">{
+  "color_token": "status.critical",
+  "motion_token": "pulse.red.urgent",
+  "icon_token": "alert.octagon",
+  "required_actions": ["refresh","export"],
+  "forbidden_domains": ["observational"]
+}</pre>
+          </div>
+          <div class="code-block" style="padding:10px;font-size:11px;">
+            <div style="color:var(--text-tertiary);margin-bottom:4px;">// CI 规则</div>
+            <pre style="white-space:pre-wrap;margin:0;">rules:
+  critical-token-usage:
+    token: "status.critical"
+    forbidden_in: ["observational"]
+    required_visual: "pulse.red.urgent"
+    violation: "block"</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;" onclick="toggleCollapse('compare')">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#1677ff,#36cfc9);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">≠</div>
+        <div>
+          <div class="text-h3">对比演示</div>
+          <div class="text-micro" style="color:var(--text-tertiary);">"同一个红色"的不同含义</div>
+        </div>
+      </div>
+      <svg id="chevron-compare" class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="collapsible-content" id="content-compare">
+      <div style="padding:0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display:grid;gap:10px;">
+          <div class="card" style="padding:14px;border-left:3px solid #cf1322;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span class="badge badge-red">status.critical</span>
+            </div>
+            <div class="text-body-sm" style="color:var(--text-primary);font-weight:700;margin-bottom:6px;">系统级故障，对话上下文可能丢失</div>
+            <div style="background:rgba(207,19,34,0.1);border:1px solid rgba(207,19,34,0.3);padding:10px;border-radius:6px;margin-bottom:8px;">
+              <div style="font-size:13px;color:#cf1322;font-weight:700;">🚨 消息流中断</div>
+              <div style="font-size:12px;color:#cf1322;margin-top:4px;">建议刷新页面重新开始</div>
+              <div style="display:flex;gap:6px;margin-top:8px;">
+                <span style="font-size:12px;background:#cf1322;color:#fff;padding:3px 8px;border-radius:4px;font-weight:600;">刷新页面</span>
+                <span style="font-size:12px;border:1px solid rgba(207,19,34,0.3);color:#cf1322;padding:3px 8px;border-radius:4px;font-weight:600;">导出历史</span>
+              </div>
+            </div>
+            <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+              <div>覆盖层：transactional</div>
+              <div>行为：必须二次确认 + 恢复路径</div>
+              <div>跨层：observational 域非法</div>
+            </div>
+          </div>
+          <div class="card" style="padding:14px;border-left:3px solid #ff4d4f;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span class="badge" style="background:rgba(255,77,79,0.15);color:#ff4d4f;border:1px solid rgba(255,77,79,0.3);">action.destructive</span>
+            </div>
+            <div class="text-body-sm" style="color:var(--text-primary);font-weight:700;margin-bottom:6px;">不可逆操作，数据将永久删除</div>
+            <div style="background:rgba(255,77,79,0.05);border:1px solid rgba(255,77,79,0.3);padding:10px;border-radius:6px;margin-bottom:8px;">
+              <div style="font-size:13px;color:#ff4d4f;font-weight:700;">⚠️ 删除账户</div>
+              <div style="font-size:12px;color:#ff4d4f;margin-top:4px;">此操作不可恢复。请输入账户名确认。</div>
+              <div style="display:flex;gap:6px;margin-top:8px;">
+                <span style="font-size:12px;border:1px solid #3a3a3e;color:var(--text-secondary);padding:3px 8px;border-radius:4px;font-weight:600;">取消</span>
+                <span style="font-size:12px;background:#ff4d4f;color:#fff;padding:3px 8px;border-radius:4px;font-weight:600;">确认删除</span>
+              </div>
+            </div>
+            <div class="text-micro" style="color:var(--text-tertiary);line-height:1.8;">
+              <div>覆盖层：transactional</div>
+              <div>行为：必须二次确认 + 输入验证</div>
+              <div>样式：红色空心描边（非实心）</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:rgba(207,19,34,0.05);border:1px solid rgba(207,19,34,0.2);border-radius:8px;padding:12px;margin-top:10px;">
+          <div style="display:flex;align-items:start;gap:10px;">
+            <div style="width:20px;height:20px;border-radius:50%;background:rgba(207,19,34,0.15);border:1px solid rgba(207,19,34,0.3);display:flex;align-items:center;justify-content:center;color:#cf1322;font-size:10px;font-weight:700;flex-shrink:0;">✕</div>
+            <div>
+              <div class="text-body-sm" style="color:#cf1322;font-weight:700;margin-bottom:4px;">跨层禁止：status.critical 在 observational 域下非法</div>
+              <div class="text-caption" style="color:var(--text-secondary);margin-bottom:8px;">AI 生成限流提示时若选用 status.critical，编译前置校验直接阻断。</div>
+              <div class="code-block" style="padding:10px;font-size:11px;">
+                <div style="color:#cf1322;font-weight:700;">[CI 阻断] error-severity-cross-layer</div>
+                <div style="margin-top:4px;">Token: status.critical</div>
+                <div>Used in: observational domain</div>
+                <div style="margin-top:4px;color:#f5a623;">Expected: status.warning</div>
+                <div style="margin-top:4px;color:#52c41a;">Action: BLOCK</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:40px;"></div>
+</div>
+
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+<div class="sheet" id="themeSheet">
+  <div style="padding:12px 0 8px;text-align:center;"><div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto;"></div></div>
+  <div class="text-h3" style="text-align:center;padding:8px 0 12px;">选择主题</div>
+  <a href="./token_table.html" class="sheet-item active">语义令牌表</a>
+  <a href="./dictionary.html" class="sheet-item">语义字典</a>
+  <div class="sheet-cancel" onclick="closeSheet()">取消</div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="openSheet()">
+    <span class="nav-icon">📖</span>
+    <span class="nav-label">主题</span>
+  </div>
+  <a href="./case_token_diff.html" class="nav-item">
+    <span class="nav-icon">🔖</span>
+    <span class="nav-label">案例</span>
+  </a>
+  <a href="./validation.html" class="nav-item">
+    <span class="nav-icon">🧪</span>
+    <span class="nav-label">验证</span>
+  </a>
+  <div class="nav-item" onclick="alert('更多功能开发中')">
+    <span class="nav-icon">⋯</span>
+    <span class="nav-label">更多</span>
+  </div>
+</div>
+
+<script>
+
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+function openSheet() { document.getElementById('sheetOverlay').classList.add('open'); document.getElementById('themeSheet').classList.add('open'); }
+function closeSheet() { document.getElementById('sheetOverlay').classList.remove('open'); document.getElementById('themeSheet').classList.remove('open'); }
+
+function switchNS(ns, btn) {
+  document.querySelectorAll('.ns-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('ns-' + ns).classList.add('active');
+  document.querySelectorAll('.tab-pill').forEach(b => { b.classList.remove('active'); b.classList.add('inactive'); });
+  btn.classList.remove('inactive'); btn.classList.add('active');
+}
+
+(function(){
+  const scroll = document.getElementById('propScroll');
+  const hint = document.getElementById('propHint');
+  if (!scroll || !hint) return;
+  const dots = hint.querySelectorAll('.scroll-hint-dot');
+  const cards = scroll.children;
+  scroll.addEventListener('scroll', () => {
+    const maxScroll = scroll.scrollWidth - scroll.clientWidth;
+    const progress = maxScroll > 0 ? scroll.scrollLeft / maxScroll : 0;
+    const activeIndex = Math.min(Math.floor(progress * cards.length), dots.length - 1);
+    dots.forEach((dot, i) => dot.classList.toggle('active', i === activeIndex));
+  }, { passive: true });
+})();
+
+</script>
+</body>
+</html>

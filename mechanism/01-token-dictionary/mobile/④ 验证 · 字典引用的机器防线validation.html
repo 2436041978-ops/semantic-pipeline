@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Schema-As-Code · 字典引用的机器防线</title>
+<style>
+
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12;
+    --card-bg: #1a1a1e; --surface: #16161a;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text-primary);
+    line-height: 1.6; font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: calc(80px + var(--safe-bottom));
+  }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-body-sm { font-size: 14px; font-weight: 500; line-height: 1.55; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; text-transform: uppercase; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border-bottom: 1px solid var(--border);
+    padding-top: var(--safe-top);
+  }
+  .sticky-header-inner { padding: 12px 16px; }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    transition: transform 0.15s ease, border-color 0.2s ease;
+  }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
+    opacity: 0;
+  }
+  .collapsible-content.open { max-height: 2000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .h-scroll {
+    display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+  }
+  .h-scroll::-webkit-scrollbar { display: none; }
+  .h-card {
+    width: 260px; background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; flex-shrink: 0;
+    transition: transform 0.15s ease;
+  }
+  .h-card:active { transform: scale(0.97); }
+  .scroll-hint { display: flex; justify-content: center; gap: 4px; margin-top: 10px; }
+  .scroll-hint-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); transition: all 0.3s ease; }
+  .scroll-hint-dot.active { background: var(--primary); transform: scale(1.3); }
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    background: rgba(15,15,18,0.95);
+    backdrop-filter: blur(20px) saturate(1.8);
+    border-top: 1px solid var(--border);
+    padding-bottom: var(--safe-bottom);
+    display: flex; justify-content: space-around; align-items: center; height: 64px;
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; width: 64px; height: 64px; cursor: pointer;
+    transition: all 0.15s ease; border-radius: 12px;
+    color: var(--text-tertiary); text-decoration: none;
+  }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { font-size: 18px; transition: transform 0.15s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; }
+  .badge {
+    display: inline-flex; align-items: center; padding: 3px 8px;
+    border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+  }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .tab-pill {
+    padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 600;
+    white-space: nowrap; cursor: pointer; border: none; background: none; color: var(--text-secondary);
+  }
+  .tab-pill.active { background: var(--primary); color: #fff; }
+  .tab-pill.inactive { background: var(--surface); color: var(--text-secondary); border: 1px solid var(--border); }
+  .code-block {
+    background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px;
+    font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px;
+    line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .step-dot.done { background: var(--primary); }
+  .step-line { flex: 1; height: 2px; background: var(--border); }
+  .step-line.done { background: var(--primary); }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 700;
+  }
+  .status-ok { background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); }
+  .status-warn { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .status-err { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .field-row {
+    display: flex; align-items: start; gap: 10px; padding: 12px;
+    border-radius: 8px; background: var(--surface); border: 1px solid var(--border); margin-bottom: 8px;
+  }
+  .field-label { font-size: 12px; font-weight: 700; color: var(--text-primary); min-width: 110px; font-family: 'SF Mono', monospace; }
+  .field-value { font-size: 12px; color: var(--text-secondary); font-weight: 500; flex: 1; }
+  .mobile-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .mobile-table th { text-align: left; padding: 8px 10px; color: var(--text-tertiary); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: #16161a; }
+  .mobile-table td { padding: 10px; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--border); vertical-align: top; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .page { animation: fadeIn 0.25s ease; }
+  .sheet-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+  }
+  .sheet-overlay.open { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 301;
+    background: var(--card-bg); border-radius: var(--radius) var(--radius) 0 0;
+    border-top: 1px solid var(--border);
+    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    padding-bottom: calc(16px + var(--safe-bottom));
+  }
+  .sheet.open { transform: translateY(0); }
+  .sheet-item {
+    padding: 16px; text-align: center; font-size: 15px; font-weight: 600;
+    color: var(--text-primary); border-bottom: 1px solid var(--border); cursor: pointer;
+    transition: background 0.15s ease; text-decoration: none; display: block;
+  }
+  .sheet-item:active { background: rgba(255,255,255,0.05); }
+  .sheet-item.active { color: var(--primary); }
+  .sheet-cancel {
+    padding: 16px; text-align: center; font-size: 15px; font-weight: 600;
+    color: var(--text-tertiary); cursor: pointer; margin-top: 8px;
+  }
+  .trace-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); margin-bottom: 8px; }
+  .trace-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+  .trace-dot.consumed { background: #52c41a; box-shadow: 0 0 0 3px rgba(82,196,26,0.2); }
+  .trace-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .trace-desc { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+  .layer-badge {
+    font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 4px; font-weight: 700;
+  }
+  .layer-l1 { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .layer-l2 { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+
+  .gate-panel { display: none; }
+  .gate-panel.active { display: block; animation: fadeIn 0.25s ease; }
+</style>
+</head>
+<body>
+
+<div class="sticky-header">
+  <div class="sticky-header-inner" style="display:flex;align-items:center;gap:10px;">
+    <div style="width:28px;height:28px;background:linear-gradient(135deg,#1677ff,#36cfc9);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">S</div>
+    <div>
+      <div class="text-display" style="font-size:20px;">字典引用的机器防线</div>
+      <div class="text-caption" style="color:var(--text-tertiary);">三层验证 · 证明语义可被机器执行</div>
+    </div>
+  </div>
+</div>
+
+<div class="page" style="padding:0 16px;">
+
+  <div style="margin:16px 0 20px;">
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(22,119,255,0.15);border:1px solid rgba(22,119,255,0.3);padding:5px 14px;border-radius:100px;margin-bottom:12px;">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--primary);"></span>
+      <span class="text-micro" style="color:var(--primary);">Validation Toolkit</span>
+    </div>
+    <p class="text-body" style="color:var(--text-secondary);">
+      三层验证，证明语义可被机器执行。契约不是自包含文档，它大量引用字典中的语义绑定。
+    </p>
+  </div>
+
+  <!-- Step Indicator -->
+  <div style="display:flex;align-items:center;gap:4px;margin-bottom:20px;padding:0 8px;">
+    <div class="step-dot done"></div>
+    <div class="step-line done"></div>
+    <div class="step-dot done"></div>
+    <div class="step-line"></div>
+    <div class="step-dot"></div>
+  </div>
+
+  <!-- Gate Tabs -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
+    <button class="tab-pill active" onclick="switchGate('gate1',this)">2.1 契约加载</button>
+    <button class="tab-pill inactive" onclick="switchGate('gate2',this)">2.2 令牌校验</button>
+    <button class="tab-pill inactive" onclick="switchGate('gate3',this)">2.3 边界执行</button>
+  </div>
+
+  <!-- Gate 1: 契约加载与解析验证 -->
+  <div id="gate1" class="gate-panel active">
+    <div class="text-label" style="margin-bottom:12px;color:var(--text-tertiary);">第一层 · 编译期 —— 契约能被正确读入吗？</div>
+
+    <div style="display:grid;gap:10px;margin-bottom:16px;">
+      <div class="card" style="padding:16px;border-left:3px solid var(--primary);">
+        <div class="text-h3" style="margin-bottom:6px;">字典回查</div>
+        <p class="text-caption" style="color:var(--text-secondary);">加载契约时逐条核对引用是否在字典中注册。发现字典外条目，立即阻断并提示"引用未注册"</p>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid var(--primary);">
+        <div class="text-h3" style="margin-bottom:6px;">版本锚定</div>
+        <p class="text-caption" style="color:var(--text-secondary);">契约头部声明依赖的字典版本，加载时锁定该版本快照。字典升级不会意外破坏旧契约</p>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid var(--primary);">
+        <div class="text-h3" style="margin-bottom:6px;">不可变边界硬校验</div>
+        <p class="text-caption" style="color:var(--text-secondary);">"高危删除必须二次确认"标记为最高优先级，任何校验中都不允许降级或忽略</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;" onclick="toggleCollapse('g1-yaml')">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#1677ff,#36cfc9);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">1</div>
+          <div>
+            <div class="text-h3">契约加载接口</div>
+            <div class="text-micro" style="color:var(--text-tertiary);">输入 ERR-001.yaml，解析语义令牌</div>
+          </div>
+        </div>
+        <span class="status-pill status-ok"><span style="width:6px;height:6px;border-radius:50%;background:#52c41a;"></span>已加载</span>
+      </div>
+      <div class="collapsible-content" id="content-g1-yaml">
+        <div style="padding:0 16px 16px;">
+          <div class="divider"></div>
+          <div class="text-label" style="margin-bottom:8px;">输入：ERR-001.yaml</div>
+          <div class="code-block" style="padding:10px;font-size:11px;margin-bottom:12px;">
+            <pre style="white-space:pre-wrap;margin:0;">intent_id: "ERR-001"
+dictionary_version: "v1.1.0"
+semantic_domain: "observational"
+
+semantic_tokens:
+  error_severity:
+    fatal:
+      description: "系统级故障"
+      visual_mapping:
+        color_token: "status.critical"
+        motion_token: "pulse.red.urgent"
+        icon_token: "alert.octagon"
+      user_action:
+        - label: "刷新页面"  action: "refresh"
+        - label: "导出历史"  action: "export_history"
+    transient:
+      description: "网络抖动"
+      visual_mapping:
+        color_token: "status.neutral"
+        motion_token: "spinner"
+        icon_token: "loader"
+
+immutable_boundaries:
+  - boundary_type: "safety"
+    rule: "禁止所有错误状态共用同一种红色视觉表达"
+    violation_action: "block"</pre>
+          </div>
+          <div class="text-label" style="margin-bottom:8px;">输出：内存规则树</div>
+          <div class="code-block" style="padding:10px;font-size:11px;">
+            <pre style="white-space:pre-wrap;margin:0;">RuleTree {
+  contract_id: "ERR-001"
+  dictionary_version: "v1.1.0"
+  loaded_at: "2026-08-13T13:54:00Z"
+  semantic_tokens: { ... }
+  immutable_boundaries: [
+    { type: "safety", action: "block", enforced: true }
+  ]
+  parser_status: "SUCCESS"
+  token_count: 4
+  boundary_count: 2
+}</pre>
+          </div>
+          <div style="background:rgba(82,196,26,0.05);border:1px solid rgba(82,196,26,0.2);border-radius:8px;padding:10px 12px;margin-top:10px;">
+            <p class="text-caption" style="color:#52c41a;font-weight:600;">✓ 解析验证通过：4 个语义级别 + 2 条不可变边界全部正确解析</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;" onclick="toggleCollapse('g1-trace')">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#1677ff,#36cfc9);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">2</div>
+          <div>
+            <div class="text-h3">引用对账</div>
+            <div class="text-micro" style="color:var(--text-tertiary);">逐条核对契约引用的覆盖层与绑定</div>
+          </div>
+        </div>
+        <svg id="chevron-g1-trace" class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="collapsible-content" id="content-g1-trace">
+        <div style="padding:0 16px 16px;">
+          <div class="divider"></div>
+          <div class="trace-row"><div class="trace-dot consumed"></div><div><div class="trace-label">覆盖层 observational</div><div class="trace-desc">字典已注册 ✓</div></div></div>
+          <div class="trace-row"><div class="trace-dot consumed"></div><div><div class="trace-label">绑定 status.critical</div><div class="trace-desc">字典已注册 ✓ · transactional 域</div></div></div>
+          <div class="trace-row"><div class="trace-dot consumed"></div><div><div class="trace-label">绑定 status.neutral</div><div class="trace-desc">字典已注册 ✓ · observational 域</div></div></div>
+          <div class="trace-row"><div class="trace-dot consumed"></div><div><div class="trace-label">绑定 status.warning</div><div class="trace-desc">字典已注册 ✓ · transactional 域</div></div></div>
+          <div class="trace-row"><div class="trace-dot consumed"></div><div><div class="trace-label">绑定 status.info</div><div class="trace-desc">字典已注册 ✓ · observational 域</div></div></div>
+          <div class="trace-row"><div class="trace-dot consumed"></div><div><div class="trace-label">motion_token + icon_token 组合</div><div class="trace-desc">字典已注册 ✓ · 4 组组合全部合法</div></div></div>
+          <div style="background:rgba(82,196,26,0.05);border:1px solid rgba(82,196,26,0.2);border-radius:8px;padding:10px 12px;margin-top:8px;">
+            <p class="text-caption" style="color:#52c41a;font-weight:600;">✓ 引用对账 0 异常 — 所有引用项均在字典 v1.1.0 中注册</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;" onclick="toggleCollapse('g1-cross')">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#1677ff,#36cfc9);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">3</div>
+          <div>
+            <div class="text-h3">五链路交叉验证</div>
+            <div class="text-micro" style="color:var(--text-tertiary);">加载结果在 5 个链路中得到交叉验证</div>
+          </div>
+        </div>
+        <svg id="chevron-g1-cross" class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="collapsible-content" id="content-g1-cross">
+        <div style="padding:0 16px 16px;">
+          <div class="divider"></div>
+          <div style="display:grid;gap:8px;">
+            <div class="card" style="padding:12px;border-left:3px solid #52c41a;">
+              <div class="text-micro" style="color:var(--text-tertiary);margin-bottom:4px;">链路 1 · 结构化问诊</div>
+              <div class="text-body-sm" style="color:var(--text-primary);font-weight:600;margin-bottom:4px;">诊断输出的 YAML 片段可被系统识别为契约合法子集</div>
+              <span class="status-pill status-ok" style="font-size:10px;">✓ 验证通过</span>
+            </div>
+            <div class="card" style="padding:12px;border-left:3px solid #52c41a;">
+              <div class="text-micro" style="color:var(--text-tertiary);margin-bottom:4px;">链路 2 · 语义分级器</div>
+              <div class="text-body-sm" style="color:var(--text-primary);font-weight:600;margin-bottom:4px;">"请求过于频繁"被识别为 retryable，输出约束与契约一致</div>
+              <span class="status-pill status-ok" style="font-size:10px;">✓ 验证通过</span>
+            </div>
+            <div class="card" style="padding:12px;border-left:3px solid #52c41a;">
+              <div class="text-micro" style="color:var(--text-tertiary);margin-bottom:4px;">链路 3 · 模式卡片</div>
+              <div class="text-body-sm" style="color:var(--text-primary);font-weight:600;margin-bottom:4px;">同一份契约编译为 4 种格式，证明引用解析后可被统一消费</div>
+              <span class="status-pill status-ok" style="font-size:10px;">✓ 验证通过</span>
+            </div>
+            <div class="card" style="padding:12px;border-left:3px solid #52c41a;">
+              <div class="text-micro" style="color:var(--text-tertiary);margin-bottom:4px;">链路 4 · 语义字典</div>
+              <div class="text-body-sm" style="color:var(--text-primary);font-weight:600;margin-bottom:4px;">设计师查到的 error_severity 定义与契约引用逐字对齐</div>
+              <span class="status-pill status-ok" style="font-size:10px;">✓ 验证通过</span>
+            </div>
+            <div class="card" style="padding:12px;border-left:3px solid #52c41a;">
+              <div class="text-micro" style="color:var(--text-tertiary);margin-bottom:4px;">链路 5 · 角色工作台</div>
+              <div class="text-body-sm" style="color:var(--text-primary);font-weight:600;margin-bottom:4px;">DesignOps 能准确列出三类消费方，证明引用关系被完整解析</div>
+              <span class="status-pill status-ok" style="font-size:10px;">✓ 验证通过</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:rgba(82,196,26,0.05);border:1px solid rgba(82,196,26,0.2);border-radius:var(--radius);padding:16px;">
+      <div class="text-h3" style="margin-bottom:6px;">验证结论</div>
+      <p class="text-caption" style="color:var(--text-secondary);line-height:1.8;">
+        系统加载 ERR-001.yaml 后，正确解析了 semantic_tokens（4 个语义级别）和 immutable_boundaries（2 条安全边界规则），生成内存规则树。<br><br>
+        引用对账完成 6 项核对，0 异常。字典版本 v1.1.0 已锚定，五链路交叉验证全部通过。<br><br>
+        <span style="color:#52c41a;font-weight:700;">命题验证通过：契约引用可被正确加载。</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Gate 2: 语义令牌引用校验 -->
+  <div id="gate2" class="gate-panel">
+    <div class="text-label" style="margin-bottom:12px;color:var(--text-tertiary);">第二层 · 生成期 —— 令牌指向有效吗？</div>
+
+    <div style="display:grid;gap:10px;margin-bottom:16px;">
+      <div class="card" style="padding:16px;border-left:3px solid #f5a623;">
+        <div class="text-h3" style="margin-bottom:6px;">编译前置校验</div>
+        <p class="text-caption" style="color:var(--text-secondary);">核对所有 semantic_tokens 的引用路径。引用不存在的令牌，或令牌与覆盖层不匹配，编译直接阻断</p>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #f5a623;">
+        <div class="text-h3" style="margin-bottom:6px;">跨层禁止规则</div>
+        <p class="text-caption" style="color:var(--text-secondary);">字典中 6 个语义绑定均附带"跨层禁止"声明。契约若违反，生成前即被拦截</p>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #f5a623;">
+        <div class="text-h3" style="margin-bottom:6px;">对抗用例拦截</div>
+        <p class="text-caption" style="color:var(--text-secondary);">6 组故意写错的对抗用例全部在入库前被拦截，拦截率 100%</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;" onclick="toggleCollapse('g2-check')">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#1677ff,#36cfc9);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">✓</div>
+          <div>
+            <div class="text-h3">入库前五道安检</div>
+            <div class="text-micro" style="color:var(--text-tertiary);">任一不过直接阻断入库</div>
+          </div>
+        </div>
+        <svg id="chevron-g2-check" class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="collapsible-content" id="content-g2-check">
+        <div style="padding:0 16px 16px;">
+          <div class="divider"></div>
+          <div style="display:grid;gap:8px;">
+            <div class="field-row">
+              <div class="field-label">1. 覆盖层存在性</div>
+              <div class="field-value">场景类型是否在字典预定义列表里</div>
+            </div>
+            <div class="field-row">
+              <div class="field-label">2. 绑定存在性</div>
+              <div class="field-value">颜色/图标/动画令牌是否在字典里</div>
+            </div>
+            <div class="field-row">
+              <div class="field-label">3. 场景一致性</div>
+              <div class="field-value">场景映射是否指向字典已注册的覆盖层</div>
+            </div>
+            <div class="field-row">
+              <div class="field-label">4. 字段完整性</div>
+              <div class="field-value">必填字段是否齐全、版本号格式对不对</div>
+            </div>
+            <div class="field-row">
+              <div class="field-label">5. 结构合法性</div>
+              <div class="field-value">YAML 语法、缩进、类型是否符合 schema</div>
+            </div>
+          </div>
+          <div style="background:rgba(82,196,26,0.05);border:1px solid rgba(82,196,26,0.2);border-radius:8px;padding:10px 12px;margin-top:10px;">
+            <p class="text-caption" style="color:#52c41a;font-weight:600;">✓ 6 组对抗用例全部在入库前被拦截，拦截率 100%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;" onclick="toggleCollapse('g2-attack')">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#1677ff,#36cfc9);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">⚔</div>
+          <div>
+            <div class="text-h3">对抗用例拦截详情</div>
+            <div class="text-micro" style="color:var(--text-tertiary);">6 组故意写错的契约，全部被机器拦截</div>
+          </div>
+        </div>
+        <svg id="chevron-g2-attack" class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="collapsible-content" id="content-g2-attack">
+        <div style="padding:0 16px 16px;">
+          <div class="divider"></div>
+          <div style="display:grid;gap:8px;">
+            <div class="card" style="padding:12px;border-left:3px solid #cf1322;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span class="badge badge-red">对抗用例 1</span>
+                <span class="badge badge-green">✓ 已拦截</span>
+              </div>
+              <div class="text-caption" style="color:var(--text-secondary);margin-bottom:6px;">覆盖层未注册：semantic_domain: "custom_domain"</div>
+              <div class="code-block" style="padding:8px;font-size:11px;">
+                <div style="color:#cf1322;font-weight:700;">[CI 阻断] SEMANTIC_DOMAIN_UNDEFINED</div>
+                <div>"custom_domain" 未在字典预定义列表中注册</div>
+              </div>
+            </div>
+            <div class="card" style="padding:12px;border-left:3px solid #cf1322;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span class="badge badge-red">对抗用例 2</span>
+                <span class="badge badge-green">✓ 已拦截</span>
+              </div>
+              <div class="text-caption" style="color:var(--text-secondary);margin-bottom:6px;">绑定未注册：color_token: "status.unknown"</div>
+              <div class="code-block" style="padding:8px;font-size:11px;">
+                <div style="color:#cf1322;font-weight:700;">[CI 阻断] BINDING_UNDEFINED</div>
+                <div>Token "status.unknown" 未在语义字典注册</div>
+              </div>
+            </div>
+            <div class="card" style="padding:12px;border-left:3px solid #cf1322;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span class="badge badge-red">对抗用例 3</span>
+                <span class="badge badge-green">✓ 已拦截</span>
+              </div>
+              <div class="text-caption" style="color:var(--text-secondary);margin-bottom:6px;">场景映射不匹配：删除场景指向未注册 domain</div>
+              <div class="code-block" style="padding:8px;font-size:11px;">
+                <div style="color:#cf1322;font-weight:700;">[CI 阻断] SCENARIO_DOMAIN_MISMATCH</div>
+                <div>场景映射指向的覆盖层未在字典注册</div>
+              </div>
+            </div>
+            <div class="card" style="padding:12px;border-left:3px solid #cf1322;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span class="badge badge-red">对抗用例 4</span>
+                <span class="badge badge-green">✓ 已拦截</span>
+              </div>
+              <div class="text-caption" style="color:var(--text-secondary);margin-bottom:6px;">字段缺失：缺少 immutable_boundaries，版本格式错误</div>
+              <div class="code-block" style="padding:8px;font-size:11px;">
+                <div style="color:#cf1322;font-weight:700;">[CI 阻断] FIELD_INCOMPLETE</div>
+                <div>缺少必填字段 immutable_boundaries</div>
+                <div>版本号 "v1.1" 不符合 SemVer 格式</div>
+              </div>
+            </div>
+            <div class="card" style="padding:12px;border-left:3px solid #cf1322;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span class="badge badge-red">对抗用例 5</span>
+                <span class="badge badge-green">✓ 已拦截</span>
+              </div>
+              <div class="text-caption" style="color:var(--text-secondary);margin-bottom:6px;">YAML 结构错误：缩进错误，子节点变兄弟节点</div>
+              <div class="code-block" style="padding:8px;font-size:11px;">
+                <div style="color:#cf1322;font-weight:700;">[CI 阻断] SCHEMA_VIOLATION</div>
+                <div>YAML 缩进错误：visual_mapping 应为子节点</div>
+              </div>
+            </div>
+            <div class="card" style="padding:12px;border-left:3px solid #cf1322;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span class="badge badge-red">对抗用例 6</span>
+                <span class="badge badge-green">✓ 已拦截</span>
+              </div>
+              <div class="text-caption" style="color:var(--text-secondary);margin-bottom:6px;">跨层非法绑定：status.critical 出现在 observational 域</div>
+              <div class="code-block" style="padding:8px;font-size:11px;">
+                <div style="color:#cf1322;font-weight:700;">[CI 阻断] CROSS_LAYER_VIOLATION</div>
+                <div>status.critical 禁止用于 observational 域</div>
+                <div style="color:#f5a623;">Expected: status.warning (transactional 域)</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;">
+            <div class="card" style="padding:12px;text-align:center;">
+              <div style="font-size:22px;font-weight:800;color:#52c41a;">6/6</div>
+              <div class="text-micro" style="color:var(--text-tertiary);">对抗用例拦截</div>
+            </div>
+            <div class="card" style="padding:12px;text-align:center;">
+              <div style="font-size:22px;font-weight:800;color:#52c41a;">100%</div>
+              <div class="text-micro" style="color:var(--text-tertiary);">拦截率</div>
+            </div>
+            <div class="card" style="padding:12px;text-align:center;">
+              <div style="font-size:22px;font-weight:800;color:#4a9eff;">0</div>
+              <div class="text-micro" style="color:var(--text-tertiary);">漏过案例</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:rgba(82,196,26,0.05);border:1px solid rgba(82,196,26,0.2);border-radius:var(--radius);padding:16px;">
+      <div class="text-h3" style="margin-bottom:6px;">验证结论</div>
+      <p class="text-caption" style="color:var(--text-secondary);line-height:1.8;">
+        编译前置校验执行五项安检：覆盖层存在性、绑定存在性、场景一致性、字段完整性、结构合法性。<br><br>
+        6 组对抗用例全部在入库前被拦截，拦截率 100%。<br><br>
+        <span style="color:#52c41a;font-weight:700;">命题验证通过：令牌引用可被机器校验。</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Gate 3: 不可变边界执行验证 -->
+  <div id="gate3" class="gate-panel">
+    <div class="text-label" style="margin-bottom:12px;color:var(--text-tertiary);">第三层 · 运行期 —— 红线能被守住吗？</div>
+
+    <div style="display:grid;gap:10px;margin-bottom:16px;">
+      <div class="card" style="padding:16px;border-left:3px solid #cf1322;">
+        <div class="text-h3" style="margin-bottom:6px;">不可变边界不可降级</div>
+        <p class="text-caption" style="color:var(--text-secondary);">"高危删除必须二次确认"在任何情况下都不允许被忽略或降级为普通提示</p>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #cf1322;">
+        <div class="text-h3" style="margin-bottom:6px;">运行时硬拦截</div>
+        <p class="text-caption" style="color:var(--text-secondary);">即使契约通过了编译期校验，运行时若检测到边界违反，仍立即阻断并上报</p>
+      </div>
+      <div class="card" style="padding:16px;border-left:3px solid #cf1322;">
+        <div class="text-h3" style="margin-bottom:6px;">审计追踪</div>
+        <p class="text-caption" style="color:var(--text-secondary);">每次边界触发/拦截都有完整日志，可追溯至具体契约版本和提交者</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;" onclick="toggleCollapse('g3-rules')">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#1677ff,#36cfc9);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">🚫</div>
+          <div>
+            <div class="text-h3">不可变边界规则清单</div>
+            <div class="text-micro" style="color:var(--text-tertiary);">运行时强制执行的红线</div>
+          </div>
+        </div>
+        <svg id="chevron-g3-rules" class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="collapsible-content" id="content-g3-rules">
+        <div style="padding:0 16px 16px;">
+          <div class="divider"></div>
+          <div style="display:grid;gap:8px;">
+            <div class="field-row" style="border-left:3px solid #cf1322;">
+              <div class="field-label" style="color:#cf1322;">boundary.safety</div>
+              <div class="field-value">禁止所有错误状态共用同一种红色视觉表达<br><span style="color:#cf1322;font-weight:600;">违反动作：block · 优先级：最高</span></div>
+            </div>
+            <div class="field-row" style="border-left:3px solid #f5a623;">
+              <div class="field-label" style="color:#f5a623;">boundary.clarity</div>
+              <div class="field-value">每个错误级别必须提供明确的用户行动指引<br><span style="color:#f5a623;font-weight:600;">违反动作：warn · 优先级：高</span></div>
+            </div>
+            <div class="field-row" style="border-left:3px solid #cf1322;">
+              <div class="field-label" style="color:#cf1322;">boundary.destructive</div>
+              <div class="field-value">高危删除操作必须二次确认且说明不可恢复<br><span style="color:#cf1322;font-weight:600;">违反动作：block · 优先级：最高</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;" onclick="toggleCollapse('g3-runtime')">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#1677ff,#36cfc9);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;">⚡</div>
+          <div>
+            <div class="text-h3">运行时拦截演示</div>
+            <div class="text-micro" style="color:var(--text-tertiary);">契约通过编译，但运行时触发边界</div>
+          </div>
+        </div>
+        <svg id="chevron-g3-runtime" class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="collapsible-content" id="content-g3-runtime">
+        <div style="padding:0 16px 16px;">
+          <div class="divider"></div>
+          <div class="text-label" style="margin-bottom:8px;">场景：AI 生成删除确认弹窗</div>
+          <div class="code-block" style="padding:10px;font-size:11px;margin-bottom:10px;">
+            <pre style="white-space:pre-wrap;margin:0;">// AI 输出（违规）
+{
+  "component": "Modal",
+  "title": "确认删除",
+  "content": "确定要删除吗？",
+  "actions": [
+    { "label": "取消", "type": "default" },
+    { "label": "删除", "type": "primary" }  // ← 违规！
+  ]
+}</pre>
+          </div>
+          <div style="background:rgba(207,19,34,0.05);border:1px solid rgba(207,19,34,0.2);border-radius:8px;padding:12px;margin-bottom:10px;">
+            <div style="color:#cf1322;font-weight:700;margin-bottom:4px;">[运行时阻断] BOUNDARY_VIOLATION</div>
+            <div style="font-size:12px;color:var(--text-secondary);line-height:1.8;">
+              <div>Rule: boundary.destructive</div>
+              <div>Violation: 删除按钮使用 primary 样式（品牌色实心）</div>
+              <div>Expected: destructive 样式（红色空心描边）</div>
+              <div>Required: 必须说明"此操作不可恢复"</div>
+              <div>Required: 必须提供二次确认输入</div>
+            </div>
+          </div>
+          <div class="text-label" style="margin-bottom:8px;">修正后输出</div>
+          <div class="code-block" style="padding:10px;font-size:11px;">
+            <pre style="white-space:pre-wrap;margin:0;">{
+  "component": "Modal",
+  "title": "⚠️ 删除账户",
+  "content": "此操作不可恢复。所有数据将被永久删除。",
+  "input_required": true,
+  "input_placeholder": "请输入账户名确认",
+  "actions": [
+    { "label": "取消", "type": "default" },
+    { "label": "确认删除", "type": "destructive" }
+  ]
+}</pre>
+          </div>
+          <div style="background:rgba(82,196,26,0.05);border:1px solid rgba(82,196,26,0.2);border-radius:8px;padding:10px 12px;margin-top:10px;">
+            <p class="text-caption" style="color:#52c41a;font-weight:600;">✓ 运行时校验通过：destructive 样式 + 二次确认输入 + 不可恢复说明</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:rgba(82,196,26,0.05);border:1px solid rgba(82,196,26,0.2);border-radius:var(--radius);padding:16px;">
+      <div class="text-h3" style="margin-bottom:6px;">验证结论</div>
+      <p class="text-caption" style="color:var(--text-secondary);line-height:1.8;">
+        不可变边界在编译期和运行期双重执行。编译期通过契约 YAML 中的 immutable_boundaries 字段静态检查；运行期通过组件渲染管线动态拦截。<br><br>
+        任何试图降级高危操作确认流程、或混淆错误状态视觉表达的行为，都会在到达用户前被阻断。<br><br>
+        <span style="color:#52c41a;font-weight:700;">命题验证通过：红线可被机器守住。</span>
+      </p>
+    </div>
+  </div>
+
+  <div style="height:40px;"></div>
+</div>
+
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+<div class="sheet" id="themeSheet">
+  <div style="padding:12px 0 8px;text-align:center;"><div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto;"></div></div>
+  <div class="text-h3" style="text-align:center;padding:8px 0 12px;">选择主题</div>
+  <a href="./token_table.html" class="sheet-item">语义令牌表</a>
+  <a href="./dictionary.html" class="sheet-item">语义字典</a>
+  <div class="sheet-cancel" onclick="closeSheet()">取消</div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-item" onclick="openSheet()">
+    <span class="nav-icon">📖</span>
+    <span class="nav-label">主题</span>
+  </div>
+  <a href="./case_token_diff.html" class="nav-item">
+    <span class="nav-icon">🔖</span>
+    <span class="nav-label">案例</span>
+  </a>
+  <a href="./validation.html" class="nav-item active">
+    <span class="nav-icon">🧪</span>
+    <span class="nav-label">验证</span>
+  </a>
+  <div class="nav-item" onclick="alert('更多功能开发中')">
+    <span class="nav-icon">⋯</span>
+    <span class="nav-label">更多</span>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+function switchGate(gate, btn) {
+  document.querySelectorAll('.gate-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(gate).classList.add('active');
+  document.querySelectorAll('.tab-pill').forEach(b => { b.classList.remove('active'); b.classList.add('inactive'); });
+  btn.classList.remove('inactive'); btn.classList.add('active');
+}
+function openSheet() { document.getElementById('sheetOverlay').classList.add('open'); document.getElementById('themeSheet').classList.add('open'); }
+function closeSheet() { document.getElementById('sheetOverlay').classList.remove('open'); document.getElementById('themeSheet').classList.remove('open'); }
+</script>
+</body>
+</html>

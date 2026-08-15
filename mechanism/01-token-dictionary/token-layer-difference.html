@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · Token 层差异</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .severity-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .severity-fatal { background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; }
+  .severity-transient { background: #1e1e22; border: 1px solid #3a3a3e; color: #a0a0a0; }
+  .severity-retryable { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
+  .severity-degraded { background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; }
+
+  .layer-badge {
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+  .layer-l1 { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .layer-l2 { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .layer-l3 { background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); }
+
+  .token-tier-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .token-tier-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .tier-style::before { background: #a0a0a0; }
+  .tier-design::before { background: #f5a623; }
+  .tier-semantic::before { background: #52c41a; }
+
+  .compare-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    flex: 1;
+  }
+
+  .feedback-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+
+  .forbidden-box {
+    background: rgba(207,19,34,0.05);
+    border: 1px solid rgba(207,19,34,0.2);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: TOKEN LAYER DIFFERENCE ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Token 层差异</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 语义编码层 · Token 层差异验证</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">从颜色值到语义状态的三层跃迁</h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        ERR-001、PRO-001、BND-001 证明了语义漂移可被修复。但修复的"原材料"——Token 层——真的够用吗？<br>
+        Design Token 改了名字，语义就能被机器理解了吗？
+      </p>
+    </div>
+
+    <!-- 三个核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 14px; font-weight: 800; margin-bottom: 12px;">?</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Design Token 改了名字，语义就能被机器理解了吗？</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">color-danger 对人类是"危险"的隐喻，对机器是"用红色"的指令。改名只动了命名风格，没动机器可执行的结构。</p>
+        <p style="font-size: 14px; color: #cf1322; font-weight: 700; margin-top: 8px;">答案：不能</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; color: #f5a623; font-size: 14px; font-weight: 800; margin-bottom: 12px;">?</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">从颜色值到语义状态的三层跃迁是不是真实存在？</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">Style Token → Design Token → Semantic Token 的两次跃迁，每次都在增加机器可执行的信息维度。</p>
+        <p style="font-size: 14px; color: #52c41a; font-weight: 700; margin-top: 8px;">答案：是</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">?</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">这个差别带来的能力是不是不可替代？</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">没有 Semantic Token 的结构挂载，编译管线无法生成 Prompt 前缀、JSON Schema、CI 规则。</p>
+        <p style="font-size: 14px; color: #52c41a; font-weight: 700; margin-top: 8px;">答案：是</p>
+      </div>
+    </div>
+
+    <!-- 一个真实踩过的坑 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">!</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">一个真实踩过的坑</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">color-danger 改名三个月后的 bug</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">团队做了什么</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+              花三个月把 <code style="color: var(--primary); font-family: monospace;">color-red-500</code> 改名为 <code style="color: var(--primary); font-family: monospace;">color-danger</code>。<br>
+              评审会上展示了一张漂亮的 Token 映射表——"危险场景用 danger，成功场景用 success"。<br>
+              所有人都觉得"语义化"完成了。
+            </p>
+          </div>
+        </div>
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">三个月后发生了什么</p>
+          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 14px; color: #cf1322; font-weight: 500; line-height: 1.8;">
+              AI 生成的新界面出现 bug：<br>
+              限流提示（"请求过于频繁"）被渲染成 <code style="font-family: monospace;">color-danger</code> 红色。<br><br>
+              用户看到红色就刷新页面，以为系统崩溃——<br>
+              其实只是等 30 秒自动恢复。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; color: #f5a623; font-weight: 700; margin-bottom: 4px;">根因</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+          color-danger 这个名字本身没问题。问题是：这个名字对机器来说仍然只是一个颜色值，它不携带"这个红代表不可恢复"的语义结构，也不携带"不能用在限流场景"的域约束。AI 生成工具看到 color-danger，只知道"用红色"，不知道"这个红色在什么场景下合法、什么场景下非法"。
+        </p>
+      </div>
+    </div>
+
+    <!-- 三层跃迁对照 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">3</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">三层跃迁：Style Token → Design Token → Semantic Token</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">每次跃迁都增加了机器可执行的信息维度</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+        <!-- 第一层 -->
+        <div class="token-tier-card tier-style">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="layer-badge" style="background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e;">L1</span>
+            <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">Style Token</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 12px;">样式令牌</p>
+          <div class="yaml-block" style="font-size: 12px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">color-red-500: "#EF4444"</pre>
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+            <div><span style="color: var(--text-tertiary);">机器理解：</span>这是一个颜色值</div>
+            <div><span style="color: var(--text-tertiary);">能做什么：</span>只能渲染</div>
+            <div><span style="color: var(--text-tertiary);">场景语义：</span>无</div>
+            <div><span style="color: var(--text-tertiary);">使用约束：</span>无</div>
+          </div>
+        </div>
+
+        <!-- 第二层 -->
+        <div class="token-tier-card tier-design">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="layer-badge" style="background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">L2</span>
+            <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">Design Token</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 12px;">设计令牌</p>
+          <div class="yaml-block" style="font-size: 12px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">color-danger:
+  value: "#EF4444"
+  description: "用于危险场景"</pre>
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+            <div><span style="color: var(--text-tertiary);">机器理解：</span>被命名为"danger"的颜色值</div>
+            <div><span style="color: var(--text-tertiary);">能做什么：</span>还是只能渲染</div>
+            <div><span style="color: var(--text-tertiary);">场景语义：</span>description 对人可读，对机器不可执行</div>
+            <div><span style="color: var(--text-tertiary);">使用约束：</span>无</div>
+          </div>
+        </div>
+
+        <!-- 第三层 -->
+        <div class="token-tier-card tier-semantic">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="layer-badge" style="background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">L3</span>
+            <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">Semantic Token</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 12px;">语义令牌</p>
+          <div class="yaml-block" style="font-size: 12px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">status.critical:
+  color_token: "status.critical"
+  motion_token: "pulse.red.urgent"
+  icon_token: "alert.octagon"
+  semantic_domain: "transactional"
+  cross_layer_ban: ["observational"]
+  behavior_constraint:
+    - "必须二次确认"
+    - "必须提供恢复路径"</pre>
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+            <div><span style="color: var(--text-tertiary);">机器理解：</span>带语义结构的离散索引</div>
+            <div><span style="color: var(--text-tertiary);">能做什么：</span>可校验、可拦截、可阻断</div>
+            <div><span style="color: var(--text-tertiary);">场景语义：</span>域归属 + 跨层禁止 + 行为约束</div>
+            <div><span style="color: var(--text-tertiary);">使用约束：</span>编译期查表展开，CI 按规则拦截</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Before vs After 对照表 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+        <div style="display: grid; grid-template-columns: 140px 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary);">维度</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary);">Style Token</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary);">Design Token</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: #52c41a;">Semantic Token</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-tertiary); font-weight: 600; border-right: 1px solid var(--border);">表达内容</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">颜色是什么 #EF4444</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">颜色是什么 color-danger</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 600;">颜色在该场景代表什么 不可恢复</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-tertiary); font-weight: 600; border-right: 1px solid var(--border);">机器可执行</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">只能渲染</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">只能渲染</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 600;">可校验、可拦截</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-tertiary); font-weight: 600; border-right: 1px solid var(--border);">行为约束</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">无</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">无（只有人类可读的 description）</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 600;">必须二次确认、必须提供恢复路径</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr 1fr 1fr; gap: 0;">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-tertiary); font-weight: 600; border-right: 1px solid var(--border);">跨层规则</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">无</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">无</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 600;">status.critical 不可用于 observational 域</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- "同一个红色"对比 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">≠</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">"同一个红色"在不同令牌下的不同含义</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">没有令牌时，机器只看到 #EF4444；有令牌时，机器知道这是"系统故障"还是"删除按钮"</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px;">
+        <div class="compare-card" style="border-left: 3px solid #cf1322;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="severity-badge severity-fatal">status.critical</span>
+          </div>
+          <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">系统级故障，对话上下文可能丢失</p>
+          <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+            <p style="font-size: 14px; color: #cf1322; font-weight: 700;">🚨 消息流中断</p>
+            <p style="font-size: 13px; color: #cf1322; margin-top: 4px; font-weight: 500;">对话上下文可能已丢失，建议刷新页面重新开始。</p>
+            <div style="display: flex; gap: 6px; margin-top: 8px;">
+              <span style="font-size: 13px; background: #cf1322; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">刷新页面</span>
+              <span style="font-size: 13px; border: 1px solid rgba(207,19,34,0.3); color: #cf1322; padding: 3px 8px; border-radius: 4px; font-weight: 600;">导出历史</span>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖层：transactional</div>
+            <div>行为：必须二次确认 + 恢复路径</div>
+            <div>跨层：observational 域非法</div>
+          </div>
+        </div>
+
+        <div class="compare-card" style="border-left: 3px solid #ff4d4f;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(255,77,79,0.15); color: #ff4d4f; border: 1px solid rgba(255,77,79,0.3);">action.destructive</span>
+          </div>
+          <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">不可逆操作，数据将永久删除</p>
+          <div style="background: rgba(255,77,79,0.05); border: 1px solid rgba(255,77,79,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+            <p style="font-size: 14px; color: #ff4d4f; font-weight: 700;">⚠️ 删除账户</p>
+            <p style="font-size: 13px; color: #ff4d4f; margin-top: 4px; font-weight: 500;">此操作不可恢复。请输入账户名确认。</p>
+            <div style="display: flex; gap: 6px; margin-top: 8px;">
+              <span style="font-size: 13px; border: 1px solid #3a3a3e; color: var(--text-secondary); padding: 3px 8px; border-radius: 4px; font-weight: 600;">取消</span>
+              <span style="font-size: 13px; background: #ff4d4f; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">确认删除</span>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖层：transactional</div>
+            <div>行为：必须输入账户名二次确认</div>
+            <div>样式：红色空心描边（非实心）</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 12px 16px;">
+        <p style="font-size: 13px; color: var(--primary); font-weight: 600;">💡 关键洞察：以前设计规范只规定"红色用在危险场景"，但机器不知道"危险"有 10 种。Semantic Token 把"哪种危险"说清楚了——status.critical 和 action.destructive 可以共用同一种红色值 #EF4444，但携带完全不同的语义结构、域归属和行为约束。</p>
+      </div>
+    </div>
+
+    <!-- 限流提示直观对照 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">A/B</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">直观对照：AI 生成"限流提示"</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">同一 Prompt，Token 层不同，输出完全不同</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Before · Design Token</p>
+          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 16px;">
+            <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #cf1322; font-weight: 700;">🔴 请求过于频繁，请稍后再试</p>
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+              <div><span style="color: var(--text-tertiary);">AI 选择：</span>color-danger</div>
+              <div><span style="color: var(--text-tertiary);">视觉走查：</span>✓ 合规（danger = 红色）</div>
+              <div><span style="color: var(--text-tertiary);">用户反应：</span>看到红色以为系统崩溃，立即刷新</div>
+              <div><span style="color: var(--text-tertiary);">实际情况：</span>只需等 30 秒自动恢复</div>
+            </div>
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(207,19,34,0.15);">
+              <p style="font-size: 12px; color: #cf1322; font-weight: 600;">❌ 合规，但错误。color-danger 无可指责，但用户误解了后果。</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">After · Semantic Token</p>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+            <div style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #f5a623; font-weight: 700;">⏱️ 请求频率已达上限</p>
+              <p style="font-size: 13px; color: #f5a623; margin-top: 4px; font-weight: 500;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; background: #f59e0b; color: #1e1e1e; padding: 3px 8px; border-radius: 4px; font-weight: 600;">升级 Plus</span>
+                <span style="font-size: 13px; border: 1px solid rgba(245,158,11,0.3); color: #f5a623; padding: 3px 8px; border-radius: 4px; font-weight: 600;">设置提醒</span>
+              </div>
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+              <div><span style="color: var(--text-tertiary);">AI 选择：</span>status.warning（字典定义 retryable = 黄色时钟）</div>
+              <div><span style="color: var(--text-tertiary);">视觉走查：</span>✓ 合规（限流 = 黄色）</div>
+              <div><span style="color: var(--text-tertiary);">用户反应：</span>看到黄色知道可以自助恢复</div>
+              <div><span style="color: var(--text-tertiary);">实际结果：</span>用户选择等待或升级</div>
+            </div>
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(82,196,26,0.15);">
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 语义正确。AI 若选 status.critical，直接命中跨层禁止，CI 阻断。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 跨层禁止演示 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✕</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">跨层禁止：Token 层的域隔离</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">status.critical 只能在 transactional 域使用，observational 域下非法</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">✓ 合法绑定</p>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+            <div class="yaml-block" style="font-size: 11px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">component: "Alert"
+context: "消息流中断"
+overlay: "transactional"
+color_token: "status.critical"</pre>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
+              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">编译期通过 → 入库成功</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">✕ 非法绑定 — 被阻断</p>
+          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 16px;">
+            <div class="yaml-block" style="font-size: 11px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">component: "Alert"
+context: "限流提示"
+overlay: "observational"
+color_token: "status.critical"  # ← 跨层非法</pre>
+            </div>
+            <div class="forbidden-box" style="margin: 0;">
+              <p style="font-size: 12px; color: #cf1322; font-weight: 700; margin-bottom: 4px;">[CI 阻断] error-severity-cross-layer</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px;">Token: status.critical</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px;">Used in: observational domain (limit_rate_alert)</p>
+              <p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-bottom: 4px;">Expected: status.warning (yellow + clock)</p>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600;">Action: BLOCK — PR cannot be merged</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 12px 16px;">
+        <p style="font-size: 13px; color: #f5a623; font-weight: 600;">⚠️ Design Token color-danger 没有 cross_layer_ban 结构，机器无法判定"这个红色在这个场景是否合法"——它只能看到"用红色"，看不到"不能在这里用红色"。</p>
+      </div>
+    </div>
+
+    <!-- 跨角色反馈矩阵 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">👥</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">跨角色反馈矩阵</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">同一根因（Token 只有色值、没有语义结构），在五个角色身上长出的坑各不相同</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
+        <div class="feedback-card">
+          <div style="font-size: 24px; margin-bottom: 8px;">🎨</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">设计师</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; margin-bottom: 8px;">"新增了 error 状态也直接用红色，两周后走查才发现字典里根本没这个级别"</p>
+          <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">根因：字典是文档不是代码</p>
+          <p style="font-size: 11px; color: #52c41a; font-weight: 600; margin-top: 4px;">解法：字典 YAML 化，未注册编译阻断</p>
+        </div>
+
+        <div class="feedback-card">
+          <div style="font-size: 24px; margin-bottom: 8px;">💻</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">前端 / AI 工程师</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; margin-bottom: 8px;">"Token 只告诉我颜色，没告诉我这个场景该用哪个语义级别"</p>
+          <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">根因：缺少 semantic_domain</p>
+          <p style="font-size: 11px; color: #52c41a; font-weight: 600; margin-top: 4px;">解法：color_token + semantic_domain 联合定义</p>
+        </div>
+
+        <div class="feedback-card">
+          <div style="font-size: 24px; margin-bottom: 8px;">📋</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">DesignOps</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; margin-bottom: 8px;">"各产品线的术语版本对不上，同一个词三套说法"</p>
+          <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">根因：没有统一术语源</p>
+          <p style="font-size: 11px; color: #52c41a; font-weight: 600; margin-top: 4px;">解法：字典作为组织级唯一真相源</p>
+        </div>
+
+        <div class="feedback-card">
+          <div style="font-size: 24px; margin-bottom: 8px;">🔍</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">语义翻译设计师</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; margin-bottom: 8px;">"模式库维护成本高，每次诊断都从零开始"</p>
+          <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">根因：Token 没有复用</p>
+          <p style="font-size: 11px; color: #52c41a; font-weight: 600; margin-top: 4px;">解法：从字典复用 Token，快速匹配</p>
+        </div>
+
+        <div class="feedback-card">
+          <div style="font-size: 24px; margin-bottom: 8px;">📊</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">管理层</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; margin-bottom: 8px;">"语义一致性投入多少、产出在哪，看不到"</p>
+          <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">根因：缺少度量基准</p>
+          <p style="font-size: 11px; color: #52c41a; font-weight: 600; margin-top: 4px;">解法：字典标准化后，覆盖率可量化</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 三则线上反馈 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">⚠️</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">三则线上反馈：没有锚定的令牌，降级就是概率的奴隶</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">LLM 没有"语义权重"的概念，它只有"词频统计"</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">AI 运维助手</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; margin-bottom: 8px;">告警文案中 "Critical" 被替换为"严重"，情绪权重降低</p>
+          <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-bottom: 8px;">值班员延迟响应，故障扩大</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">根因：同义词防火墙缺失</p>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">AI 客服系统</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; margin-bottom: 8px;">"Data Loss Risk" 被改写为"请稍后重试"，真实后果被掩盖</p>
+          <p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-bottom: 8px;">用户误以为只是临时抖动</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">根因：语义降级未被拦截</p>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">AI 医疗辅助</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6; margin-bottom: 8px;">诊断提示的严重程度表述前后不一</p>
+          <p style="font-size: 12px; color: #4a9eff; font-weight: 600; margin-bottom: 8px;">用户误判紧急程度</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">根因：语义令牌未锚定</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 诚实清单 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✓</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">诚实清单</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">验证项与当前状态</p>
+        </div>
+      </div>
+
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+        <div style="display: grid; grid-template-columns: 1fr 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary);">验证项</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary);">状态</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary);">说明</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">三层跃迁是否真实存在</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 700;">✅ 已验证</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">Style → Design → Semantic 的结构差异在代码层面可观测</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">Design Token 改名是否足够</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 700;">✅ 已证伪</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">color-danger 无法被编译为机器规则，A/B 对比可见</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">Semantic Token 是否可被机器消费</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 700;">✅ 已验证</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">同一组令牌编译为三种格式，各角色可接入工具链</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">跨层禁止是否可执行</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 700;">✅ 已验证</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">cross_layer_ban 在编译期阻断非法绑定，返回修正建议</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">同一颜色不同令牌是否被区分</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 700;">✅ 已验证</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">status.critical vs action.destructive 结构差异在契约中显式声明</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">对抗用例库是否完整</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #f5a623; font-weight: 700;">⚠️ 待补充</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">需持续补充诱导越界的对抗 Prompt</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 100px 1fr; gap: 0;">
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">生产环境实测数据</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #f5a623; font-weight: 700;">⚠️ 待采集</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">当前为演示环境单点验证，接入生产后需采集真实拦截率</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Token 层差异确认之后</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">语义令牌表 → 语义字典 → 契约库 → 编译管线 → 验证闭环</p>
+      </div>
+      <a href="./语义令牌表.html" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        进入语义令牌表 →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

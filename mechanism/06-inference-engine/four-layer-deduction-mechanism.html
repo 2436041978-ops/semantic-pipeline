@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 四层推演机制</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .layer-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+  .layer-card:hover {
+    border-color: #3a3a3e;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-pass {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-fail {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+  .status-warn {
+    background: rgba(245,158,11,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+  .status-block {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+
+  .trace-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .trace-connector {
+    width: 2px;
+    height: 24px;
+    background: var(--border);
+    margin-left: 20px;
+  }
+  .trace-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
+  }
+  .trace-dot.pass {
+    background: #52c41a;
+    box-shadow: 0 0 0 3px rgba(82,196,26,0.2);
+  }
+  .trace-dot.fail {
+    background: #cf1322;
+    box-shadow: 0 0 0 3px rgba(207,19,34,0.2);
+  }
+  .trace-dot.warn {
+    background: #f5a623;
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.2);
+  }
+  .trace-dot.block {
+    background: #cf1322;
+    box-shadow: 0 0 0 3px rgba(207,19,34,0.2);
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: FOUR-LAYER INFERENCE ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">四层推演机制</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 生成中拦截层 · ⑥ 四层推演机制</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">四层推演机制 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Four-Layer Inference</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        把语义漂移拆成四层逐步定位：语法 → 语义 → 安全 → 美感。逐层校验、逐层短路。<br>
+        不是等生成完了人眼走查，是在生成过程中逐层拦截。契约有效性从"祈祷"变成"可证"。
+      </p>
+    </div>
+
+    <!-- 三个核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">生成中拦截成本最低</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">事后走查覆盖率 ~20%，Prompt 祈祷无结果判定。生成中拦截在产出前阻断，修复成本趋近于零</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">逐层短路、逐层定位</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">语法断裂直接短路，不进入语义层；安全阻断直接阻断，不进入美感层。断裂点定位到具体契约条款</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">对抗用例即回归资产</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">契约变更后对抗用例全量重跑，拦截能力只升不降。用例不是一次性测试，是持续回归资产</p>
+      </div>
+    </div>
+
+    <!-- 四层推演 vs 其他校验时机对比 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">?</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">语义校验发生在什么时候成本最低？</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">事后走查、Prompt 祈祷、还是生成中拦截？</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; opacity: 0.6;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: #1e1e22; color: #666; border: 1px solid #2a2a3e;">事后走查</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">人眼检查生成结果</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖率：~20%</div>
+            <div>修复成本：高（已上线）</div>
+            <div>定位精度：低（"感觉不对"）</div>
+            <div style="color: #cf1322;">❌ 语义错误漏到线上</div>
+          </div>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; opacity: 0.6;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">Prompt 祈祷</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Prompt 前缀注入约束</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖率：无法判定</div>
+            <div>修复成本：中（生成后重试）</div>
+            <div>定位精度：无（违反无人知）</div>
+            <div style="color: #f5a623;">⚠ 无结果判定机制</div>
+          </div>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 生成中拦截</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">四层推演逐层校验</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>覆盖率：100%（逐层短路）</div>
+            <div>修复成本：趋近于零（产出前）</div>
+            <div>定位精度：令牌级别 / boundary 条款</div>
+            <div style="color: #52c41a;">✓ 契约有效性可证</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 四层推演演示 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">4</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">四层推演演示</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">输入：AI 生成的限流提示组件语义快照 → 逐层校验、逐层短路</p>
+        </div>
+      </div>
+
+      <!-- 输入快照 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">输入：AI 生成组件语义快照</p>
+        <div class="yaml-block" style="font-size: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "component_type": "Alert",
+  "visual": {
+    "color": "red",           # ← 问题：限流用了致命红
+    "background": "solid",
+    "icon": "warning"
+  },
+  "copy": {
+    "title": "Error",
+    "description": "请求过于频繁，请稍后再试",
+    "tone": "urgent"
+  },
+  "interaction": {
+    "dismissible": true,
+    "actions": ["retry"]       # ← 问题：限流应提供"等待"而非"重试"
+  },
+  "context": "system_error"
+}</pre>
+        </div>
+      </div>
+
+      <!-- Layer 1: 语法层 -->
+      <div style="margin-bottom: 16px;">
+        <div class="trace-row" style="border-left: 3px solid #52c41a;">
+          <div class="trace-dot pass"></div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Layer 1 · 语法层</span>
+              <span class="status-pill status-pass">✓ 通过</span>
+            </div>
+            <p class="trace-desc">检查 JSON 结构完整性、必填字段是否存在</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ component_type / visual / copy / interaction / context 全部存在</p>
+          </div>
+        </div>
+        <div class="trace-connector"></div>
+      </div>
+
+      <!-- Layer 2: 语义层 -->
+      <div style="margin-bottom: 16px;">
+        <div class="trace-row" style="border-left: 3px solid #cf1322;">
+          <div class="trace-dot fail"></div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Layer 2 · 语义层</span>
+              <span class="status-pill status-fail">✕ 断裂</span>
+            </div>
+            <p class="trace-desc">检查语义映射是否匹配契约</p>
+            <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; padding: 12px; margin-top: 8px;">
+              <p style="font-size: 13px; color: #cf1322; font-weight: 700; margin-bottom: 6px;">断裂点定位</p>
+              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+                <div>• 输入文案："请求过于频繁，请稍后再试" → 匹配模式：ERR-001 (retryable)</div>
+                <div>• 契约要求：color_token = "status.warning"（黄色）</div>
+                <div style="color: #cf1322;">• AI 输出：color = "red" → 映射到 status.critical（致命）</div>
+                <div style="color: #cf1322;">• 语义断裂：retryable 不得映射 status.critical</div>
+              </div>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(207,19,34,0.15);">
+                <p style="font-size: 12px; color: #f5a623; font-weight: 600;">修正建议：将 color 改为 "yellow"，匹配 status.warning</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="trace-connector"></div>
+      </div>
+
+      <!-- Layer 3: 安全层 -->
+      <div style="margin-bottom: 16px;">
+        <div class="trace-row" style="border-left: 3px solid #cf1322;">
+          <div class="trace-dot block"></div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Layer 3 · 安全层</span>
+              <span class="status-pill status-block">✕ 阻断</span>
+            </div>
+            <p class="trace-desc">检查是否违反 immutable_boundaries</p>
+            <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; padding: 12px; margin-top: 8px;">
+              <p style="font-size: 13px; color: #cf1322; font-weight: 700; margin-bottom: 6px;">阻断点定位</p>
+              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+                <div>• 违反边界：immutable_boundaries.safety</div>
+                <div style="color: #cf1322;">• 规则："禁止所有错误状态共用同一种红色视觉表达"</div>
+                <div style="color: #cf1322;">• 当前：retryable 使用了红色（与 fatal 相同）</div>
+                <div style="color: #cf1322;">• 用户后果：无法区分"限流"与"系统崩溃"的严重程度</div>
+              </div>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(207,19,34,0.15);">
+                <p style="font-size: 12px; color: #cf1322; font-weight: 700;">阻断动作：产出被拦截，PR 无法合并</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="trace-connector"></div>
+      </div>
+
+      <!-- Layer 4: 美感层 -->
+      <div style="margin-bottom: 16px;">
+        <div class="trace-row" style="border-left: 3px solid #f5a623; opacity: 0.5;">
+          <div class="trace-dot" style="background: #666;"></div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-tertiary);">Layer 4 · 美感层</span>
+              <span class="status-pill" style="background: #1e1e22; color: #666; border: 1px solid #2a2a3e;">— 未执行</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">因 Layer 3 安全层已阻断，美感层被短路跳过</p>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">逐层短路机制：安全层阻断 → 不进入美感层，节省计算</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 推演报告 -->
+      <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 20px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+          <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 12px; font-weight: 700;">✕</div>
+          <p style="font-size: 16px; font-weight: 700; color: #cf1322;">四层推演报告：产出被拦截</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <div>
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">断裂点</p>
+            <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+              <div>• 语义层：visual.color → retryable 映射到 status.critical</div>
+              <div>• 安全层：immutable_boundaries.safety → 红色共用</div>
+              <div>• 契约条款：ERR-001.yaml · error_severity.retryable</div>
+            </div>
+          </div>
+          <div>
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">修正指令</p>
+            <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+              <div>• visual.color: "red" → "yellow"</div>
+              <div>• visual.icon: "warning" → "clock"</div>
+              <div>• interaction.actions: ["retry"] → ["wait", "upgrade"]</div>
+              <div>• copy.title: "Error" → "Too Many Requests"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 对比演示：修正后通过 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✓</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">修正后：四层推演全部通过</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">按修正指令修改后，重新运行四层推演</p>
+        </div>
+      </div>
+
+      <!-- 修正后的快照 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">修正后组件语义快照</p>
+        <div class="yaml-block" style="font-size: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "component_type": "Alert",
+  "visual": {
+    "color": "yellow",          # ← 修正：匹配 status.warning
+    "background": "solid",
+    "icon": "clock"             # ← 修正：匹配 retryable
+  },
+  "copy": {
+    "title": "Too Many Requests",  # ← 修正：明确语义
+    "description": "请求过于频繁，请稍后再试",
+    "tone": "urgent"
+  },
+  "interaction": {
+    "dismissible": true,
+    "actions": ["wait", "upgrade"]  # ← 修正：提供等待+升级
+  },
+  "context": "system_error"
+}</pre>
+        </div>
+      </div>
+
+      <!-- 四层全部通过 -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a; margin: 0 auto 8px; box-shadow: 0 0 0 3px rgba(82,196,26,0.2);"></div>
+          <p style="font-size: 13px; font-weight: 700; color: #52c41a; margin-bottom: 4px;">Layer 1</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">语法层 ✓</p>
+          <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">结构完整</p>
+        </div>
+        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a; margin: 0 auto 8px; box-shadow: 0 0 0 3px rgba(82,196,26,0.2);"></div>
+          <p style="font-size: 13px; font-weight: 700; color: #52c41a; margin-bottom: 4px;">Layer 2</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">语义层 ✓</p>
+          <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">retryable → warning</p>
+        </div>
+        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a; margin: 0 auto 8px; box-shadow: 0 0 0 3px rgba(82,196,26,0.2);"></div>
+          <p style="font-size: 13px; font-weight: 700; color: #52c41a; margin-bottom: 4px;">Layer 3</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">安全层 ✓</p>
+          <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">无红色共用</p>
+        </div>
+        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a; margin: 0 auto 8px; box-shadow: 0 0 0 3px rgba(82,196,26,0.2);"></div>
+          <p style="font-size: 13px; font-weight: 700; color: #52c41a; margin-bottom: 4px;">Layer 4</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">美感层 ✓</p>
+          <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">文案精度合格</p>
+        </div>
+      </div>
+
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; color: #52c41a; font-weight: 700;">✓ 四层推演全部通过，产出允许发布</p>
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-top: 4px;">契约有效性从"祈祷"变成"可证"：生成结果可被判定为符合或不符合契约，断裂点可定位到具体令牌级别</p>
+      </div>
+    </div>
+
+    <!-- 与 Prompt 前缀 / CI 的关系 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">↔</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">生成中拦截与 Prompt 前缀 / CI 的关系</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">三层校验形成互补，不是替代关系</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">上游</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Prompt 前缀注入</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">在生成前注入约束，降低违规概率</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>时机：生成前</div>
+            <div>作用：预防</div>
+            <div>局限：无法判定结果是否遵守</div>
+          </div>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">中游</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">四层推演（生成中拦截）</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">在生成过程中逐层校验、逐层短路</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>时机：生成中</div>
+            <div>作用：拦截</div>
+            <div>优势：断裂点定位到令牌级别</div>
+          </div>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">下游</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">CI 提交时检查</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">在代码提交时运行静态规则校验</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>时机：提交后</div>
+            <div>作用：兜底</div>
+            <div>局限：修复成本高（已编码）</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+          <span style="color: var(--primary); font-weight: 700;">关系说明：</span>Prompt 前缀是"预防针"，降低违规概率；四层推演是"安检门"，产出前拦截；CI 是"兜底网"，提交后最后把关。三层互补，不是替代。<br><br>
+          四层推演的独特价值：它是唯一能在<span style="color: #52c41a; font-weight: 700;">生成过程中</span>判定结果是否遵守契约、并<span style="color: #52c41a; font-weight: 700;">定位到具体断裂点</span>的机制。
+        </p>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">契约有效性从"祈祷"变成"可证"</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">四层推演：语法 → 语义 → 安全 → 美感。逐层校验、逐层短路。</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

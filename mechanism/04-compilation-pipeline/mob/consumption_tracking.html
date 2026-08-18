@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 契约消费追踪</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 7000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .gate-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; }
+  .mobile-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .mobile-table th { text-align: left; padding: 8px 10px; color: var(--text-tertiary); font-weight: 700; border-bottom: 1px solid var(--border-light); white-space: nowrap; }
+  .mobile-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px; }
+  .progress-bar { width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 100px; }
+  .status-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 100px; font-size: 10px; font-weight: 700; }
+  .status-active { background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); }
+  .status-pending { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .status-inactive { background: #1e1e22; color: #666; border: 1px solid #2a2a2e; }
+</style>
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code 编译与交付层 · ④</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">契约消费追踪</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Consumption Tracking</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">契约版本与下游消费面自动对齐</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 三环节总览 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 12px;">
+        编译产物交付后，机器持续回答三个问题——<span style="color: var(--text-primary); font-weight: 700;">谁在消费？滞后能发现吗？消费产生了多少价值？</span>
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="gate-chip" style="background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">2.1 注册与追踪</span>
+          <span class="text-micro" style="color: var(--text-tertiary);">谁在消费、消费了什么版本</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="gate-chip" style="background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">2.2 对账与告警</span>
+          <span class="text-micro" style="color: var(--text-tertiary);">滞后与断点能被发现吗</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="gate-chip" style="background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3);">2.3 拦截与归因</span>
+          <span class="text-micro" style="color: var(--text-tertiary);">消费产生了多少价值</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 2.1 消费点注册与追踪 ============ -->
+  <div style="margin: 20px 0 12px; display: flex; align-items: center; gap: 10px;">
+    <span class="badge badge-blue">2.1</span>
+    <h2 class="text-h2">消费点注册与追踪</h2>
+  </div>
+
+  <!-- 版本声明头 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('header')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">1</div>
+          <h2 class="text-h3">契约编译：产物头部嵌好版本声明</h2>
+        </div>
+        <svg class="chevron" id="chevron-header" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">一份 YAML → 4 种格式，每种头部自动嵌入版本</p>
+    </div>
+    <div class="collapsible-content" id="content-header">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div class="code-block" style="font-size: 11px; padding: 10px; margin-bottom: 10px;">
+<pre># === compiled/prompt/err-001.prompt ===
+# @contract: ERR-001
+# @version: v1.1.0
+# @format: prompt_prefix
+# @compiled_at: 2026-07-12T13:40:00Z
+
+# === compiled/schema/err-001.schema.json ===
+{ "_meta": { "contract": "ERR-001", "version": "v1.1.0" } }
+
+# === compiled/ci/err-001.stylelint.js ===
+// @contract: ERR-001  @version: v1.1.0</pre>
+        </div>
+        <p class="text-micro" style="color: #52c41a; font-weight: 600;">✓ 编译管线自动在每种格式头部嵌入版本声明，消费点加载时解析并上报</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 消费点注册表 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('registry')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">2</div>
+          <h2 class="text-h3">消费点注册：声明消费什么契约</h2>
+        </div>
+        <svg class="chevron" id="chevron-registry" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">每个消费点接入时必须注册</p>
+    </div>
+    <div class="collapsible-content" id="content-registry">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div class="code-block" style="font-size: 11px; padding: 10px; margin-bottom: 12px;">
+<pre>consumers:
+  - consumer_id: "prompt-err-gen"
+    type: "prompt_prefix"
+    consumes: [{ contract: "ERR-001", format: "prompt_prefix" }]
+  - consumer_id: "ci-stylelint"
+    type: "ci_rule"
+    consumes: [{ contract: "ERR-001", format: "ci_rule" },
+               { contract: "ACT-001", format: "ci_rule" }]
+  - consumer_id: "comp-alert-val"
+    type: "component_validator"
+    consumes: [{ contract: "ERR-001", format: "json_schema" }]
+  - consumer_id: "designops-check"
+    type: "checklist"
+    consumes: [{ contract: "ERR-001", format: "checklist" }]</pre>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; gap: 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+            <span class="text-micro" style="color: var(--primary); font-weight: 700; min-width: 90px; font-family: 'SF Mono', monospace;">consumer_id</span>
+            <span class="text-micro" style="color: var(--text-secondary);">消费点唯一标识</span>
+          </div>
+          <div style="display: flex; gap: 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+            <span class="text-micro" style="color: var(--primary); font-weight: 700; min-width: 90px; font-family: 'SF Mono', monospace;">type</span>
+            <span class="text-micro" style="color: var(--text-secondary);">消费格式类型（prompt / ci / checklist / schema）</span>
+          </div>
+          <div style="display: flex; gap: 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+            <span class="text-micro" style="color: var(--primary); font-weight: 700; min-width: 90px; font-family: 'SF Mono', monospace;">consumes</span>
+            <span class="text-micro" style="color: var(--text-secondary);">声明消费的契约 ID 和格式</span>
+          </div>
+          <div style="display: flex; gap: 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+            <span class="text-micro" style="color: var(--primary); font-weight: 700; min-width: 90px; font-family: 'SF Mono', monospace;">registered_at</span>
+            <span class="text-micro" style="color: var(--text-secondary);">注册时间戳，追踪接入时效</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 消费状态看板 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('dashboard')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">3</div>
+          <h2 class="text-h3">消费状态看板</h2>
+        </div>
+        <svg class="chevron" id="chevron-dashboard" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">ERR-001 v1.1.0 · 谁在消费、什么版本、什么时候</p>
+    </div>
+    <div class="collapsible-content" id="content-dashboard">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">Error-State-Generator</span>
+              <span class="status-pill status-active">● 活跃</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-tertiary);">prompt_prefix · 消费 v1.1.0 · 最后上报 2 分钟前</p>
+            <p class="text-micro" style="color: #52c41a; font-weight: 600; margin-top: 2px;">✓ 版本一致</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">Stylelint-Semantic-Plugin</span>
+              <span class="status-pill status-active">● 活跃</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-tertiary);">ci_rule · 消费 v1.1.0 · 最后上报 5 分钟前</p>
+            <p class="text-micro" style="color: #52c41a; font-weight: 600; margin-top: 2px;">✓ 版本一致</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">Alert-Validator</span>
+              <span class="status-pill status-active">● 活跃</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-tertiary);">json_schema · 消费 v1.1.0 · 最后上报 1 小时前</p>
+            <p class="text-micro" style="color: #52c41a; font-weight: 600; margin-top: 2px;">✓ 版本一致</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">DesignOps-Checklist</span>
+              <span class="status-pill status-pending">● 滞后</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-tertiary);">checklist · 消费 v1.0.0（当前 v1.1.0）· 最后上报 30 天前</p>
+            <p class="text-micro" style="color: #f5a623; font-weight: 600; margin-top: 2px;">⚠ 版本滞后 · 零消费风险</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">Boundary-Action-Generator</span>
+              <span class="status-pill status-inactive">● 未注册</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-tertiary);">prompt_prefix · 消费版本 — · 最后上报 —</p>
+            <p class="text-micro" style="color: #666; font-weight: 600; margin-top: 2px;">✕ 未注册 · 未消费</p>
+          </div>
+        </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 10px;">覆盖率统计</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">Prompt 前缀覆盖率</span>
+              <span class="text-caption" style="color: #f5a623; font-weight: 700;">50%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 50%; background: #f5a623;"></div></div>
+            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 4px;">1/2 个 Prompt 前缀已消费 ERR-001</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">CI 规则覆盖率</span>
+              <span class="text-caption" style="color: #52c41a; font-weight: 700;">100%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 100%; background: #52c41a;"></div></div>
+            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 4px;">1/1 个 CI 规则已消费 ERR-001</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">组件校验覆盖率</span>
+              <span class="text-caption" style="color: #52c41a; font-weight: 700;">100%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 100%; background: #52c41a;"></div></div>
+            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 4px;">1/1 个组件校验器已消费 ERR-001</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">Checklist 覆盖率</span>
+              <span class="text-caption" style="color: #f5a623; font-weight: 700;">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 0%; background: #f5a623;"></div></div>
+            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 4px;">0/1 个 Checklist 已消费（v1.0.0 滞后）</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 版本一致性验证 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('align')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">4</div>
+          <h2 class="text-h3">版本一致性验证</h2>
+        </div>
+        <svg class="chevron" id="chevron-align" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">消费点加载时解析头部版本号并上报</p>
+    </div>
+    <div class="collapsible-content" id="content-align">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <p class="text-label" style="color: #52c41a; margin-bottom: 8px;">✓ 版本一致</p>
+          <div class="code-block" style="font-size: 10px; padding: 8px;">
+<pre>consumer: "prompt-err-gen"
+loaded_version: "v1.1.0"    # ← 解析产物头部
+expected_version: "v1.1.0"  # ← 字典当前版本
+status: "aligned"</pre>
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-label" style="color: #f5a623; margin-bottom: 8px;">⚠ 版本滞后</p>
+          <div class="code-block" style="font-size: 10px; padding: 8px; margin-bottom: 6px;">
+<pre>consumer: "designops-check"
+loaded_version: "v1.0.0"
+expected_version: "v1.1.0"
+status: "stale"
+lag_days: 32</pre>
+          </div>
+          <p class="text-micro" style="color: #f5a623; font-weight: 600;">⚠ 消费点加载 v1.0.0，字典已更新至 v1.1.0，滞后 32 天</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 2.2 对账与告警 ============ -->
+  <div style="margin: 20px 0 12px; display: flex; align-items: center; gap: 10px;">
+    <span class="badge badge-amber">2.2</span>
+    <h2 class="text-h2">对账与告警</h2>
+  </div>
+
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #f5a623;">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        消费滞后与断点，能不能在"没人发现约束缺席"之前被抓住？不是等 DesignOps 人工排查，而是<span style="color: var(--text-primary); font-weight: 700;">机器自动对账</span>：版本滞后告警、零消费告警、超时断点告警。
+      </p>
+    </div>
+  </div>
+
+  <!-- 对账引擎规则 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('rules')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #f5a623, #cf1322); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">⚙</div>
+          <h2 class="text-h3">对账引擎检测逻辑</h2>
+        </div>
+        <svg class="chevron" id="chevron-rules" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">reconciliation.yaml · 三类告警阈值与动作</p>
+    </div>
+    <div class="collapsible-content" id="content-rules">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div class="code-block" style="font-size: 11px; padding: 10px;">
+<pre>rules:
+  version_lag:            # 版本滞后
+    check_interval: "5m"
+    threshold: { warning: "1d", critical: "7d" }
+    action:
+      warning:  "notify_consumer_owner"
+      critical: "block_pr + notify_team_lead"
+
+  zero_consumption:       # 零消费
+    check_interval: "1d"
+    threshold: { warning: "7d", critical: "30d" }
+    action:
+      warning:  "notify_consumer_owner"
+      critical: "archive_consumer + notify_designops"
+
+  pipeline_timeout:       # 超时断点
+    check_interval: "1m"
+    threshold: { ci_trigger: "5m", prompt_inject: "10m" }
+    action:
+      timeout: "alert_pipeline_owner + auto_rollback_check"</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 版本滞后告警 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('lag')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #f5a623, #cf1322); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">1</div>
+          <h2 class="text-h3">版本滞后告警</h2>
+        </div>
+        <svg class="chevron" id="chevron-lag" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">ERR-001 版本演进与消费点对账时间线</p>
+    </div>
+    <div class="collapsible-content" id="content-lag">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span class="badge badge-amber">WARNING</span>
+            <span class="text-micro" style="color: var(--text-tertiary);">2026-07-12 13:45</span>
+          </div>
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">消费版本滞后：DesignOps-Checklist</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">契约 ERR-001 · 字典 v1.1.0 · 消费点加载 v1.0.0 · 滞后 32 天 · 负责人 @designops-team</p>
+          <p class="text-micro" style="color: #f5a623; font-weight: 600; margin-top: 6px;">建议操作：更新 compiled/checklist/err-001.checklist.md 至 v1.1.0</p>
+        </div>
+        <div style="position: relative; padding-left: 20px;">
+          <div style="position: absolute; left: 5px; top: 4px; bottom: 4px; width: 2px; background: var(--border);"></div>
+          <div style="position: relative; padding-bottom: 14px;">
+            <div style="position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #52c41a; border: 2px solid var(--bg);"></div>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">v1.0.0 发布 — 2026-06-01</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">初始版本：fatal / transient / retryable 三级</p>
+            <p class="text-micro" style="color: #52c41a; font-weight: 600;">✓ 4 个消费点全部对齐 v1.0.0</p>
+          </div>
+          <div style="position: relative; padding-bottom: 14px;">
+            <div style="position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); border: 2px solid var(--bg);"></div>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">v1.1.0 发布 — 2026-06-20</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">新增 degraded 级别；优化同义词防火墙</p>
+            <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 4px;">
+              <span class="text-micro" style="color: #52c41a;">✓ prompt-err-gen → v1.1.0（6/20）</span>
+              <span class="text-micro" style="color: #52c41a;">✓ ci-stylelint → v1.1.0（6/21）</span>
+              <span class="text-micro" style="color: #52c41a;">✓ comp-alert-val → v1.1.0（6/22）</span>
+              <span class="text-micro" style="color: #f5a623;">⚠ designops-check → 仍 v1.0.0（滞后 32 天）</span>
+            </div>
+          </div>
+          <div style="position: relative;">
+            <div style="position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #f5a623; border: 2px solid var(--bg); box-shadow: 0 0 0 3px rgba(245,158,11,0.2);"></div>
+            <p class="text-caption" style="color: #f5a623; font-weight: 700;">当前 — 2026-07-12</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">对账结果：3/4 消费点已对齐 v1.1.0</p>
+            <p class="text-micro" style="color: #f5a623; font-weight: 600;">⚠ 告警：designops-check 版本滞后，已通知 @designops-team</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 零消费告警 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('zero')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #f5a623, #cf1322); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">2</div>
+          <h2 class="text-h3">零消费告警</h2>
+        </div>
+        <svg class="chevron" id="chevron-zero" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">契约写了，但没人用 · 含活跃度矩阵</p>
+    </div>
+    <div class="collapsible-content" id="content-zero">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span class="badge badge-red">CRITICAL</span>
+            <span class="text-micro" style="color: var(--text-tertiary);">2026-07-12 14:00</span>
+          </div>
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">零消费：Boundary-Action-Generator</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">契约 BND-001 · prompt_prefix · 注册 42 天 · 最后消费上报：无</p>
+          <p class="text-micro" style="color: #cf1322; font-weight: 600; margin-top: 6px;">DesignOps 反馈："Prompt 前缀发布 30 天了，没有任何 AI 会话注入记录"</p>
+          <p class="text-micro" style="color: #f5a623; font-weight: 600; margin-top: 4px;">自动操作：归档消费点 + 通知 @designops + 标记契约"待接入"</p>
+        </div>
+        <div class="code-block" style="font-size: 11px; padding: 10px; margin-bottom: 12px;">
+<pre># zero_consumption_detector.yaml
+- registered_within 7d      → skip（新消费点宽限期）
+- no_consumption > 7d       → notify_owner
+- no_consumption > 30d      → archive + notify_designops
+- all_consumers_zero > 30d  → mark_contract_deprecated</pre>
+        </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">消费活跃度矩阵（最近 30 天）· 左右滑动</p>
+        <div class="table-scroll">
+          <table class="mobile-table" style="min-width: 560px;">
+            <thead>
+              <tr><th>消费点</th><th>契约</th><th>版本</th><th>上报次数</th><th>状态</th></tr>
+            </thead>
+            <tbody>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">Error-State-Generator</td><td>ERR-001</td><td style="color: #52c41a;">v1.1.0</td><td>1,247</td><td style="color: #52c41a;">✓ 活跃</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">Stylelint-Semantic-Plugin</td><td>ERR-001</td><td style="color: #52c41a;">v1.1.0</td><td>892</td><td style="color: #52c41a;">✓ 活跃</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">Alert-Validator</td><td>ERR-001</td><td style="color: #52c41a;">v1.1.0</td><td>456</td><td style="color: #52c41a;">✓ 活跃</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">DesignOps-Checklist</td><td>ERR-001</td><td style="color: #f5a623;">v1.0.0</td><td>0</td><td style="color: #f5a623;">⚠ 零消费 32 天</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">Boundary-Action-Generator</td><td>BND-001</td><td style="color: #666;">—</td><td>0</td><td style="color: #cf1322;">✕ 零消费 42 天 · 已归档</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 超时断点告警 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('timeout')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #f5a623, #cf1322); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">3</div>
+          <h2 class="text-h3">超时断点告警</h2>
+        </div>
+        <svg class="chevron" id="chevron-timeout" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">正常链路 vs 断点链路对照</p>
+    </div>
+    <div class="collapsible-content" id="content-timeout">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;">
+          <p class="text-label" style="color: #52c41a; margin-bottom: 8px;">✓ 正常链路（对照）</p>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between;"><span class="text-micro" style="color: var(--text-primary);">契约提交</span><span class="text-micro" style="color: #52c41a;">T+0s</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-micro" style="color: var(--text-primary);">编译管线触发</span><span class="text-micro" style="color: #52c41a;">T+30s</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-micro" style="color: var(--text-primary);">4 种格式编译完成</span><span class="text-micro" style="color: #52c41a;">T+2min</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-micro" style="color: var(--text-primary);">分发至消费点</span><span class="text-micro" style="color: #52c41a;">T+3min</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-micro" style="color: var(--text-primary);">消费点加载并上报</span><span class="text-micro" style="color: #52c41a;">T+5min</span></div>
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(207,19,34,0.3); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-label" style="color: #cf1322; margin-bottom: 8px;">✗ 断点链路（告警）</p>
+          <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between;"><span class="text-micro" style="color: var(--text-primary);">契约提交 / 编译 / 分发</span><span class="text-micro" style="color: #52c41a;">T+0s → T+3min ✓</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-micro" style="color: #cf1322; font-weight: 700;">消费点加载并上报</span><span class="text-micro" style="color: #cf1322; font-weight: 700;">T+15min · 超时</span></div>
+          </div>
+          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; padding: 10px;">
+            <p class="text-micro" style="color: #cf1322; font-weight: 700; margin-bottom: 4px;">[ALERT] pipeline-timeout</p>
+            <p class="text-micro" style="color: var(--text-secondary);">消费点 designops-check 在编译完成后 12 分钟仍未上报加载记录</p>
+            <p class="text-micro" style="color: #f5a623; font-weight: 600; margin-top: 4px;">可能断点：分发失败 / 消费点未重启 / 加载逻辑异常</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 2.3 拦截统计与收益归因 ============ -->
+  <div style="margin: 20px 0 12px; display: flex; align-items: center; gap: 10px;">
+    <span class="badge badge-green">2.3</span>
+    <h2 class="text-h2">拦截统计与收益归因</h2>
+  </div>
+
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        消费追踪的终点不是"用了"，而是<span style="color: var(--text-primary); font-weight: 700;">"用了之后拦住了什么、值多少"</span>。按模式 ID / 消费格式 / 契约版本归因，按返工成本模型推演收益。
+      </p>
+    </div>
+  </div>
+
+  <!-- 拦截归因 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('attr')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #52c41a, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">1</div>
+          <h2 class="text-h3">拦截归因：每次拦截记录完整上下文</h2>
+        </div>
+        <svg class="chevron" id="chevron-attr" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">模式 ID / 消费格式 / 契约版本 / 消费点</p>
+    </div>
+    <div class="collapsible-content" id="content-attr">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div class="code-block" style="font-size: 11px; padding: 10px; margin-bottom: 12px;">
+<pre># interception_log.yaml
+interception_id: "INT-20260712-001"
+
+# 归因维度
+pattern_id: "ERR-001"        # sub: retryable
+contract_version: "v1.1.0"
+consumer_format: "prompt_prefix"
+consumer_id: "prompt-err-gen"
+
+# 拦截内容
+detected_issue: "同义词降级"
+  input: "请求过于频繁，请稍后再试"
+  expected_token: "status.warning"
+  ai_output_color: "red"
+  violation: "retryable 错误使用了 status.critical 视觉"
+
+# 拦截动作
+action: "override + notify"
+  override_result: "将视觉修正为黄色 + 时钟图标"
+
+# 成本归因
+rewind_cost_model: "ERR-001-retryable"
+  estimated_savings: "2.5h"</pre>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; gap: 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+            <span class="text-micro" style="color: var(--primary); font-weight: 700; min-width: 100px; font-family: 'SF Mono', monospace;">pattern_id</span>
+            <span class="text-micro" style="color: var(--text-secondary);">被触发的漂移模式（ERR-001 / ACT-001 等）</span>
+          </div>
+          <div style="display: flex; gap: 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+            <span class="text-micro" style="color: var(--primary); font-weight: 700; min-width: 100px; font-family: 'SF Mono', monospace;">contract_version</span>
+            <span class="text-micro" style="color: var(--text-secondary);">拦截时生效的契约版本</span>
+          </div>
+          <div style="display: flex; gap: 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+            <span class="text-micro" style="color: var(--primary); font-weight: 700; min-width: 100px; font-family: 'SF Mono', monospace;">consumer_format</span>
+            <span class="text-micro" style="color: var(--text-secondary);">拦截由哪种消费格式触发</span>
+          </div>
+          <div style="display: flex; gap: 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+            <span class="text-micro" style="color: var(--primary); font-weight: 700; min-width: 100px; font-family: 'SF Mono', monospace;">consumer_id</span>
+            <span class="text-micro" style="color: var(--text-secondary);">具体消费点，定位责任边界</span>
+          </div>
+          <div style="display: flex; gap: 10px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+            <span class="text-micro" style="color: var(--primary); font-weight: 700; min-width: 100px; font-family: 'SF Mono', monospace;">rewind_cost</span>
+            <span class="text-micro" style="color: var(--text-secondary);">按模式定义的单次返工成本</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 返工成本模型 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('cost')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #52c41a, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">2</div>
+          <h2 class="text-h3">返工成本模型</h2>
+        </div>
+        <svg class="chevron" id="chevron-cost" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">按模式定义：拦截一次 = 避免多少返工</p>
+    </div>
+    <div class="collapsible-content" id="content-cost">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 6px;">ERR-001 · 错误状态后果差异未分级</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">设计返工 1.5h · 前端返工 1.0h · 测试返工 0.5h · 投诉处理 2.0h</p>
+            <p class="text-caption" style="color: #52c41a; font-weight: 700; margin-top: 4px;">单次返工成本：5.0h</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 6px;">ACT-001 · 高危操作风险未约束</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">设计返工 2.0h · 前端返工 1.5h · 测试返工 1.0h · 投诉处理 3.0h</p>
+            <p class="text-caption" style="color: #52c41a; font-weight: 700; margin-top: 4px;">单次返工成本：7.5h</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 6px;">ALR-001 · 告警文案语义降级</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">设计返工 0.5h · 前端返工 0.2h · 测试返工 0.3h · 投诉处理 1.0h</p>
+            <p class="text-caption" style="color: #52c41a; font-weight: 700; margin-top: 4px;">单次返工成本：2.0h</p>
+          </div>
+        </div>
+        <div class="code-block" style="font-size: 11px; padding: 10px;">
+<pre># cost_models.yaml
+rewind_cost_models:
+  ERR-001: { total: "5.0h" }   # 1.5+1.0+0.5+2.0
+  ACT-001: { total: "7.5h" }   # 2.0+1.5+1.0+3.0
+  ALR-001: { total: "2.0h" }   # 0.5+0.2+0.3+1.0
+  BND-001: { total: "3.8h" }   # 1.0+0.8+0.5+1.5
+  PRO-001: { total: "3.4h" }   # 1.2+0.8+0.4+1.0</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 拦截统计看板 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('stats')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #52c41a, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">3</div>
+          <h2 class="text-h3">拦截统计看板</h2>
+        </div>
+        <svg class="chevron" id="chevron-stats" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">按月 / 按模式 / 按消费格式统计</p>
+    </div>
+    <div class="collapsible-content" id="content-stats">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #52c41a;">127</p>
+            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">本月拦截次数</p>
+          </div>
+          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #4a9eff;">486h</p>
+            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">避免返工总时长</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #f5a623;">94%</p>
+            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">拦截准确率</p>
+          </div>
+          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: var(--text-primary);">6%</p>
+            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">误拦截率</p>
+          </div>
+        </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">按模式归因（本月）· 左右滑动</p>
+        <div class="table-scroll" style="margin-bottom: 14px;">
+          <table class="mobile-table" style="min-width: 520px;">
+            <thead>
+              <tr><th>模式</th><th>拦截次数</th><th>单次成本</th><th>总避免成本</th><th>主要消费格式</th></tr>
+            </thead>
+            <tbody>
+              <tr><td style="color: #cf1322; font-weight: 700;">ERR-001</td><td>48</td><td>5.0h</td><td style="color: #52c41a; font-weight: 700;">240h</td><td>prompt 60% / ci 40%</td></tr>
+              <tr><td style="color: #ff4d4f; font-weight: 700;">ACT-001</td><td>23</td><td>7.5h</td><td style="color: #52c41a; font-weight: 700;">172.5h</td><td>ci 70% / checklist 30%</td></tr>
+              <tr><td style="color: #f5a623; font-weight: 700;">ALR-001</td><td>31</td><td>2.0h</td><td style="color: #52c41a; font-weight: 700;">62h</td><td>prompt 90% / ci 10%</td></tr>
+              <tr><td style="color: #4a9eff; font-weight: 700;">BND-001</td><td>15</td><td>3.8h</td><td style="color: #52c41a; font-weight: 700;">57h</td><td>prompt 80% / schema 20%</td></tr>
+              <tr><td style="color: #a855f7; font-weight: 700;">PRO-001</td><td>10</td><td>3.4h</td><td style="color: #52c41a; font-weight: 700;">34h</td><td>prompt 100%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">按消费格式归因（本月）</p>
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Prompt 前缀</p>
+            <p class="text-h1" style="color: #4a9eff; margin: 4px 0 2px;">78</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">次拦截 · 避免 312h</p>
+          </div>
+          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">CI 规则</p>
+            <p class="text-h1" style="color: #f5a623; margin: 4px 0 2px;">35</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">次拦截 · 避免 140h</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Checklist</p>
+            <p class="text-h1" style="color: #6abe4a; margin: 4px 0 2px;">12</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">次拦截 · 避免 30h</p>
+          </div>
+          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">JSON Schema</p>
+            <p class="text-h1" style="color: #a855f7; margin: 4px 0 2px;">2</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">次拦截 · 避免 4h</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROI 推演 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('roi')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #52c41a, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">4</div>
+          <h2 class="text-h3">ROI 推演：契约投入 vs 拦截收益</h2>
+        </div>
+        <svg class="chevron" id="chevron-roi" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">可量化的价值证据</p>
+    </div>
+    <div class="collapsible-content" id="content-roi">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 10px;">投入成本（月度）</p>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between;"><span class="text-caption" style="color: var(--text-secondary);">契约编写与维护</span><span class="text-caption" style="color: var(--text-primary); font-weight: 600;">40h</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-caption" style="color: var(--text-secondary);">编译管线运维</span><span class="text-caption" style="color: var(--text-primary); font-weight: 600;">20h</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-caption" style="color: var(--text-secondary);">消费点接入</span><span class="text-caption" style="color: var(--text-primary); font-weight: 600;">30h</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-caption" style="color: var(--text-secondary);">对账与告警响应</span><span class="text-caption" style="color: var(--text-primary); font-weight: 600;">10h</span></div>
+            <div style="border-top: 1px solid var(--border); padding-top: 8px; display: flex; justify-content: space-between;"><span class="text-caption" style="color: var(--text-primary); font-weight: 700;">总投入</span><span class="text-caption" style="color: #f5a623; font-weight: 700;">100h</span></div>
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px;">
+          <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 10px;">拦截收益（月度）</p>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between;"><span class="text-caption" style="color: var(--text-secondary);">避免设计返工</span><span class="text-caption" style="color: #52c41a; font-weight: 600;">180h</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-caption" style="color: var(--text-secondary);">避免前端返工</span><span class="text-caption" style="color: #52c41a; font-weight: 600;">120h</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-caption" style="color: var(--text-secondary);">避免测试返工</span><span class="text-caption" style="color: #52c41a; font-weight: 600;">60h</span></div>
+            <div style="display: flex; justify-content: space-between;"><span class="text-caption" style="color: var(--text-secondary);">避免用户投诉处理</span><span class="text-caption" style="color: #52c41a; font-weight: 600;">126h</span></div>
+            <div style="border-top: 1px solid var(--border); padding-top: 8px; display: flex; justify-content: space-between;"><span class="text-caption" style="color: var(--text-primary); font-weight: 700;">总收益</span><span class="text-caption" style="color: #52c41a; font-weight: 700;">486h</span></div>
+          </div>
+        </div>
+        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: var(--radius-sm); padding: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span class="text-h3">ROI = 收益 / 投入</span>
+            <span style="font-size: 24px; font-weight: 800; color: #52c41a;">4.86x</span>
+          </div>
+          <p class="text-caption" style="color: var(--text-secondary);">每投入 1 小时维护契约体系，避免 4.86 小时返工成本——还未计入品牌声誉、用户流失等难量化收益。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-h3" style="margin-bottom: 4px;">契约消费追踪闭环完成</p>
+      <p class="text-caption" style="color: var(--text-secondary);">消费点注册 → 对账告警 → 拦截归因 → 收益量化。契约版本与下游消费面，机器自动对齐。</p>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- 底部 Tab 导航 -->
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='./pipeline.html'">
+    <div class="nav-icon">📐</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='./case_artifact_diff.html'">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item active">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">验证</div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

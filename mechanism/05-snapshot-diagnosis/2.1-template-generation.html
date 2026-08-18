@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 2.1 模板生成</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .field-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: start;
+    gap: 12px;
+  }
+  .field-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: rgba(22,119,255,0.15);
+    border: 1px solid rgba(22,119,255,0.3);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .field-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+  .field-type {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    font-family: 'SF Mono', monospace;
+  }
+  .field-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  .field-required {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+    font-weight: 700;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .compare-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    flex: 1;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-pass {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-fail {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: 2.1 模板生成 ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">快照模板</span>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">2.1 模板生成</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>快照模板 · 2.1 模板生成</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">空白模板能保证结构完整吗？ <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Template Generation</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        快照是整条证据链的源头。如果快照字段缺失、标注不含语义，后续的模式匹配、契约生成都会建立在错误的地基上。<br>
+        空白模板通过强制 6 字段结构，从源头守住质量。
+      </p>
+    </div>
+
+    <!-- 核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">6 字段强制结构</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">空白模板预设 6 个必填字段，任何字段缺失时提交按钮禁用</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">字段类型约束</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">每个字段有明确的类型和取值范围，自由文本被限制在特定槽位内</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">机器可消费</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">结构化快照可直接被模式匹配引擎消费，无需二次解析自然语言</p>
+      </div>
+    </div>
+
+    <!-- 对比：自由文本 vs 6 字段模板 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">≠</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">对比：自由文本记录 vs 6 字段结构化模板</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">同样的界面偏差，两种记录方式的质量差异</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- 自由文本（反例） -->
+        <div class="compare-card" style="border-left: 3px solid #cf1322;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">✕ 自由文本</span>
+            <span class="status-pill status-fail">不可机器消费</span>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+            <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; font-style: italic;">
+              "用户反馈说报错页面的红色太刺眼了，而且文案写得让人很慌，不知道该怎么办。建议改得温和一点，或者加个重试按钮。"
+            </p>
+          </div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>❌ 组件类型不明：是 Alert？Modal？Toast？</div>
+            <div>❌ 视觉特征缺失：红色是哪种红？脉冲还是静态？</div>
+            <div>❌ 文案未记录：原文案是什么？</div>
+            <div>❌ 交互未记录：是否有重试按钮？当前有没有？</div>
+            <div>❌ 场景未记录：什么错误？什么上下文？</div>
+            <div>❌ 偏差未量化："太刺眼"无法被机器解析</div>
+          </div>
+        </div>
+
+        <!-- 6 字段模板（正例） -->
+        <div class="compare-card" style="border-left: 3px solid #52c41a;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 6 字段模板</span>
+            <span class="status-pill status-pass">可直接消费</span>
+          </div>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "component_type": "Alert",
+  "visual": {
+    "color": "red",
+    "background": "solid",
+    "icon": "warning"
+  },
+  "copy": {
+    "title": "Error",
+    "description": "Something went wrong",
+    "tone": "urgent"
+  },
+  "interaction": {
+    "dismissible": true,
+    "actions": ["retry"]
+  },
+  "context": "system_error",
+  "deviation": {
+    "type": "severity_undifferentiated",
+    "severity": "retryable",
+    "current_visual": "red_solid",
+    "expected_visual": "yellow_static"
+  }
+}</pre>
+          </div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>✓ 组件类型：Alert（明确）</div>
+            <div>✓ 视觉特征：红色实心 + 警告图标（可匹配）</div>
+            <div>✓ 文案内容：标题 + 描述 + 语气（可比对）</div>
+            <div>✓ 交互特征：可关闭 + 重试操作（可校验）</div>
+            <div>✓ 使用场景：系统错误（可分类）</div>
+            <div>✓ 偏差描述：类型 + 级别 + 当前/预期（可量化）</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6 字段空白模板详解 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">6</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">6 字段空白模板</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">每个字段必填、类型约束、缺失时提交阻断</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <div class="field-card">
+          <div class="field-number">1</div>
+          <div style="flex: 1;">
+            <div class="field-name">component_type <span class="field-type">string · enum</span></div>
+            <div class="field-desc">组件类型：Alert / Button / Modal / Progress / Toast / Stepper</div>
+          </div>
+          <span class="field-required">必填</span>
+        </div>
+        <div class="field-card">
+          <div class="field-number">2</div>
+          <div style="flex: 1;">
+            <div class="field-name">visual <span class="field-type">object</span></div>
+            <div class="field-desc">视觉特征：color_token / background / icon_token / motion_token</div>
+          </div>
+          <span class="field-required">必填</span>
+        </div>
+        <div class="field-card">
+          <div class="field-number">3</div>
+          <div style="flex: 1;">
+            <div class="field-name">copy <span class="field-type">object</span></div>
+            <div class="field-desc">文案内容：title / description / tone / language</div>
+          </div>
+          <span class="field-required">必填</span>
+        </div>
+        <div class="field-card">
+          <div class="field-number">4</div>
+          <div style="flex: 1;">
+            <div class="field-name">interaction <span class="field-type">object</span></div>
+            <div class="field-desc">交互特征：dismissible / actions / disabled / loading</div>
+          </div>
+          <span class="field-required">必填</span>
+        </div>
+        <div class="field-card">
+          <div class="field-number">5</div>
+          <div style="flex: 1;">
+            <div class="field-name">context <span class="field-type">string · enum</span></div>
+            <div class="field-desc">使用场景：system_error / user_action / notification / onboarding</div>
+          </div>
+          <span class="field-required">必填</span>
+        </div>
+        <div class="field-card">
+          <div class="field-number">6</div>
+          <div style="flex: 1;">
+            <div class="field-name">deviation <span class="field-type">object</span></div>
+            <div class="field-desc">偏差描述：type / severity / current_value / expected_value / evidence_screenshot</div>
+          </div>
+          <span class="field-required">必填</span>
+        </div>
+      </div>
+
+      <!-- 字段缺失阻断演示 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">字段缺失阻断演示</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "component_type": "Alert",
+  "visual": { "color": "red" },
+  "copy": { "title": "Error" },
+  "interaction": { "dismissible": true },
+  "context": "system_error"
+  // ❌ deviation 字段缺失
+}</pre>
+            </div>
+          </div>
+          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 13px; color: #cf1322; font-weight: 700; margin-bottom: 8px;">[提交阻断] snapshot-field-missing</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px;">必填字段缺失：deviation</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 4px;">缺失字段数：1 / 6</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">操作：提交按钮已禁用，请补全偏差描述</p>
+            <div style="margin-top: 10px; padding: 8px 12px; background: rgba(207,19,34,0.1); border-radius: 6px;">
+              <p style="font-size: 12px; color: #cf1322; font-weight: 600;">✕ 无法入库 · 结构不完整</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 结构完整性验证 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✓</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">结构完整性验证</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">空白模板 + 字段校验 = 源头质量第一关</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">6</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">强制字段数</div>
+          <div style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">全部必填</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">0</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">可选字段</div>
+          <div style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">无模糊地带</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">100%</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">结构完整率</div>
+          <div style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">提交即完整</div>
+        </div>
+      </div>
+
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">验证结论</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          空白模板通过强制 6 字段结构，确保每条快照在提交时即具备完整的语义描述能力。<br>
+          字段缺失时提交按钮禁用，从源头杜绝了"半条记录入库"的风险。<br>
+          <span style="color: #52c41a; font-weight: 700;">这证明了：空白模板能保证结构完整。</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">结构完整只是第一步，内容可信吗？</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">下一步：语义智能体预填与降级机制 → 验证草稿可信度</p>
+      </div>
+      <a href="./2.2-智能预填与降级.html" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        2.2 智能预填与降级 →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 四层推演机制</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 8000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; gap: 2px; }
+  .nav-item .nav-caret { font-size: 8px; opacity: 0.7; }
+  .sheet-mask { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.55); opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+  .sheet-mask.open { opacity: 1; pointer-events: auto; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 301; background: var(--card-bg); border-top: 1px solid var(--border-light); border-radius: 16px 16px 0 0; padding: 8px 16px calc(16px + var(--safe-bottom)); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .sheet.open { transform: translateY(0); }
+  .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border-light); margin: 6px auto 12px; }
+  .sheet-title { font-size: 13px; font-weight: 700; color: var(--text-tertiary); text-align: center; margin-bottom: 10px; }
+  .sheet-option { display: flex; align-items: center; gap: 12px; padding: 14px 12px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); margin-bottom: 8px; cursor: pointer; transition: all 0.15s ease; }
+  .sheet-option:active { transform: scale(0.98); border-color: var(--border-light); }
+  .sheet-option.current { border-color: rgba(22,119,255,0.4); background: rgba(22,119,255,0.06); }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .scroll-hint { display: flex; justify-content: center; gap: 4px; margin-top: 10px; }
+  .scroll-hint-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); transition: background 0.3s ease, transform 0.3s ease; }
+  .scroll-hint-dot.active { background: var(--primary); transform: scale(1.3); }
+  .h-scroll { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 2px 4px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
+  .h-scroll::-webkit-scrollbar { display: none; }
+  .h-scroll > * { flex-shrink: 0; }
+  .h-card { width: 230px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .h-card:active { transform: scale(0.97); }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code 生成中拦截层 · ⑥</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">四层推演机制</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Four-Layer Inference</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">把语义漂移拆成四层逐步定位：语法 → 语义 → 安全 → 美感</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 导语 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        不是等生成完了人眼走查，是在<span style="color: var(--text-primary); font-weight: 700;">生成过程中逐层拦截</span>。逐层校验、逐层短路，契约有效性从"祈祷"变成"可证"。
+      </p>
+    </div>
+  </div>
+
+  <!-- 三个核心命题（横向滑动） -->
+  <div style="margin: 16px 0;">
+    <div class="h-scroll" id="prop-scroll">
+      <div class="h-card" style="width: 220px; border-left: 3px solid var(--primary);">
+        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 13px; font-weight: 800; margin-bottom: 10px;">1</div>
+        <h3 class="text-h3" style="margin-bottom: 6px;">生成中拦截成本最低</h3>
+        <p class="text-caption" style="color: var(--text-secondary);">事后走查覆盖率仅 ~20%；生成中拦截在产出前阻断，修复成本趋近于零</p>
+      </div>
+      <div class="h-card" style="width: 220px; border-left: 3px solid #a855f7;">
+        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); display: flex; align-items: center; justify-content: center; color: #a855f7; font-size: 13px; font-weight: 800; margin-bottom: 10px;">2</div>
+        <h3 class="text-h3" style="margin-bottom: 6px;">逐层短路、逐层定位</h3>
+        <p class="text-caption" style="color: var(--text-secondary);">上层阻断则下层跳过；断裂点定位到具体契约条款</p>
+      </div>
+      <div class="h-card" style="width: 220px; border-left: 3px solid #52c41a;">
+        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(82,196,26,0.15); border: 1px solid rgba(82,196,26,0.3); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 13px; font-weight: 800; margin-bottom: 10px;">3</div>
+        <h3 class="text-h3" style="margin-bottom: 6px;">对抗用例即回归资产</h3>
+        <p class="text-caption" style="color: var(--text-secondary);">契约变更后全量重跑，拦截能力只升不降</p>
+      </div>
+    </div>
+    <div class="scroll-hint" id="prop-hint">
+      <div class="scroll-hint-dot active"></div>
+      <div class="scroll-hint-dot"></div>
+      <div class="scroll-hint-dot"></div>
+    </div>
+  </div>
+
+  <!-- 三种校验时机对比 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('timing')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">?</div>
+          <h2 class="text-h2">语义校验何时成本最低？</h2>
+        </div>
+        <svg class="chevron" id="chevron-timing" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">事后走查 / Prompt 祈祷 / 生成中拦截</p>
+    </div>
+    <div class="collapsible-content" id="content-timing">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">❌ 事后走查</p>
+              <span class="badge badge-red">覆盖率 ~20%</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">修复成本高（已上线）· 定位精度低（"感觉不对"）· 语义错误漏到线上</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">⚠ Prompt 祈祷</p>
+              <span class="badge badge-amber">无法判定</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">修复成本中（生成后重试）· 无定位 · 违反了没人知道</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">✓ 生成中拦截</p>
+              <span class="badge badge-green">覆盖率 100%</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">逐层短路 · 修复成本趋近于零（产出前）· 定位精度：令牌级别 / boundary 条款</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 四层推演演示（拦截） -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('demo')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">4</div>
+          <h2 class="text-h2">四层推演演示：限流用了致命红</h2>
+        </div>
+        <svg class="chevron" id="chevron-demo" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">AI 生成快照 → 逐层校验、逐层短路</p>
+    </div>
+    <div class="collapsible-content" id="content-demo">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">输入：AI 生成组件语义快照</p>
+        <div class="code-block" style="font-size: 11px; padding: 10px; margin-bottom: 12px;">
+<pre>{
+  "component_type": "Alert",
+  "visual": {
+    "color": "red",        // ← 问题：限流用了致命红
+    "background": "solid",
+    "icon": "warning"
+  },
+  "copy": {
+    "title": "Error",
+    "description": "请求过于频繁，请稍后再试",
+    "tone": "urgent"
+  },
+  "interaction": {
+    "dismissible": true,
+    "actions": ["retry"]   // ← 问题：应"等待"而非"重试"
+  },
+  "context": "system_error"
+}</pre>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Layer 1 · 语法层</p>
+              <span class="badge badge-green">✓ 通过</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">JSON 结构完整，component_type / visual / copy / interaction / context 全部存在</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Layer 2 · 语义层</p>
+              <span class="badge badge-red">✕ 断裂</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">文案"请求过于频繁" → 匹配 ERR-001 (retryable)<br>契约要求 color_token = "status.warning"（黄色）<br>AI 输出 red → 映射到 status.critical（致命）<br><span style="color: #f5a623;">修正建议：color "red" → "yellow"</span></p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Layer 3 · 安全层</p>
+              <span class="badge badge-red">✕ 阻断</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">违反 immutable_boundaries.safety："禁止所有错误状态共用同一种红色"<br>用户后果：无法区分"限流"与"系统崩溃"<br><span style="color: #cf1322; font-weight: 700;">产出被拦截，PR 无法合并</span></p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; opacity: 0.65;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Layer 4 · 美感层</p>
+              <span class="badge badge-gray">— 未执行</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">安全层已阻断，美感层被短路跳过，节省计算</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 推演报告与修正 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('report')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">↻</div>
+          <h2 class="text-h2">推演报告 → 修正 → 全过</h2>
+        </div>
+        <svg class="chevron" id="chevron-report" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">断裂点定位到令牌级，修正指令可执行</p>
+    </div>
+    <div class="collapsible-content" id="content-report">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-label" style="color: #cf1322; margin-bottom: 6px;">断裂点 + 修正指令</p>
+        <div class="code-block" style="font-size: 11px; padding: 10px; margin-bottom: 12px;">
+<pre>断裂点：
+· 语义层 visual.color → retryable 映射 status.critical
+· 安全层 immutable_boundaries.safety → 红色共用
+· 契约条款 ERR-001.yaml · error_severity.retryable
+
+修正指令：
+· visual.color: "red" → "yellow"
+· visual.icon: "warning" → "clock"
+· interaction.actions: ["retry"] → ["wait", "upgrade"]
+· copy.title: "Error" → "Too Many Requests"</pre>
+        </div>
+        <p class="text-label" style="color: #52c41a; margin-bottom: 6px;">修正后重跑：四层全部通过</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L1 语法层 ✓</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">结构完整</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L2 语义层 ✓</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">retryable → warning</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L3 安全层 ✓</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">无红色共用</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L4 美感层 ✓</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">文案精度合格</p>
+          </div>
+        </div>
+        <p class="text-micro" style="color: #52c41a; font-weight: 600; margin-top: 8px;">✓ 产出允许发布 —— 契约有效性从"祈祷"变成"可证"</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 与 Prompt / CI 的关系 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('relation')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">↔</div>
+          <h2 class="text-h2">与 Prompt 前缀 / CI 的关系</h2>
+        </div>
+        <svg class="chevron" id="chevron-relation" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">三层校验互补，不是替代</p>
+    </div>
+    <div class="collapsible-content" id="content-relation">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: var(--surface); border: 1px solid rgba(22,119,255,0.3); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">上游 · Prompt 前缀注入</p>
+              <span class="badge badge-blue">预防</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">时机：生成前 · 降低违规概率 · 局限：无法判定结果是否遵守</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(168,85,247,0.3); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">中游 · 四层推演</p>
+              <span class="badge badge-purple">拦截</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">时机：生成中 · 逐层校验短路 · 优势：断裂点定位到令牌级别</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">下游 · CI 提交检查</p>
+              <span class="badge badge-amber">兜底</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">时机：提交后 · 静态规则校验 · 局限：修复成本高（已编码）</p>
+          </div>
+        </div>
+        <p class="text-micro" style="color: var(--text-tertiary); margin-top: 8px; line-height: 1.7;">Prompt 前缀是"预防针"，四层推演是"安检门"，CI 是"兜底网"。四层推演是唯一能在生成过程中判定结果是否遵守契约、并定位到具体断裂点的机制。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
+    <div style="padding: 16px;">
+      <p class="text-h3" style="margin-bottom: 4px; color: #52c41a;">契约有效性从"祈祷"变成"可证"</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">语法 → 语义 → 安全 → 美感，逐层校验、逐层短路。生成结果可被判定为符合或不符合契约，断裂点可定位到具体令牌级别。</p>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- 底部 Tab 导航 -->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="window.location.href='./deduction.html'">
+    <div class="nav-icon">📐</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='./case_grading.html'">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item" onclick="openSheet('sheet-verify')">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">验证 <span class="nav-caret">▲</span></div>
+  </div>
+</div>
+
+<!-- 上拉选择 Sheet -->
+<div class="sheet-mask" id="sheet-mask" onclick="closeSheets()"></div>
+<div class="sheet" id="sheet-verify">
+  <div class="sheet-handle"></div>
+  <p class="sheet-title">验证 · 选择页面</p>
+  <div class="sheet-option" onclick="window.location.href='./deduction_validation.html'">
+    <span style="font-size: 18px;">⚙️</span>
+    <div style="flex: 1;">
+      <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">⑥ 推演验证机制</p>
+      <p class="text-micro" style="color: var(--text-tertiary);">逐层正确性 / 对抗性回归 / 五步流水线与报告</p>
+    </div>
+  </div>
+  <div class="sheet-option" onclick="window.location.href='./grading_validation.html'">
+    <span style="font-size: 18px;">🎨</span>
+    <div style="flex: 1;">
+      <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">⑥ 分级验证机制</p>
+      <p class="text-micro" style="color: var(--text-tertiary);">分级正确性 / 版本对账 / 降级策略</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+function openSheet(id) {
+  closeSheets();
+  document.getElementById('sheet-mask').classList.add('open');
+  document.getElementById(id).classList.add('open');
+}
+function closeSheets() {
+  document.getElementById('sheet-mask').classList.remove('open');
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
+}
+function setupScrollIndicator(scrollId, hintId) {
+  const scroll = document.getElementById(scrollId); const hint = document.getElementById(hintId);
+  if (!scroll || !hint) return;
+  const dots = hint.querySelectorAll('.scroll-hint-dot'); const cards = scroll.children;
+  if (dots.length === 0 || cards.length === 0) return;
+  scroll.addEventListener('scroll', () => {
+    const scrollLeft = scroll.scrollLeft; const maxScroll = scroll.scrollWidth - scroll.clientWidth;
+    const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
+    const activeIndex = Math.min(Math.floor(progress * cards.length), dots.length - 1);
+    dots.forEach((dot, i) => { dot.classList.toggle('active', i === activeIndex); });
+  }, { passive: true });
+}
+document.addEventListener('DOMContentLoaded', () => { setupScrollIndicator('prop-scroll', 'prop-hint'); });
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

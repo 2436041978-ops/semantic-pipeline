@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 拦截统计与收益归因</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12;
+    --card-bg: #1a1a1e; --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65); --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e; --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text-primary); line-height: 1.6; font-size: 14px; -webkit-font-smoothing: antialiased; }
+  .top-nav { background: rgba(15,15,18,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; height: 64px; }
+  .top-nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 100%; }
+  .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--text-primary); cursor: pointer; }
+  .nav-brand-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #1677ff, #36cfc9); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800; }
+  .nav-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 0; }
+  .nav-center a { padding: 0 16px; height: 64px; display: flex; align-items: center; color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 600; transition: color 0.3s; position: relative; cursor: pointer; white-space: nowrap; }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active { color: var(--primary); font-weight: 700; }
+  .nav-center a.active::after { content: ''; position: absolute; bottom: 0; left: 16px; right: 16px; height: 2px; background: var(--primary); border-radius: 2px 2px 0 0; }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav-github { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.3s; }
+  .nav-github:hover { border-color: var(--primary); color: var(--primary); }
+  .cards-section { max-width: 1200px; margin: 0 auto; padding: 100px 24px 60px; }
+  .yaml-block { background: #0d0d0d; border-radius: 8px; padding: 16px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; }
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+  .footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; background: var(--bg); }
+  .footer-links { display: flex; gap: 28px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .footer-links a { color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.3s; cursor: pointer; font-weight: 600; }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy { font-size: 14px; color: var(--text-tertiary); font-weight: 500; }
+  @media (max-width: 1024px) { .nav-center { display: none; } }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: 2.3 拦截统计与收益归因 ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">拦截统计与收益归因</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>契约消费追踪 · 2.3 拦截统计与收益归因</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">拦截统计与收益归因 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Impact Attribution</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        消费追踪的终点不是"用了"，而是"用了之后拦住了什么、值多少"。<br>
+        按模式 ID / 消费格式 / 契约版本归因，按返工成本模型推演收益。
+      </p>
+    </div>
+
+    <!-- 三个核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">拦截可被归因</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">每次拦截记录模式 ID、消费格式、契约版本、消费点，形成可追溯的归因链</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">返工成本可量化</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">按模式定义返工成本模型：设计返工 + 前端返工 + 测试返工 + 用户投诉处理</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">价值可被推演</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">拦截价值 = 拦截次数 × 单次返工成本，形成可量化的 ROI 证据</p>
+      </div>
+    </div>
+
+    <!-- Step 1: 拦截归因 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">1</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">拦截归因：每次拦截记录完整上下文</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Interception Attribution · 模式 ID / 消费格式 / 契约版本 / 消费点</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">拦截日志示例</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;"># interception_log.yaml
+interception_id: "INT-20260712-001"
+timestamp: "2026-07-12T13:42:18Z"
+
+# 归因维度
+pattern_id: "ERR-001"
+  sub_pattern: "retryable"
+contract_version: "v1.1.0"
+consumer_format: "prompt_prefix"
+consumer_id: "prompt-err-gen"
+
+# 拦截内容
+detected_issue: "同义词降级"
+  input: "请求过于频繁，请稍后再试"
+  expected_token: "status.warning"
+  ai_output_color: "red"
+  violation: "retryable 错误使用了 status.critical 视觉"
+
+# 拦截动作
+action: "override + notify"
+  override_result: "将视觉修正为黄色 + 时钟图标"
+  notification_sent: true
+
+# 成本归因
+rewind_cost_model: "ERR-001-retryable"
+  estimated_savings: "2.5h"</pre>
+          </div>
+        </div>
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">归因维度说明</p>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: start; gap: 10px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 6px;">
+              <span style="font-size: 12px; color: var(--primary); font-weight: 700; min-width: 100px;">pattern_id</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">被触发的漂移模式（ERR-001 / ACT-001 等）</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 6px;">
+              <span style="font-size: 12px; color: var(--primary); font-weight: 700; min-width: 100px;">contract_version</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">拦截时生效的契约版本</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 6px;">
+              <span style="font-size: 12px; color: var(--primary); font-weight: 700; min-width: 100px;">consumer_format</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">拦截由哪种消费格式触发（prompt / ci / checklist / schema）</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 6px;">
+              <span style="font-size: 12px; color: var(--primary); font-weight: 700; min-width: 100px;">consumer_id</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">具体消费点，用于定位责任边界</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 6px;">
+              <span style="font-size: 12px; color: var(--primary); font-weight: 700; min-width: 100px;">rewind_cost</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">按模式定义的单次返工成本</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: 返工成本模型 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">2</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">返工成本模型</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Rewind Cost Model · 按模式定义拦截一次 = 避免多少返工</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">ERR-001 · 错误状态后果差异未分级</p>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+            <div>设计返工：1.5h（重新分级视觉）</div>
+            <div>前端返工：1.0h（调整颜色映射）</div>
+            <div>测试返工：0.5h（补充边界用例）</div>
+            <div>用户投诉处理：2.0h</div>
+          </div>
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+            <p style="font-size: 14px; font-weight: 700; color: #52c41a;">单次返工成本：5.0h</p>
+          </div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">ACT-001 · 高危操作风险未约束</p>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+            <div>设计返工：2.0h（重新设计确认流程）</div>
+            <div>前端返工：1.5h（实现二次确认）</div>
+            <div>测试返工：1.0h（安全测试）</div>
+            <div>用户投诉处理：3.0h</div>
+          </div>
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+            <p style="font-size: 14px; font-weight: 700; color: #52c41a;">单次返工成本：7.5h</p>
+          </div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">ALR-001 · 告警文案语义降级</p>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+            <div>设计返工：0.5h（文案修正）</div>
+            <div>前端返工：0.2h（无需代码变更）</div>
+            <div>测试返工：0.3h（文案校验）</div>
+            <div>用户投诉处理：1.0h</div>
+          </div>
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+            <p style="font-size: 14px; font-weight: 700; color: #52c41a;">单次返工成本：2.0h</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;"># cost_models.yaml
+rewind_cost_models:
+  ERR-001:
+    design: "1.5h"
+    frontend: "1.0h"
+    test: "0.5h"
+    support: "2.0h"
+    total: "5.0h"
+
+  ACT-001:
+    design: "2.0h"
+    frontend: "1.5h"
+    test: "1.0h"
+    support: "3.0h"
+    total: "7.5h"
+
+  ALR-001:
+    design: "0.5h"
+    frontend: "0.2h"
+    test: "0.3h"
+    support: "1.0h"
+    total: "2.0h"
+
+  BND-001:
+    design: "1.0h"
+    frontend: "0.8h"
+    test: "0.5h"
+    support: "1.5h"
+    total: "3.8h"
+
+  PRO-001:
+    design: "1.2h"
+    frontend: "0.8h"
+    test: "0.4h"
+    support: "1.0h"
+    total: "3.4h"</pre>
+      </div>
+    </div>
+
+    <!-- Step 3: 拦截统计看板 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">3</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">拦截统计看板</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Interception Dashboard · 按月/按模式/按消费格式统计</p>
+        </div>
+      </div>
+
+      <!-- 核心指标 -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">127</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">本月拦截次数</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: #4a9eff; margin-bottom: 4px;">486h</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">避免返工总时长</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: #f5a623; margin-bottom: 4px;">94%</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">拦截准确率</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">6%</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">误拦截率</div>
+        </div>
+      </div>
+
+      <!-- 按模式归因 -->
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">按模式归因（本月）</p>
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: 100px 80px 100px 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">模式</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">拦截次数</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">单次成本</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">总避免成本</div>
+          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary);">主要消费格式</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 100px 80px 100px 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 700; border-right: 1px solid var(--border);">ERR-001</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">48</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">5.0h</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 700; border-right: 1px solid var(--border);">240h</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">prompt_prefix (60%) / ci_rule (40%)</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 100px 80px 100px 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #ff4d4f; font-weight: 700; border-right: 1px solid var(--border);">ACT-001</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">23</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">7.5h</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 700; border-right: 1px solid var(--border);">172.5h</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">ci_rule (70%) / checklist (30%)</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 100px 80px 100px 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #f5a623; font-weight: 700; border-right: 1px solid var(--border);">ALR-001</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">31</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">2.0h</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 700; border-right: 1px solid var(--border);">62h</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">prompt_prefix (90%) / ci_rule (10%)</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 100px 80px 100px 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
+          <div style="padding: 10px 12px; font-size: 12px; color: #4a9eff; font-weight: 700; border-right: 1px solid var(--border);">BND-001</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">15</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">3.8h</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 700; border-right: 1px solid var(--border);">57h</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">prompt_prefix (80%) / json_schema (20%)</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 100px 80px 100px 100px 1fr; gap: 0;">
+          <div style="padding: 10px 12px; font-size: 12px; color: #a855f7; font-weight: 700; border-right: 1px solid var(--border);">PRO-001</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">10</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">3.4h</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 700; border-right: 1px solid var(--border);">34h</div>
+          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500;">prompt_prefix (100%)</div>
+        </div>
+      </div>
+
+      <!-- 按消费格式归因 -->
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">按消费格式归因（本月）</p>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Prompt 前缀</p>
+          <div style="font-size: 24px; font-weight: 800; color: #4a9eff; margin-bottom: 4px;">78</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">次拦截</div>
+          <div style="margin-top: 8px; font-size: 13px; color: #52c41a; font-weight: 600;">避免返工：312h</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">CI 规则</p>
+          <div style="font-size: 24px; font-weight: 800; color: #f5a623; margin-bottom: 4px;">35</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">次拦截</div>
+          <div style="margin-top: 8px; font-size: 13px; color: #52c41a; font-weight: 600;">避免返工：140h</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Checklist</p>
+          <div style="font-size: 24px; font-weight: 800; color: #6abe4a; margin-bottom: 4px;">12</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">次拦截</div>
+          <div style="margin-top: 8px; font-size: 13px; color: #52c41a; font-weight: 600;">避免返工：30h</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">JSON Schema</p>
+          <div style="font-size: 24px; font-weight: 800; color: #a855f7; margin-bottom: 4px;">2</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">次拦截</div>
+          <div style="margin-top: 8px; font-size: 13px; color: #52c41a; font-weight: 600;">避免返工：4h</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: ROI 推演 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">4</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">ROI 推演：契约投入 vs 拦截收益</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Return on Investment · 可量化的价值证据</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">投入成本（月度）</p>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">契约编写与维护</span>
+              <span style="font-size: 13px; color: var(--text-primary); font-weight: 600;">40h</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">编译管线运维</span>
+              <span style="font-size: 13px; color: var(--text-primary); font-weight: 600;">20h</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">消费点接入</span>
+              <span style="font-size: 13px; color: var(--text-primary); font-weight: 600;">30h</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">对账与告警响应</span>
+              <span style="font-size: 13px; color: var(--text-primary); font-weight: 600;">10h</span>
+            </div>
+            <div style="margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">总投入</span>
+              <span style="font-size: 14px; font-weight: 700; color: #f5a623;">100h</span>
+            </div>
+          </div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">拦截收益（月度）</p>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">避免设计返工</span>
+              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">180h</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">避免前端返工</span>
+              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">120h</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">避免测试返工</span>
+              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">60h</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">避免用户投诉处理</span>
+              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">126h</span>
+            </div>
+            <div style="margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">总收益</span>
+              <span style="font-size: 14px; font-weight: 700; color: #52c41a;">486h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 16px; font-weight: 700; color: var(--text-primary);">ROI = 收益 / 投入</span>
+          <span style="font-size: 28px; font-weight: 800; color: #52c41a;">4.86x</span>
+        </div>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">每投入 1 小时维护契约体系，避免 4.86 小时的返工成本。这还未计入品牌声誉损失、用户流失等难以量化的收益。</p>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">契约消费追踪闭环完成</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">消费点注册 → 对账告警 → 拦截归因 → 收益量化</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

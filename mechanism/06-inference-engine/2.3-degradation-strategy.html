@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 降级策略验证</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .severity-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .severity-retryable { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-active {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-pending {
+    background: rgba(212,136,6,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(212,136,6,0.3);
+  }
+
+  .trace-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .trace-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
+  }
+  .trace-dot.consumed { background: #52c41a; box-shadow: 0 0 0 3px rgba(82,196,26,0.2); }
+  .trace-dot.pending { background: #f5a623; }
+  .trace-dot.error { background: #cf1322; }
+  .trace-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .trace-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: VALIDATION TOOLKIT - CLASSIFIER ==================== -->
+<div class="page active" id="page-verify">
+  <div class="cards-section" style="padding-top: 80px;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Validation Toolkit</span>
+    </div>
+
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">验证实验室 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Validation Toolkit</span></h1>
+    <p style="font-size: 15px; color: var(--text-secondary); margin-bottom: 32px; font-weight: 500;">三层验证工具：语义分级器 · JSON 输入 · 快照模板。证明"加了规则后有效"。</p>
+
+    <!-- Toolkit Tabs -->
+    <div style="display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;">
+      <button style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--primary); background: none; border: none; border-bottom: 2px solid var(--primary); cursor: pointer; transition: all 0.2s;">🎨 语义分级器</button>
+      <button style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s;">📋 JSON 输入</button>
+      <button style="padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s;">📄 快照模板</button>
+    </div>
+
+    <!-- 语义分级器 Tab Content -->
+    <div style="display: block;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px;">
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; font-weight: 500;">输入任意错误文案，自动诊断语义分级并给出约束建议。用于快速判断一个错误提示属于哪一级 severity。</p>
+        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+          <input type="text" value="请求过于频繁，请稍后再试" readonly style="flex: 1; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; font-weight: 500; outline: none;">
+          <button style="padding: 10px 20px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer;">语义分级</button>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+          <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">快速测试：</span>
+          <button style="padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;">Error in message stream</button>
+          <button style="padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;">network error</button>
+          <button style="padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;">请求过于频繁</button>
+          <button style="padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;">Something went wrong</button>
+        </div>
+
+        <!-- 语义分级结果 -->
+        <div style="display: block;">
+          <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: start; gap: 12px;">
+              <span class="severity-badge severity-retryable">RETRYABLE</span>
+              <div>
+                <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">限流/流控，用户可自助恢复</p>
+                <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">建议视觉：黄色提示 + 时钟图标</p>
+                <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">用户行动：等待倒计时 / 升级套餐</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-left: 3px solid #ff4d4f; border-radius: var(--radius); padding: 16px;">
+              <p style="font-size: 14px; color: #ff4d4f; font-weight: 700; margin-bottom: 8px;">当前界面（语义混乱）</p>
+              <div style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2); padding: 10px; border-radius: 6px;">
+                <p style="font-size: 14px; color: #ef4444; font-weight: 600;">请求过于频繁，请稍后再试</p>
+                <p style="font-size: 14px; color: var(--text-tertiary); margin-top: 4px; font-weight: 500;">❌ 用户不知道：这是刷新一下就好，还是对话已经丢了？</p>
+              </div>
+            </div>
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius); padding: 16px;">
+              <p style="font-size: 14px; color: #52c41a; font-weight: 700; margin-bottom: 8px;">语义分级后（约束显化）</p>
+              <div style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); padding: 10px; border-radius: 6px;">
+                <p style="font-size: 14px; color: #f5a623; font-weight: 700;">请求频率已达上限</p>
+                <p style="font-size: 14px; color: #f5a623; margin-top: 4px; font-weight: 500;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
+                <div style="display: flex; gap: 6px; margin-top: 8px;">
+                  <span style="font-size: 14px; background: #f59e0b; color: #1e1e1e; padding: 3px 8px; border-radius: 4px; font-weight: 600;">升级 Plus</span>
+                  <span style="font-size: 14px; border: 1px solid rgba(245,158,11,0.3); color: #f5a623; padding: 3px 8px; border-radius: 4px; font-weight: 600;">设置提醒</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">YAML 契约片段</span>
+              <button style="padding: 6px 14px; border-radius: 6px; background: var(--primary); color: #fff; font-size: 13px; font-weight: 600; border: none; cursor: pointer;">复制</button>
+            </div>
+            <div class="yaml-block">
+<pre style="white-space: pre-wrap; margin: 0;">error_severity:
+  retryable:
+    description: "请求频率已达上限"
+    visual_mapping:
+      color_token: "status.warning"
+      motion_token: "none"
+      icon_token: "clock"
+    user_action:
+      - label: "等待倒计时"
+        action: "wait_countdown"
+      - label: "升级套餐"
+        action: "upgrade"</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== 2.3 降级策略验证（新增）==================== -->
+        <div style="margin-top: 24px; padding: 24px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius);">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">2.3</div>
+            <div>
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">降级策略验证</h3>
+              <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">契约加载失败时怎么办？降级为字典查询，错误显化，禁止静默崩溃</p>
+            </div>
+            <div style="margin-left: auto;">
+              <span class="status-pill status-active">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+                验证通过
+              </span>
+            </div>
+          </div>
+
+          <!-- 核心命题 -->
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">验证命题</p>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;">
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+              <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">降级路径</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">契约加载失败 → 降级为字典静态查询（覆盖层 + 绑定 + 场景映射的只读浏览），分级功能关闭但字典可查</p>
+            </div>
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+              <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">错误显化</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">降级状态必须在界面显式标注，禁止静默降级——用户必须知道自己拿到的是完整分级还是降级查询</p>
+            </div>
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+              <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">失败判定</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">加载失败但界面无降级标识；降级模式下输出看似完整的分级结果 → 判定为验证失败</p>
+            </div>
+          </div>
+
+          <!-- 降级链路可视化 -->
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">降级执行链路：契约加载失败 → 字典静态查询</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+            <div class="trace-row" style="margin-bottom: 0; background: transparent; border: none; padding: 8px 0;">
+              <div class="trace-dot error"></div>
+              <div>
+                <p class="trace-label">契约加载失败</p>
+                <p class="trace-desc">ERR-001.yaml 文件缺失 / 解析错误 / 网络不可用</p>
+              </div>
+            </div>
+            <div style="width: 2px; height: 20px; background: var(--border); margin-left: 20px;"></div>
+            <div class="trace-row" style="margin-bottom: 0; background: transparent; border: none; padding: 8px 0;">
+              <div class="trace-dot pending"></div>
+              <div>
+                <p class="trace-label">触发降级策略</p>
+                <p class="trace-desc">自动切换为字典静态查询模式（覆盖层 + 绑定 + 场景映射只读浏览）</p>
+              </div>
+            </div>
+            <div style="width: 2px; height: 20px; background: var(--border); margin-left: 20px;"></div>
+            <div class="trace-row" style="margin-bottom: 0; background: transparent; border: none; padding: 8px 0;">
+              <div class="trace-dot pending"></div>
+              <div>
+                <p class="trace-label">界面显式标注降级状态</p>
+                <p class="trace-desc">"当前为降级模式：契约未加载，仅字典查询可用"</p>
+              </div>
+            </div>
+            <div style="width: 2px; height: 20px; background: var(--border); margin-left: 20px;"></div>
+            <div class="trace-row" style="margin-bottom: 0; background: transparent; border: none; padding: 8px 0;">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">字典查询可用</p>
+                <p class="trace-desc">用户可浏览覆盖层目录、语义绑定、场景映射，但分级功能关闭</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 正常模式 vs 降级模式对比 -->
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">正常模式 vs 降级模式对比</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+            <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span class="status-pill status-active">
+                  <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+                  正常模式
+                </span>
+              </div>
+              <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 8px;">契约加载成功</p>
+              <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 契约已加载</span>
+                  <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">ERR-001 v1.1.0</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+                  • 语义分级器：完整功能<br>
+                  • 输入场景 → 自动匹配级别<br>
+                  • 输出约束组合 + 视觉映射<br>
+                  • 版本对账正常
+                </p>
+              </div>
+              <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px; padding: 10px;">
+                <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 完整分级能力可用</p>
+              </div>
+            </div>
+
+            <div style="background: #16161a; border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span class="status-pill status-pending">
+                  <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>
+                  降级模式
+                </span>
+              </div>
+              <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 8px;">契约加载失败</p>
+              <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">⚠ 契约未加载</span>
+                  <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">降级为字典查询</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+                  • 语义分级器：功能关闭<br>
+                  • 字典查询：覆盖层 / 绑定 / 场景<br>
+                  • 仅只读浏览，无自动匹配<br>
+                  • 显式标注降级状态
+                </p>
+              </div>
+              <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 6px; padding: 10px;">
+                <p style="font-size: 12px; color: #f5a623; font-weight: 600;">⚠ 降级模式：字典可查，分级关闭</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 错误显化演示 -->
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">错误显化：降级状态必须显式标注</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+              <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 10px;">正确做法（✓ 显式标注）</p>
+              <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.3); border-radius: 6px; padding: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">⚠ 降级模式</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+                  当前为降级模式：契约未加载，仅字典查询可用。<br>
+                  语义分级功能已关闭。您可浏览覆盖层目录和场景映射，但无法执行自动分级。
+                </p>
+              </div>
+            </div>
+
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+              <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 10px;">错误做法（✕ 静默降级）</p>
+              <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; padding: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">✕ 验证失败</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+                  界面无任何降级标识，但分级结果基于过期/缺失的契约。<br>
+                  用户误以为拿到的是完整分级，实际可能是错误答案。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 演示环境说明 -->
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">演示环境说明</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-bottom: 12px;">
+              演示环境为纯前端静态站点（无后端依赖），契约本地加载。<br>
+              降级路径即为字典只读模式——当本地契约文件不可用时，系统自动切换为字典查询界面。
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+              <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; text-align: center;">
+                <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">契约加载</p>
+                <p style="font-size: 14px; color: var(--text-primary); font-weight: 700;">本地 YAML</p>
+              </div>
+              <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; text-align: center;">
+                <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">失败触发</p>
+                <p style="font-size: 14px; color: #f5a623; font-weight: 700;">文件缺失</p>
+              </div>
+              <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; text-align: center;">
+                <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">降级目标</p>
+                <p style="font-size: 14px; color: #4a9eff; font-weight: 700;">字典只读</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 生产推演 -->
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">生产环境推演</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <div class="trace-row">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">降级触发次数纳入可观测日志</p>
+                <p class="trace-desc">记录：谁、何时、因何触发降级（契约文件缺失 / 解析失败 / 网络不可用）</p>
+              </div>
+            </div>
+            <div class="trace-row">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">连续降级触发告警</p>
+                <p class="trace-desc">同一消费方连续 3 次降级 → 自动告警 → 通知契约库管理员</p>
+              </div>
+            </div>
+            <div class="trace-row">
+              <div class="trace-dot consumed"></div>
+              <div>
+                <p class="trace-label">降级恢复自动通知</p>
+                <p class="trace-desc">契约恢复加载后 → 自动通知相关消费方 → 分级功能恢复</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 验证结论 -->
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">验证结论</p>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+              演示环境为纯前端静态站点，契约本地加载，降级路径已验证：<br>
+              • 契约加载失败时自动触发降级 ✓<br>
+              • 降级为字典静态查询（覆盖层 + 绑定 + 场景映射）✓<br>
+              • 降级状态在界面显式标注 ✓<br>
+              • 禁止静默降级，用户明确知晓当前模式 ✓<br><br>
+              <span style="color: #52c41a; font-weight: 700;">降级策略验证通过：契约加载失败时不静默崩溃，降级仍有价值。</span>
+            </p>
+          </div>
+        </div>
+        <!-- ==================== /2.3 降级策略 ==================== -->
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

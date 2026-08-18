@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 模式卡片：四层结构化归档</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .layer-badge {
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+
+  .before-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    opacity: 0.7;
+  }
+  .after-card {
+    background: var(--card-bg);
+    border: 1px solid rgba(22,119,255,0.3);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 50px 140px 1fr 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .field-row.header {
+    background: #16161a;
+  }
+  .field-cell {
+    padding: 12px 14px;
+    font-size: 13px;
+    border-right: 1px solid var(--border);
+  }
+  .field-cell:last-child {
+    border-right: none;
+  }
+
+  .cost-bar {
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline" class="active">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: PATTERN CARD ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">模式卡片</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 模式层 · ⑤ 模式卡片：诊断不是写报告，是四层结构化归档</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">模式卡片 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Pattern Card</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        诊断出来的语义漂移，写成散点案例和写成模式卡片，到底有什么实际差别？<br>
+        不是"有没有记录"，而是"记录了什么结构，让机器和人都能复用"。
+      </p>
+    </div>
+
+    <!-- 三个核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">复用成本差异</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">散点案例：每次从零诊断 2 小时。模式卡片：引用确认 10 分钟。</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">6 字段解决 4 项不可见</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">不可检索、不可复用、不可演进、不可度量 → 结构化后全部解决。</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">诊断→修复全链路</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">pattern_id 与 intent_id 一一对应，诊断、契约、验证可追溯。</p>
+      </div>
+    </div>
+
+    <!-- ==================== Before / After 并排对比 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">≠</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">同一次语义漂移，两种记录方式</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">ERR-001：错误状态后果差异未分级</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- Before -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Before · 散点案例</p>
+
+          <div class="before-card" style="margin-bottom: 10px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 6px;">形态 A：截图文件夹</p>
+            <div style="font-family: 'SF Mono', monospace; font-size: 12px; color: var(--text-secondary); line-height: 1.8;">
+              <div>/走查记录/</div>
+              <div>ChatGPT_错误状态_红色混乱.png</div>
+              <div>文心一言_连接断开_红色.png</div>
+              <div>Kimi_429_红色.png</div>
+              <div>DeepSeek_服务异常_红色.png</div>
+            </div>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 8px;">❌ 文件名即全部信息，没有根因、没有修复路径</p>
+          </div>
+
+          <div class="before-card" style="margin-bottom: 10px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 6px;">形态 B：Excel 表格</p>
+            <div style="background: #0d0d0d; border-radius: 6px; padding: 10px; font-size: 11px; font-family: 'SF Mono', monospace; color: var(--text-secondary); line-height: 1.8;">
+              <div>产品 │ 组件 │ 问题描述 │ 优先级</div>
+              <div>ChatGPT │ 错误状态 │ 四种错误共用红色 │ P1</div>
+              <div>文心一言 │ 错误状态 │ 连接断开用红色 │ P2</div>
+              <div>Kimi │ 错误状态 │ 429 用红色 │ P2</div>
+            </div>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 8px;">❌ "问题描述"只有现象，没有根因+后果，检索不出来</p>
+          </div>
+
+          <div class="before-card">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 6px;">形态 C：语雀文档片段</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">"ChatGPT 的四种错误状态共用同一种红色，用户无法判断后果严重程度。文心一言和 Kimi 也有类似问题。建议错误状态分级显示。"</p>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 8px;">❌ 对人可读，对机器不可查；没有 pattern_id，没有与令牌表绑定</p>
+          </div>
+        </div>
+
+        <!-- After -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">After · 模式卡片</p>
+
+          <div class="after-card">
+            <div class="yaml-block" style="font-size: 12px; padding: 14px;">
+<pre style="white-space: pre-wrap; margin: 0;">pattern_id: "ERR-001"
+component_type: "错误状态"
+name: "后果差异未分级"
+description: |
+  症状：流式中断 / 网络故障 / 限流 / 服务异常
+        四种错误同红
+  根因：缺少 error_severity 语义令牌
+        前端只接收 isError = true 布尔值
+  后果：用户无法判断后果严重程度
+        不知道该刷新还是等待
+preview: "patterns/ERR-001/preview.png"
+evidence:
+  - "ChatGPT"
+  - "文心一言"
+  - "通义千问"
+  - "Kimi"
+  - "DeepSeek"</pre>
+            </div>
+            <div style="margin-top: 12px;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+                <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ pattern_id：精确指向，跨产品关联</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+                <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ component_type：标准化枚举，机器可检索</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+                <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ description：现象+根因+后果，机器可判定</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+                <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ evidence：5 个产品，覆盖度可统计</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 四层结构化归档 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">4</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">四层结构化归档</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Pattern Card Layer · 从散点记录到组织资产的四层跃迁</p>
+        </div>
+      </div>
+
+      <!-- Layer 1 -->
+      <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+        <div style="width: 40px; flex-shrink: 0; text-align: center;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 12px; font-weight: 800; margin: 0 auto;">L1</div>
+          <div style="width: 2px; height: calc(100% - 32px); background: var(--border); margin: 8px auto 0;"></div>
+        </div>
+        <div style="flex: 1; background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">第一层：标识与分类</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">pattern_id + component_type · 让记录可引用、可检索</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">pattern_id</p>
+              <p style="font-size: 13px; color: var(--text-primary); font-weight: 600; font-family: 'SF Mono', monospace;">ERR-001</p>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 精确指向，跨产品关联</p>
+            </div>
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">component_type</p>
+              <p style="font-size: 13px; color: var(--text-primary); font-weight: 600;">错误状态</p>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 标准化枚举，机器可检索</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer 2 -->
+      <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+        <div style="width: 40px; flex-shrink: 0; text-align: center;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); display: flex; align-items: center; justify-content: center; color: #a855f7; font-size: 12px; font-weight: 800; margin: 0 auto;">L2</div>
+          <div style="width: 2px; height: calc(100% - 32px); background: var(--border); margin: 8px auto 0;"></div>
+        </div>
+        <div style="flex: 1; background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">第二层：语义描述</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">name + description · 让机器可判定两条记录是否同一模式</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">name</p>
+              <p style="font-size: 13px; color: var(--text-primary); font-weight: 600;">后果差异未分级</p>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 一句话说清断层本质</p>
+            </div>
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">description</p>
+              <p style="font-size: 12px; color: var(--text-primary); font-weight: 500; line-height: 1.6;">症状+根因+后果<br>结构化描述</p>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 机器可判定同一模式</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer 3 -->
+      <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+        <div style="width: 40px; flex-shrink: 0; text-align: center;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; color: #f5a623; font-size: 12px; font-weight: 800; margin: 0 auto;">L3</div>
+          <div style="width: 2px; height: calc(100% - 32px); background: var(--border); margin: 8px auto 0;"></div>
+        </div>
+        <div style="flex: 1; background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">第三层：证据归档</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">preview + evidence · 统一证据入口，覆盖度可追踪</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">preview</p>
+              <p style="font-size: 13px; color: var(--text-primary); font-weight: 500; font-family: 'SF Mono', monospace;">patterns/ERR-001/preview.png</p>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 统一证据入口</p>
+            </div>
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">evidence</p>
+              <p style="font-size: 12px; color: var(--text-primary); font-weight: 500; line-height: 1.6;">ChatGPT / 文心一言<br>通义千问 / Kimi / DeepSeek</p>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 5 个产品，覆盖度可统计</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer 4 -->
+      <div style="display: flex; gap: 16px;">
+        <div style="width: 40px; flex-shrink: 0; text-align: center;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(82,196,26,0.15); border: 1px solid rgba(82,196,26,0.3); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 12px; font-weight: 800; margin: 0 auto;">L4</div>
+        </div>
+        <div style="flex: 1; background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">第四层：契约绑定</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">pattern_id ↔ intent_id · 诊断→修复→验证全链路可追溯</p>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 2px;">模式卡片</p>
+              <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; font-family: 'SF Mono', monospace;">ERR-001</p>
+            </div>
+            <div style="font-size: 20px; color: var(--primary); font-weight: 800;">→</div>
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 2px;">YAML 契约</p>
+              <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; font-family: 'SF Mono', monospace;">intent: ERR-001</p>
+            </div>
+            <div style="font-size: 20px; color: var(--primary); font-weight: 800;">→</div>
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px;">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 2px;">编译输出</p>
+              <p style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Prompt / Schema / CI</p>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 10px;">✓ 诊断→契约→验证全链路可追溯，不是"写完了就完事"</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 6 字段逐字段对照表 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">6</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">6 字段逐字段差异对照</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">每个字段解决了散点案例的什么具体痛点</p>
+        </div>
+      </div>
+
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+        <div class="field-row header">
+          <div class="field-cell" style="font-weight: 700; color: var(--text-tertiary);">#</div>
+          <div class="field-cell" style="font-weight: 700; color: var(--text-tertiary);">字段</div>
+          <div class="field-cell" style="font-weight: 700; color: var(--text-tertiary);">Before（散点案例痛点）</div>
+          <div class="field-cell" style="font-weight: 700; color: var(--text-tertiary);">After（模式卡片解决）</div>
+          <div class="field-cell" style="font-weight: 700; color: var(--text-tertiary);">带来的能力</div>
+        </div>
+        <div class="field-row">
+          <div class="field-cell" style="color: var(--text-tertiary); font-weight: 600;">1</div>
+          <div class="field-cell" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">pattern_id</div>
+          <div class="field-cell" style="color: var(--text-secondary);">文件名：ChatGPT_错误状态_红色混乱.png<br>没有唯一标识，无法关联同一根因</div>
+          <div class="field-cell" style="color: var(--text-primary); font-weight: 500;">ERR-001<br>精确指向</div>
+          <div class="field-cell" style="color: #52c41a; font-weight: 600;">跨产品关联<br>复用时直接引用</div>
+        </div>
+        <div class="field-row">
+          <div class="field-cell" style="color: var(--text-tertiary); font-weight: 600;">2</div>
+          <div class="field-cell" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">component_type</div>
+          <div class="field-cell" style="color: var(--text-secondary);">Excel 列"组件"，值可能是"错误状态"也可能是"报错"<br>没有标准化分类</div>
+          <div class="field-cell" style="color: var(--text-primary); font-weight: 500;">"错误状态"<br>标准化枚举</div>
+          <div class="field-cell" style="color: #52c41a; font-weight: 600;">机器可检索<br>人可复用诊断经验</div>
+        </div>
+        <div class="field-row">
+          <div class="field-cell" style="color: var(--text-tertiary); font-weight: 600;">3</div>
+          <div class="field-cell" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">name</div>
+          <div class="field-cell" style="color: var(--text-secondary);">无命名，或"红色混乱"<br>无法口头引用，无团队共同语言</div>
+          <div class="field-cell" style="color: var(--text-primary); font-weight: 500;">"后果差异未分级"<br>一句话说清断层本质</div>
+          <div class="field-cell" style="color: #52c41a; font-weight: 600;">团队沟通有共同语言<br>建立模式库厚度</div>
+        </div>
+        <div class="field-row">
+          <div class="field-cell" style="color: var(--text-tertiary); font-weight: 600;">4</div>
+          <div class="field-cell" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">description</div>
+          <div class="field-cell" style="color: var(--text-secondary);">"四种错误共用红色"<br>只有现象，没有根因+后果</div>
+          <div class="field-cell" style="color: var(--text-primary); font-weight: 500;">症状+根因+后果<br>结构化描述</div>
+          <div class="field-cell" style="color: #52c41a; font-weight: 600;">机器可判定同一模式<br>判断两条记录是否同一根因</div>
+        </div>
+        <div class="field-row">
+          <div class="field-cell" style="color: var(--text-tertiary); font-weight: 600;">5</div>
+          <div class="field-cell" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">preview</div>
+          <div class="field-cell" style="color: var(--text-secondary);">截图分散在文件夹/Excel/文档中<br>没有统一入口，新人找不到</div>
+          <div class="field-cell" style="color: var(--text-primary); font-weight: 500;">patterns/ERR-001/preview.png<br>统一路径</div>
+          <div class="field-cell" style="color: #52c41a; font-weight: 600;">模式卡片即证据索引<br>统一入口</div>
+        </div>
+        <div class="field-row" style="border-bottom: none;">
+          <div class="field-cell" style="color: var(--text-tertiary); font-weight: 600;">6</div>
+          <div class="field-cell" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">evidence</div>
+          <div class="field-cell" style="color: var(--text-secondary);">无结构化产品列表<br>不知道哪些产品已验证、哪些待补充</div>
+          <div class="field-cell" style="color: var(--text-primary); font-weight: 500;">["ChatGPT","文心一言",<br>"通义千问","Kimi","DeepSeek"]</div>
+          <div class="field-cell" style="color: #52c41a; font-weight: 600;">机器可追踪覆盖度<br>自动提醒待验证产品</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 复用成本量化对比 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">⏱</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">复用成本量化对比</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">设计师 B 遇到文心一言的红色混乱，两种记录方式的实际成本</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">散点案例 · 2 小时</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <div style="margin-bottom: 12px;">
+              <div class="cost-bar" style="background: rgba(207,19,34,0.15); color: #cf1322; width: 100%;">2h 00min — 重新诊断</div>
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+              <div>1. 截图存档（5min）</div>
+              <div>2. 翻查历史记录，找不到同类问题（15min）</div>
+              <div>3. 重新分析根因：为什么是红色？（30min）</div>
+              <div>4. 写走查报告：现象+建议（40min）</div>
+              <div>5. 与前端沟通：该生成什么契约？（30min）</div>
+              <div>6. 等待前端理解并修复（20min）</div>
+            </div>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 10px;">❌ 每次从零开始，团队积累 100 个截图，无法统计</p>
+          </div>
+        </div>
+
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">模式卡片 · 10 分钟</p>
+          <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+            <div style="margin-bottom: 12px;">
+              <div class="cost-bar" style="background: rgba(82,196,26,0.15); color: #52c41a; width: 8%;">10min — 引用确认</div>
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+              <div>1. 检索模式库：component_type = "错误状态"（2min）</div>
+              <div>2. 找到 ERR-001，查看 description 确认同一根因（3min）</div>
+              <div>3. 检查 evidence 列表：文心一言已收录（1min）</div>
+              <div>4. 引用 ERR-001 契约模板，直接生成约束（3min）</div>
+              <div>5. 提交 PR，CI 自动校验（1min）</div>
+            </div>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 10px;">✓ 一次诊断，全团队复用。N 个产品 × M 个模式覆盖矩阵一目了然</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 组织资产厚度对比 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">📊</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">组织资产厚度对比</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">100 次走查后，两种记录方式积累的资产质量</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #cf1322; margin-bottom: 4px;">100</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">散点案例数</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">100 个截图/Excel行</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">6</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">模式卡片数</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">6 个漂移模式</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #cf1322; margin-bottom: 4px;">0%</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">散点覆盖率</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">无法统计</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">83%</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">模式覆盖率</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">5/6 产品 × 6 模式</div>
+        </div>
+      </div>
+
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">关键差异</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+          散点案例的"详细化"是信息层面的——多写几个字、多截几张图。<br>
+          模式卡片的"结构化"是资产层面的——增加 pattern_id 让记录可引用，增加 component_type 让记录可检索，增加 evidence 让覆盖度可统计。<br><br>
+          <span style="color: #52c41a; font-weight: 700;">这些结构让一次诊断变成组织级可复用资产。</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">诊断不是"写完了就完事"，是组织资产的增厚</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">模式卡片横跨 Guard → Contract → Verify 三阶段，诊断→修复→验证全链路可追溯</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

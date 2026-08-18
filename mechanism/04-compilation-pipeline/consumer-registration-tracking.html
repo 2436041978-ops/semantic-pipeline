@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 消费点注册与追踪</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12;
+    --card-bg: #1a1a1e; --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65); --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e; --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text-primary); line-height: 1.6; font-size: 14px; -webkit-font-smoothing: antialiased; }
+  .top-nav { background: rgba(15,15,18,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; height: 64px; }
+  .top-nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 100%; }
+  .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--text-primary); cursor: pointer; }
+  .nav-brand-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #1677ff, #36cfc9); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800; }
+  .nav-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 0; }
+  .nav-center a { padding: 0 16px; height: 64px; display: flex; align-items: center; color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 600; transition: color 0.3s; position: relative; cursor: pointer; white-space: nowrap; }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active { color: var(--primary); font-weight: 700; }
+  .nav-center a.active::after { content: ''; position: absolute; bottom: 0; left: 16px; right: 16px; height: 2px; background: var(--primary); border-radius: 2px 2px 0 0; }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav-github { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.3s; }
+  .nav-github:hover { border-color: var(--primary); color: var(--primary); }
+  .cards-section { max-width: 1200px; margin: 0 auto; padding: 100px 24px 60px; }
+  .yaml-block { background: #0d0d0d; border-radius: 8px; padding: 16px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; }
+  .severity-badge { font-size: 12px; padding: 2px 8px; border-radius: 3px; font-weight: 700; text-transform: uppercase; }
+  .severity-fatal { background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; }
+  .severity-retryable { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
+  .severity-degraded { background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; }
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+  .status-active { background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); }
+  .status-pending { background: rgba(212,136,6,0.15); color: #f5a623; border: 1px solid rgba(212,136,6,0.3); }
+  .status-inactive { background: #1e1e22; color: #666; border: 1px solid #2a2a2e; }
+  .trace-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; background: #16161a; border: 1px solid var(--border); margin-bottom: 8px; }
+  .trace-connector { width: 2px; height: 24px; background: var(--border); margin-left: 20px; }
+  .trace-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+  .trace-dot.consumed { background: #52c41a; box-shadow: 0 0 0 3px rgba(82,196,26,0.2); }
+  .trace-dot.pending { background: #f5a623; }
+  .trace-dot.inactive { background: #666; }
+  .trace-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .trace-desc { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+  .footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; background: var(--bg); }
+  .footer-links { display: flex; gap: 28px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .footer-links a { color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.3s; cursor: pointer; font-weight: 600; }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy { font-size: 14px; color: var(--text-tertiary); font-weight: 500; }
+  @media (max-width: 1024px) { .nav-center { display: none; } }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: 2.1 消费点注册与追踪 ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">消费点注册与追踪</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>契约消费追踪 · 2.1 消费点注册与追踪</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">消费点注册与追踪 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Consumer Registry</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        YAML 契约编译为 4 种消费格式分发出去之后，谁在消费、消费了什么版本？<br>
+        不是人查文档，而是机器自动追踪：每个消费点在注册时声明自己消费什么契约、什么版本、什么格式。
+      </p>
+    </div>
+
+    <!-- 三个核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">消费点必须注册</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">每个 Prompt 前缀、组件校验器、CI 规则在接入时必须声明消费契约 ID、版本、格式</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">版本声明嵌在产物头部</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">编译管线在每种消费格式头部自动嵌入版本声明，消费点加载时上报版本号</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">消费状态实时看板</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">追踪每个契约被哪些消费点引用、消费了什么版本、最后一次消费时间戳</p>
+      </div>
+    </div>
+
+    <!-- Step 1: 契约编译与版本声明 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">1</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">契约编译：产物头部嵌好版本声明</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Compile Pipeline · 一份 YAML → 4 种格式，每种头部自动嵌入版本</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">输入：ERR-001.yaml</p>
+          <div class="yaml-block" style="font-size: 12px; max-height: 200px;">
+<pre style="white-space: pre-wrap; margin: 0;">intent_id: "ERR-001"
+version: "v1.1.0"
+semantic_domain: "observational"
+
+semantic_tokens:
+  error_severity:
+    fatal: { ... }
+    transient: { ... }
+    retryable: { ... }
+    degraded: { ... }</pre>
+          </div>
+        </div>
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">输出：4 种消费格式（头部嵌版本）</p>
+          <div class="yaml-block" style="font-size: 11px; max-height: 200px;">
+<pre style="white-space: pre-wrap; margin: 0;"># === compiled/prompt/err-001.prompt ===
+# @contract: ERR-001
+# @version: v1.1.0
+# @format: prompt_prefix
+# @compiled_at: 2026-07-12T13:40:00Z
+
+在生成错误状态界面时，必须遵守...
+
+# === compiled/schema/err-001.schema.json ===
+{
+  "_meta": {
+    "contract": "ERR-001",
+    "version": "v1.1.0",
+    "format": "json_schema"
+  }
+}
+
+# === compiled/checklist/err-001.checklist.md ===
+<!-- @contract: ERR-001 -->
+<!-- @version: v1.1.0 -->
+<!-- @format: checklist -->
+
+# === compiled/ci/err-001.stylelint.js ===
+// @contract: ERR-001
+// @version: v1.1.0
+// @format: ci_rule</pre>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 12px 16px;">
+        <p style="font-size: 13px; color: #52c41a; font-weight: 600;">✓ 编译管线自动在每种格式头部嵌入版本声明，消费点加载时解析并上报</p>
+      </div>
+    </div>
+
+    <!-- Step 2: 消费点注册 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">2</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">消费点注册：声明消费什么契约</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Consumer Registration · 每个消费点接入时必须注册</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">消费点注册表</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">consumers:
+  - consumer_id: "prompt-err-gen"
+    name: "Error-State-Generator"
+    type: "prompt_prefix"
+    consumes:
+      - contract: "ERR-001"
+        format: "prompt_prefix"
+    registered_at: "2026-06-15T10:00:00Z"
+
+  - consumer_id: "ci-stylelint"
+    name: "Stylelint-Semantic-Plugin"
+    type: "ci_rule"
+    consumes:
+      - contract: "ERR-001"
+        format: "ci_rule"
+      - contract: "ACT-001"
+        format: "ci_rule"
+    registered_at: "2026-06-01T08:30:00Z"
+
+  - consumer_id: "comp-alert-val"
+    name: "Alert-Validator"
+    type: "component_validator"
+    consumes:
+      - contract: "ERR-001"
+        format: "json_schema"
+    registered_at: "2026-06-20T14:00:00Z"
+
+  - consumer_id: "designops-check"
+    name: "DesignOps-Checklist"
+    type: "checklist"
+    consumes:
+      - contract: "ERR-001"
+        format: "checklist"
+    registered_at: "2026-06-10T09:00:00Z"</pre>
+          </div>
+        </div>
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">注册字段说明</p>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: start; gap: 10px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 6px;">
+              <span style="font-size: 12px; color: var(--primary); font-weight: 700; min-width: 100px;">consumer_id</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">消费点唯一标识</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 6px;">
+              <span style="font-size: 12px; color: var(--primary); font-weight: 700; min-width: 100px;">type</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">消费格式类型（prompt/ci/checklist/schema）</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 6px;">
+              <span style="font-size: 12px; color: var(--primary); font-weight: 700; min-width: 100px;">consumes</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">声明消费的契约 ID 和格式</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 10px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 6px;">
+              <span style="font-size: 12px; color: var(--primary); font-weight: 700; min-width: 100px;">registered_at</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">注册时间戳，用于追踪接入时效</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: 消费状态看板 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">3</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">消费状态看板</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Consumption Dashboard · 实时追踪谁在消费、什么版本、什么时候</p>
+        </div>
+      </div>
+
+      <!-- 契约 ERR-001 的消费追踪 -->
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">契约 ERR-001 · v1.1.0 消费追踪</p>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div>
+          <div class="trace-row">
+            <div class="trace-dot consumed"></div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                <span class="trace-label">Error-State-Generator</span>
+                <span class="status-pill status-active" style="padding: 2px 8px; font-size: 11px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #52c41a;"></span>活跃</span>
+              </div>
+              <p class="trace-desc">Prompt 前缀 · 消费格式: prompt_prefix</p>
+              <p class="trace-desc">消费版本: v1.1.0 · 最后上报: 2 分钟前</p>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 版本一致</p>
+            </div>
+          </div>
+          <div class="trace-connector"></div>
+
+          <div class="trace-row">
+            <div class="trace-dot consumed"></div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                <span class="trace-label">Stylelint-Semantic-Plugin</span>
+                <span class="status-pill status-active" style="padding: 2px 8px; font-size: 11px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #52c41a;"></span>活跃</span>
+              </div>
+              <p class="trace-desc">CI 规则 · 消费格式: ci_rule</p>
+              <p class="trace-desc">消费版本: v1.1.0 · 最后上报: 5 分钟前</p>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 版本一致</p>
+            </div>
+          </div>
+          <div class="trace-connector"></div>
+
+          <div class="trace-row">
+            <div class="trace-dot consumed"></div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                <span class="trace-label">Alert-Validator</span>
+                <span class="status-pill status-active" style="padding: 2px 8px; font-size: 11px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #52c41a;"></span>活跃</span>
+              </div>
+              <p class="trace-desc">组件校验器 · 消费格式: json_schema</p>
+              <p class="trace-desc">消费版本: v1.1.0 · 最后上报: 1 小时前</p>
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 版本一致</p>
+            </div>
+          </div>
+          <div class="trace-connector"></div>
+
+          <div class="trace-row">
+            <div class="trace-dot pending"></div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                <span class="trace-label">DesignOps-Checklist</span>
+                <span class="status-pill status-pending" style="padding: 2px 8px; font-size: 11px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #f5a623;"></span>滞后</span>
+              </div>
+              <p class="trace-desc">Checklist · 消费格式: checklist</p>
+              <p class="trace-desc">消费版本: v1.0.0（当前: v1.1.0）· 最后上报: 30 天前</p>
+              <p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-top: 4px;">⚠ 版本滞后 · 零消费风险</p>
+            </div>
+          </div>
+          <div class="trace-connector"></div>
+
+          <div class="trace-row">
+            <div class="trace-dot inactive"></div>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                <span class="trace-label">Boundary-Action-Generator</span>
+                <span class="status-pill status-inactive" style="padding: 2px 8px; font-size: 11px;"><span style="width: 5px; height: 5px; border-radius: 50%; background: #666;"></span>未注册</span>
+              </div>
+              <p class="trace-desc">Prompt 前缀 · 消费格式: prompt_prefix</p>
+              <p class="trace-desc">消费版本: — · 最后上报: —</p>
+              <p style="font-size: 12px; color: #666; font-weight: 600; margin-top: 4px;">✕ 未注册 · 未消费</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">覆盖率统计</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Prompt 前缀覆盖率</span>
+              <span style="font-size: 14px; font-weight: 700; color: #f5a623;">50%</span>
+            </div>
+            <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
+              <div style="width: 50%; height: 100%; background: #f5a623; border-radius: 100px;"></div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 6px;">1/2 个 Prompt 前缀已消费 ERR-001</p>
+          </div>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">CI 规则覆盖率</span>
+              <span style="font-size: 14px; font-weight: 700; color: #52c41a;">100%</span>
+            </div>
+            <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
+              <div style="width: 100%; height: 100%; background: #52c41a; border-radius: 100px;"></div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 6px;">1/1 个 CI 规则已消费 ERR-001</p>
+          </div>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">组件校验覆盖率</span>
+              <span style="font-size: 14px; font-weight: 700; color: #52c41a;">100%</span>
+            </div>
+            <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
+              <div style="width: 100%; height: 100%; background: #52c41a; border-radius: 100px;"></div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 6px;">1/1 个组件校验器已消费 ERR-001</p>
+          </div>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Checklist 覆盖率</span>
+              <span style="font-size: 14px; font-weight: 700; color: #f5a623;">0%</span>
+            </div>
+            <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
+              <div style="width: 0%; height: 100%; background: #f5a623; border-radius: 100px;"></div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 6px;">0/1 个 Checklist 已消费 ERR-001（v1.0.0 滞后）</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: 版本一致性验证 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">4</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">版本一致性验证</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Version Alignment · 消费点加载产物时解析头部版本号并上报</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">✓ 版本一致</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;"># 消费点上报日志
+consumer: "prompt-err-gen"
+contract: "ERR-001"
+loaded_version: "v1.1.0"      # ← 解析产物头部
+expected_version: "v1.1.0"    # ← 字典当前版本
+status: "aligned"
+reported_at: "2026-07-12T13:42:00Z"</pre>
+          </div>
+          <p style="font-size: 13px; color: #52c41a; font-weight: 600;">✓ 消费点加载的契约版本与字典当前版本一致</p>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: #f5a623; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">⚠ 版本滞后</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;"># 消费点上报日志
+consumer: "designops-check"
+contract: "ERR-001"
+loaded_version: "v1.0.0"      # ← 解析产物头部
+expected_version: "v1.1.0"    # ← 字典当前版本
+status: "stale"
+lag_days: 32
+reported_at: "2026-07-12T13:00:00Z"</pre>
+          </div>
+          <p style="font-size: 13px; color: #f5a623; font-weight: 600;">⚠ 消费点加载 v1.0.0，字典已更新至 v1.1.0，滞后 32 天</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">知道了谁在消费，下一步：发现消费滞后与断点</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">契约消费追踪 · 2.2 对账与告警</p>
+      </div>
+      <a href="./2.2-对账与告警.html" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        进入对账与告警 →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

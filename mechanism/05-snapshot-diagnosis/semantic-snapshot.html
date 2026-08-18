@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 语义快照</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .severity-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .severity-fatal { background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; }
+  .severity-retryable { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
+
+  .trace-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .trace-connector {
+    width: 2px;
+    height: 24px;
+    background: var(--border);
+    margin-left: 20px;
+  }
+  .trace-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
+  }
+  .trace-dot.consumed {
+    background: #52c41a;
+    box-shadow: 0 0 0 3px rgba(82,196,26,0.2);
+  }
+  .trace-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .trace-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .field-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s;
+  }
+  .field-card:hover {
+    border-color: #3a3a3e;
+  }
+  .field-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--primary);
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .field-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .field-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .evidence-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+
+  .cluster-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s;
+  }
+  .cluster-card:hover {
+    border-color: rgba(74,222,128,0.3);
+  }
+  .cluster-match {
+    border-color: rgba(74,222,128,0.3);
+    background: rgba(74,222,128,0.05);
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: SEMANTIC SNAPSHOT ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">语义快照</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 证据层 · ⑤ 语义快照</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">语义快照 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Semantic Snapshot</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        把"感觉不对"编码成机器可读的6字段证据。不走查完就忘，不截图发群三天沉底。<br>
+        6 个字段 → 结构化证据 → 模式聚类 → 诊断归档 → 规则复用。
+      </p>
+    </div>
+
+    <!-- 三个核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">证据不落库也能被检索</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">6字段结构化格式让截图+描述变成可检索、可对比、可聚类的机器可读证据</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">人的判断过程可结构化</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">从"视觉表达→语义表达→用户行动→LLM约束"四层推导，输出可归档的诊断报告</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">修复规则按模式复用</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">同类快照自动聚类到已知模式，新模式走评审入典，5条产品线不再各修一遍</p>
+      </div>
+    </div>
+
+    <!-- ==================== Step 1：6字段证据记录 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">1</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">6字段证据记录</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Evidence Capture · 把"感觉不对"编码成机器可读的结构</p>
+        </div>
+      </div>
+
+      <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; font-weight: 500;">
+        走查时发现：ChatGPT 报错"消息流中断"，全部红色，用户不知道是否该刷新。截图发群三天沉底——用6字段快照替代。
+      </p>
+
+      <!-- 6字段展示 -->
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div class="field-card">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div class="field-number">1</div>
+            <span class="field-name">component_type</span>
+          </div>
+          <p class="field-desc">组件类型：这个界面是什么组件？</p>
+          <div style="margin-top: 8px; padding: 8px 12px; background: #0d0d0d; border-radius: 6px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">error_state</div>
+        </div>
+
+        <div class="field-card">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div class="field-number">2</div>
+            <span class="field-name">visual_expression</span>
+          </div>
+          <p class="field-desc">视觉表达：看到了什么颜色、图标、动效？</p>
+          <div style="margin-top: 8px; padding: 8px 12px; background: #0d0d0d; border-radius: 6px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">
+            color: "red.500"<br>
+            background: "red.500/10"<br>
+            motion: "pulse"<br>
+            icon: "alert.octagon"
+          </div>
+        </div>
+
+        <div class="field-card">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div class="field-number">3</div>
+            <span class="field-name">semantic_expression</span>
+          </div>
+          <p class="field-desc">语义表达：系统声称什么？实际意味着什么？用户困惑什么？</p>
+          <div style="margin-top: 8px; padding: 8px 12px; background: #0d0d0d; border-radius: 6px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">
+            stated_meaning: "系统级故障"<br>
+            actual_meaning: "对话上下文可能丢失"<br>
+            user_confusion: "不知道是否该刷新"
+          </div>
+        </div>
+
+        <div class="field-card">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div class="field-number">4</div>
+            <span class="field-name">user_action</span>
+          </div>
+          <p class="field-desc">用户行动：提供了哪些操作？推荐哪个？清晰度如何？</p>
+          <div style="margin-top: 8px; padding: 8px 12px; background: #0d0d0d; border-radius: 6px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">
+            available_actions: ["刷新页面", "导出历史"]<br>
+            recommended_action: "刷新页面"<br>
+            action_clarity: "low"
+          </div>
+        </div>
+
+        <div class="field-card">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div class="field-number">5</div>
+            <span class="field-name">llm_constraints</span>
+          </div>
+          <p class="field-desc">LLM约束：违反了哪些契约约束？缺失了什么？</p>
+          <div style="margin-top: 8px; padding: 8px 12px; background: #0d0d0d; border-radius: 6px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">
+            violated_constraints: ["必须提供恢复路径"]<br>
+            missing_constraints: ["必须明确告知对话上下文可能已丢失"]
+          </div>
+        </div>
+
+        <div class="field-card">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div class="field-number">6</div>
+            <span class="field-name">screenshot_evidence</span>
+          </div>
+          <p class="field-desc">截图证据：截图URL、时间戳、产品来源</p>
+          <div style="margin-top: 8px; padding: 8px 12px; background: #0d0d0d; border-radius: 6px; font-family: 'SF Mono', monospace; font-size: 12px; color: #e5e5e5;">
+            url: "evidence/ERR-001-chatgpt.png"<br>
+            timestamp: "2026-07-15T09:23:00Z"<br>
+            product: "ChatGPT"
+          </div>
+        </div>
+      </div>
+
+      <!-- 完整快照 YAML -->
+      <div class="yaml-block">
+<pre style="white-space: pre-wrap; margin: 0;">snapshot_id: "SNAP-2026-0715-001"
+component_type: "error_state"
+
+visual_expression:
+  color: "red.500"
+  background: "red.500/10"
+  motion: "pulse"
+  icon: "alert.octagon"
+
+semantic_expression:
+  stated_meaning: "系统级故障"
+  actual_meaning: "对话上下文可能丢失"
+  user_confusion: "不知道是否该刷新"
+
+user_action:
+  available_actions: ["刷新页面", "导出历史"]
+  recommended_action: "刷新页面"
+  action_clarity: "low"
+
+llm_constraints:
+  violated_constraints: ["必须提供恢复路径"]
+  missing_constraints: ["必须明确告知对话上下文可能已丢失"]
+
+screenshot_evidence:
+  url: "evidence/ERR-001-chatgpt.png"
+  timestamp: "2026-07-15T09:23:00Z"
+  product: "ChatGPT"</pre>
+      </div>
+    </div>
+
+    <!-- ==================== Step 2：模式聚类 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">2</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">模式聚类</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Pattern Clustering · "这个不对"和"上周那个不对"是不是一类？</p>
+        </div>
+      </div>
+
+      <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; font-weight: 500;">
+        系统根据快照的 component_type + visual_expression.color + semantic_expression.user_confusion 自动聚类。
+      </p>
+
+      <!-- 聚类结果 -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div class="cluster-card cluster-match">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3);">✓ 匹配</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">ERR-001</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">错误状态后果差异未分级</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>component_type: error_state</div>
+            <div>color: red</div>
+            <div>confusion: "不知道多严重"</div>
+            <div style="color: #4ade80; margin-top: 4px;">匹配度: 94%</div>
+          </div>
+        </div>
+
+        <div class="cluster-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">~ 相似</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">ERR-002</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">错误恢复路径不明确</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>component_type: error_state</div>
+            <div>color: red</div>
+            <div>confusion: "不知道该做什么"</div>
+            <div style="color: #f5a623; margin-top: 4px;">匹配度: 67%</div>
+          </div>
+        </div>
+
+        <div class="cluster-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: #1e1e22; color: #666; border: 1px solid #2a2a2e;">✕ 不匹配</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">ACT-001</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">高危操作风险未约束</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>component_type: button</div>
+            <div>color: red</div>
+            <div>confusion: "点了会出大事吗"</div>
+            <div style="color: #666; margin-top: 4px;">匹配度: 23%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 聚类推导链路 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">聚类推导链路</p>
+        <div class="trace-row">
+          <div class="trace-dot consumed"></div>
+          <div>
+            <p class="trace-label">Step 1：提取特征向量</p>
+            <p class="trace-desc">component_type=error_state, color=red, motion=pulse, icon=octagon, confusion="刷新"</p>
+          </div>
+        </div>
+        <div class="trace-connector"></div>
+        <div class="trace-row">
+          <div class="trace-dot consumed"></div>
+          <div>
+            <p class="trace-label">Step 2：匹配模式库</p>
+            <p class="trace-desc">与 ERR-001（错误状态后果差异未分级）特征向量对比 → 相似度 94%</p>
+          </div>
+        </div>
+        <div class="trace-connector"></div>
+        <div class="trace-row">
+          <div class="trace-dot consumed"></div>
+          <div>
+            <p class="trace-label">Step 3：归入已知模式</p>
+            <p class="trace-desc">快照 SNAP-2026-0715-001 归入 ERR-001 模式簇，无需新建模式</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Step 3：诊断归档 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">3</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">诊断归档</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Diagnosis Archive · 输出可归档、可追溯的诊断报告</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">诊断报告</p>
+          <div class="yaml-block" style="font-size: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">diagnosis_id: "DIAG-2026-0715-001"
+snapshot_ref: "SNAP-2026-0715-001"
+pattern_match: "ERR-001"
+match_confidence: 0.94
+
+semantic_gap:
+  type: "consequence_undifferentiated"
+  description: "多种错误共用红色，用户无法判断后果严重程度"
+  severity: "high"
+
+root_cause:
+  missing_token: "error_severity"
+  design_intent: "按错误性质分级，用户知道多严重"
+  engineering_reality: "全部红色'Error'"
+
+recommended_fix:
+  contract_ref: "ERR-001.yaml"
+  action: "注入 error_severity 语义令牌"
+  visual_mapping:
+    fatal: "红色脉冲 + 八边形"
+    transient: "灰色加载 + 旋转"
+    retryable: "黄色提示 + 时钟"
+    degraded: "蓝色提示 + 信息"
+
+archive_status: "已归档至模式库 ERR-001 簇"
+review_required: false</pre>
+          </div>
+        </div>
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">模式簇统计</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <div style="margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">ERR-001 模式簇</span>
+                <span style="font-size: 14px; font-weight: 700; color: #4a9eff;">12 条快照</span>
+              </div>
+              <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
+                <div style="width: 80%; height: 100%; background: #4a9eff; border-radius: 100px;"></div>
+              </div>
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">来源：ChatGPT 4条 / 文心一言 3条 / 通义千问 3条 / Kimi 2条</p>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">已修复产品线</span>
+                <span style="font-size: 14px; font-weight: 700; color: #52c41a;">3/5</span>
+              </div>
+              <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
+                <div style="width: 60%; height: 100%; background: #52c41a; border-radius: 100px;"></div>
+              </div>
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">已修复：产品线A / 产品线B / 产品线C</p>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">待修复产品线</span>
+                <span style="font-size: 14px; font-weight: 700; color: #f5a623;">2/5</span>
+              </div>
+              <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
+                <div style="width: 40%; height: 100%; background: #f5a623; border-radius: 100px;"></div>
+              </div>
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">待修复：产品线D / 产品线E</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== Step 4：规则复用 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">4</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">规则复用</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Rule Reuse · 5条产品线不再各修一遍同类问题</p>
+        </div>
+      </div>
+
+      <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; font-weight: 500;">
+        ERR-001 契约已生成，编译为 4 种消费格式，分发至各产品线。新模式走评审入典，已知模式直接复用。
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 8px;">📝</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Prompt 前缀</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">注入 AI 会话</p>
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+            <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 已分发</span>
+          </div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 8px;">📋</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">JSON Schema</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">组件校验</p>
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+            <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 已分发</span>
+          </div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 8px;">✅</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Checklist</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">设计走查</p>
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+            <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 已分发</span>
+          </div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 8px;">⚙️</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">CI 规则</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">自动化拦截</p>
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+            <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 已分发</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 复用效果 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">复用效果统计</p>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div style="text-align: center; padding: 12px;">
+            <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">5→1</div>
+            <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">修复次数</div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">5条产品线各修一遍 → 1套规则复用5次</div>
+          </div>
+          <div style="text-align: center; padding: 12px;">
+            <div style="font-size: 32px; font-weight: 800; color: #4a9eff; margin-bottom: 4px;">12</div>
+            <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">归档快照</div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">归入 ERR-001 模式簇，可追溯</div>
+          </div>
+          <div style="text-align: center; padding: 12px;">
+            <div style="font-size: 32px; font-weight: 800; color: #f5a623; margin-bottom: 4px;">0</div>
+            <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">新建模式</div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">本次归入已知模式，无需评审入典</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">6字段 → 结构化证据 → 模式聚类 → 诊断归档 → 规则复用</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">语义快照是 Guard 阶段的证据层，让"感觉不对"变成机器可消费的诊断输入</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

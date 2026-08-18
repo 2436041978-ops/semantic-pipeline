@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 字段层差异</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 5000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .scroll-hint { display: flex; justify-content: center; gap: 4px; margin-top: 10px; }
+  .scroll-hint-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); transition: background 0.3s ease, transform 0.3s ease; }
+  .scroll-hint-dot.active { background: var(--primary); transform: scale(1.3); }
+  .h-scroll { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 2px 4px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
+  .h-scroll::-webkit-scrollbar { display: none; }
+  .h-scroll > * { flex-shrink: 0; }
+  .h-card { width: 230px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .h-card:active { transform: scale(0.97); }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .tag-miss { display: inline-flex; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); margin: 0 4px 4px 0; }
+  .tag-ok { display: inline-flex; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); margin: 0 4px 4px 0; }
+</style>
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code 语义编码层 · ③</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">字段层差异</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Field Layer Diff</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">颜色、文案、图标各自有独立的语义定义</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 导语 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        同样的设计意图，写成自然语言规范和写成 YAML 契约字段，到底有什么实际差别？不是"翻译格式"，是<span style="color: var(--text-primary); font-weight: 700;">"增加机器可执行结构"</span>。
+      </p>
+    </div>
+  </div>
+
+  <!-- 三个核心问题（横向滑动） -->
+  <div style="margin: 16px 0;">
+    <div class="h-scroll" id="q-scroll">
+      <div class="h-card" style="width: 220px; border-left: 3px solid #f5a623;">
+        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; color: #f5a623; font-size: 13px; font-weight: 800; margin-bottom: 10px;">?</div>
+        <h3 class="text-h3" style="margin-bottom: 6px;">机器能看懂规范吗？</h3>
+        <p class="text-caption" style="color: var(--text-secondary);">"严重的用红色"对机器只是文字，和"随便发挥"没有本质区别</p>
+      </div>
+      <div class="h-card" style="width: 220px; border-left: 3px solid var(--primary);">
+        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 13px; font-weight: 800; margin-bottom: 10px;">≠</div>
+        <h3 class="text-h3" style="margin-bottom: 6px;">自然语言 vs YAML 字段</h3>
+        <p class="text-caption" style="color: var(--text-secondary);">同样的意图两种形态，机器执行能力在代码层面可观测</p>
+      </div>
+      <div class="h-card" style="width: 220px; border-left: 3px solid #52c41a;">
+        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(82,196,26,0.15); border: 1px solid rgba(82,196,26,0.3); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 13px; font-weight: 800; margin-bottom: 10px;">✓</div>
+        <h3 class="text-h3" style="margin-bottom: 6px;">差别不可替代</h3>
+        <p class="text-caption" style="color: var(--text-secondary);">没有 YAML 字段结构，编译管线无法生成 Prompt/Schema/CI 规则</p>
+      </div>
+    </div>
+    <div class="scroll-hint" id="q-hint">
+      <div class="scroll-hint-dot active"></div>
+      <div class="scroll-hint-dot"></div>
+      <div class="scroll-hint-dot"></div>
+    </div>
+  </div>
+
+  <!-- Before / After -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('ba')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 800;">B/A</div>
+          <h2 class="text-h2">ERR-001 · Before / After</h2>
+        </div>
+        <svg class="chevron" id="chevron-ba" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">自然语言规范 vs YAML 契约字段</p>
+    </div>
+    <div class="collapsible-content" id="content-ba">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px;">
+          <span class="badge badge-amber" style="margin-bottom: 8px;">BEFORE · 自然语言规范</span>
+          <p class="text-caption" style="color: var(--text-secondary); font-style: italic; line-height: 1.8; margin: 8px 0;">
+            "错误状态要分级显示。严重的用红色，一般的用黄色，轻微的用灰色。文案要写清楚，让用户知道该做什么。高危操作要二次确认。"
+          </p>
+          <div>
+            <span class="tag-miss">❌ 机器不可执行</span>
+            <span class="tag-miss">❌ 无场景归属</span>
+            <span class="tag-miss">❌ 无行为约束</span>
+            <span class="tag-miss">❌ 无红线</span>
+          </div>
+          <p class="text-micro" style="color: var(--text-tertiary); margin-top: 8px; line-height: 1.8;">"严重"是形容词，机器不知道什么算严重 · "写清楚"是主观标准，走查各执一词 · "高危操作"没有明确定义</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 12px;">
+          <span class="badge badge-green" style="margin-bottom: 8px;">AFTER · YAML 契约字段</span>
+          <div class="code-block" style="font-size: 11px; padding: 10px; margin: 8px 0;">
+<pre>intent_id: "ERR-001"
+version: "v1.1.0"
+semantic_domain: "observational"
+applicable_products: ["ChatGPT", "Kimi", "DeepSeek"]
+semantic_tokens:
+  error_severity:
+    fatal:
+      visual_mapping:
+        color_token: "status.critical"
+        motion_token: "pulse.red.urgent"
+        icon_token: "alert.octagon"
+      user_action: [刷新页面, 导出历史]
+    retryable:
+      visual_mapping:
+        color_token: "status.warning"
+        icon_token: "clock"
+immutable_boundaries:
+  - rule: "禁止所有错误共用同一种红色"
+    violation_action: "block"</pre>
+          </div>
+          <div>
+            <span class="tag-ok">✓ 机器可执行</span>
+            <span class="tag-ok">✓ 场景归属</span>
+            <span class="tag-ok">✓ 行为约束</span>
+            <span class="tag-ok">✓ 红线阻断</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- A/B 对比实验 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('ab')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 800;">A/B</div>
+          <h2 class="text-h2">A/B 对比实验</h2>
+        </div>
+        <svg class="chevron" id="chevron-ab" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">同一 Prompt"生成限流提示"，未注入 vs 注入契约</p>
+    </div>
+    <div class="collapsible-content" id="content-ab">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;">
+          <span class="badge badge-amber" style="margin-bottom: 8px;">未注入契约</span>
+          <p class="text-micro" style="color: var(--text-tertiary); margin: 6px 0;">Prompt: "生成一个限流提示界面"</p>
+          <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+            <p class="text-caption" style="color: #cf1322; font-weight: 700;">🚨 请求过于频繁</p>
+            <p class="text-micro" style="color: #cf1322; margin-top: 4px;">系统出现严重错误，请刷新页面重试。</p>
+          </div>
+          <p class="text-micro" style="color: #f5a623; font-weight: 600;">⚠️ AI 看到"严重"就用了红色，限流被渲染成致命错误——用户看到红就刷新，其实等 30 秒自动恢复</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+          <span class="badge badge-green" style="margin-bottom: 8px;">注入契约（ERR-001.yaml 前缀）</span>
+          <div style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 6px; padding: 10px; margin: 8px 0;">
+            <p class="text-caption" style="color: #f5a623; font-weight: 700;">⏱️ 请求频率已达上限</p>
+            <p class="text-micro" style="color: #f5a623; margin-top: 4px;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
+          </div>
+          <p class="text-micro" style="color: #52c41a; font-weight: 600;">✓ AI 按 status.warning 生成黄色时钟 + 倒计时 + 升级入口，用户知道这是限流，不是系统崩溃</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 字段差异矩阵 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('matrix')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">7</div>
+          <h2 class="text-h2">7 字段差异矩阵</h2>
+        </div>
+        <svg class="chevron" id="chevron-matrix" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">自然语言痛点 → YAML 解法 → 机器获得的能力</p>
+    </div>
+    <div class="collapsible-content" id="content-matrix">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">intent_id</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">Before："那个错误状态的东西" ❌ 无唯一标识</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">After：ERR-001 精确指向 ✓ 验收引用版本号，Diff 可见</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">description</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">Before："严重的用红色" ❌ "严重"是形容词</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">After：现象+根因+后果 ✓ 一句话说清边界</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">semantic_domain</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">Before：文档里没提 ❌ 机器不知道场景归属</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">After：observational ✓ 跨层禁止可执行</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">applicable_products</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">Before：无 ❌ 不知在哪个产品生效</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">After：["ChatGPT","Kimi","DeepSeek"] ✓ 全局/局部明确</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">semantic_tokens</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">Before："文案要写清楚" ❌ 主观标准各执一词</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">After：四级枚举 + 颜色+行为+文案 ✓ 每级绑定唯一视觉映射</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">llm_constraints</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">Before："高危操作要二次确认" ❌ 写在文档里 AI 不读</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">After：生成前注入 Prompt ✓ 直接拦截，不按概率生成</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--primary); font-weight: 700; font-family: 'SF Mono', monospace;">immutable_boundaries</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">Before：无 ❌ 没有"绝对不能碰"的红线</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">After：violation_action: block ✓ 违反直接阻断</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 三个时间点校验 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('three')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">→</div>
+          <h2 class="text-h2">机器可执行结构</h2>
+        </div>
+        <svg class="chevron" id="chevron-three" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">YAML 字段可被机器在三个时间点校验</p>
+    </div>
+    <div class="collapsible-content" id="content-three">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <span class="badge badge-blue">生成前 · Prompt 前缀注入</span>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 6px;">AI 按约束生成，不按概率生成</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <span class="badge badge-blue">生成中 · Schema 校验</span>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 6px;">前端按字段映射渲染，不硬编码颜色</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <span class="badge badge-blue">生成后 · CI 拦截</span>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 6px;">缺少恢复路径的致命错误在提交时阻断</p>
+          </div>
+        </div>
+        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: #52c41a; font-weight: 600; line-height: 1.7;">走查是事后，机器拦截是事前。事前拦住比事后修改便宜 100 倍。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 跨角色反馈 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('roles')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">R</div>
+          <h2 class="text-h2">同一根因，五个角色各踩各的坑</h2>
+        </div>
+        <svg class="chevron" id="chevron-roles" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">字段层差异解决的不是一个角色的问题，是整条链路</p>
+    </div>
+    <div class="collapsible-content" id="content-roles">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🎨 设计师</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"新增 error 状态凭直觉写文案，两周后走查才发现规范里根本没这个级别"</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">✓ 契约必须引用已注册字段，未注册编译阻断</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">💻 前端 / AI 工程师</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"规范只告诉我'写清楚'，没告诉我这个场景该用哪个字段"</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">✓ YAML 字段 + semantic_domain 联合定义，覆盖层强制注入语义</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">📋 DesignOps</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"各产品线规范版本对不上，同一个词三套说法"</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">✓ 契约库作为组织级唯一真相源，禁止平行私有字典</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🔍 体验架构师</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"模式库维护成本高，每次诊断都从零开始"</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">✓ 从字典复用字段，诊断成本从 2 小时降到 10 分钟</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">📊 管理层 / 决策者</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"语义一致性投入多少、产出在哪，看不到"</p>
+            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">✓ 字段标准化后，一致性覆盖率可量化、可追踪、可考核</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 验证状态 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('verify')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">✓</div>
+          <h2 class="text-h2">验证状态</h2>
+        </div>
+        <svg class="chevron" id="chevron-verify" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">字段层差异证明了什么</p>
+    </div>
+    <div class="collapsible-content" id="content-verify">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">✓ 差异是否真实存在 — 已验证</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">同一意图两种形态，机器执行能力在代码层面可观测</p>
+          </div>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">✓ 自然语言规范可否被机器执行 — 已证伪</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"写清楚""严重的"无法被编译为机器规则，A/B 对比可见</p>
+          </div>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">✓ YAML 字段可否被机器消费 — 已验证</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">同一组字段编译为三种格式，各角色可接入工具链</p>
+          </div>
+          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">⚠️ 对抗用例库是否完整 — 待补充</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">需持续补充诱导越界的对抗 Prompt</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-h3" style="margin-bottom: 4px;">语义漂移的根因不止在界面层，也在规范层</p>
+      <p class="text-caption" style="color: var(--text-secondary);">当自然语言无法表达"这个红代表不可恢复"时，YAML 字段提供了从编码到验证的完整工作流</p>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- 底部 Tab 导航 -->
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='./contract.html'">
+    <div class="nav-icon">📐</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item active">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='./contract_validation.html'">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">验证</div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+function setupScrollIndicator(scrollId, hintId) {
+  const scroll = document.getElementById(scrollId); const hint = document.getElementById(hintId);
+  if (!scroll || !hint) return;
+  const dots = hint.querySelectorAll('.scroll-hint-dot'); const cards = scroll.children;
+  if (dots.length === 0 || cards.length === 0) return;
+  scroll.addEventListener('scroll', () => {
+    const scrollLeft = scroll.scrollLeft; const maxScroll = scroll.scrollWidth - scroll.clientWidth;
+    const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
+    const activeIndex = Math.min(Math.floor(progress * cards.length), dots.length - 1);
+    dots.forEach((dot, i) => { dot.classList.toggle('active', i === activeIndex); });
+  }, { passive: true });
+}
+document.addEventListener('DOMContentLoaded', () => { setupScrollIndicator('q-scroll', 'q-hint'); });
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

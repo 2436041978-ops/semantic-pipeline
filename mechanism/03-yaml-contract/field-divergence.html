@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 字段层差异</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .severity-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .severity-fatal { background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; }
+  .severity-transient { background: #1e1e22; border: 1px solid #3a3a3e; color: #a0a0a0; }
+  .severity-retryable { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
+  .severity-degraded { background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; }
+
+  .case-tab {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .case-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+
+  .before-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid #f5a623;
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .after-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid #52c41a;
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .diff-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .diff-row:last-child {
+    border-bottom: none;
+  }
+  .diff-cell {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  .diff-header {
+    background: #16161a;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 11px;
+  }
+
+  .missing-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(245,158,11,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(245,158,11,0.3);
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+    .diff-row { grid-template-columns: 100px 1fr 1fr; }
+  }
+  @media (max-width: 768px) {
+    .diff-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: FIELD LAYER DIFF ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">字段层差异</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 语义编码层 · ③ 字段层差异</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">字段层差异 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Field Layer Diff</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        同样的设计意图，写成自然语言规范和写成 YAML 契约字段，到底有什么实际差别？<br>
+        不是"翻译格式"，是"增加机器可执行结构"。
+      </p>
+    </div>
+
+    <!-- 三个核心问题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; color: #f5a623; font-size: 14px; font-weight: 800; margin-bottom: 12px;">?</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">机器能看懂规范吗？</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">"严重的用红色"对机器来说只是文字，和"随便发挥"没有本质区别</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">≠</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">自然语言 vs YAML 字段</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">同样的意图，两种形态。机器执行能力在代码层面可观测</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(82,196,26,0.15); border: 1px solid rgba(82,196,26,0.3); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 14px; font-weight: 800; margin-bottom: 12px;">✓</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">差别不可替代</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">没有 YAML 字段结构，编译管线无法生成 Prompt/Schema/CI 规则</p>
+      </div>
+    </div>
+
+    <!-- 案例选择标签页 -->
+    <div style="display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;">
+      <button class="case-tab active">ERR-001 · 错误状态分级</button>
+      <button class="case-tab">BND-001 · 边界动作区分</button>
+    </div>
+
+    <!-- ==================== ERR-001 案例 ==================== -->
+    <div style="display: block;">
+
+      <!-- Before / After 并排 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px;">
+        <!-- Before -->
+        <div class="before-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">BEFORE</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">自然语言规范</span>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; font-style: italic;">
+              "错误状态要分级显示。严重的用红色，一般的用黄色，轻微的用灰色。文案要写清楚，让用户知道该做什么。高危操作要二次确认。"
+            </p>
+          </div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">四项缺失</p>
+          <div>
+            <span class="missing-tag">❌ 机器不可执行</span>
+            <span class="missing-tag">❌ 无场景归属</span>
+            <span class="missing-tag">❌ 无行为约束</span>
+            <span class="missing-tag">❌ 无红线</span>
+          </div>
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+              <span style="color: #f5a623; font-weight: 700;">"严重"</span>是形容词，机器不知道什么算严重<br>
+              <span style="color: #f5a623; font-weight: 700;">"写清楚"</span>是主观标准，走查时各执一词<br>
+              <span style="color: #f5a623; font-weight: 700;">"高危操作"</span>没有明确定义，AI 不知道哪些算高危<br>
+              没有<span style="color: #f5a623; font-weight: 700;">"绝对不能碰"</span>的红线
+            </p>
+          </div>
+        </div>
+
+        <!-- After -->
+        <div class="after-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">AFTER</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">YAML 契约字段</span>
+          </div>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px; margin-bottom: 16px; max-height: 200px;">
+<pre style="white-space: pre-wrap; margin: 0;">intent_id: "ERR-001"
+version: "v1.1.0"
+description: "多种错误共用红色，用户无法判断后果严重程度"
+semantic_domain: "observational"
+applicable_products:
+  - "ChatGPT"
+  - "Kimi"
+  - "DeepSeek"
+
+semantic_tokens:
+  error_severity:
+    fatal:
+      description: "系统级故障，对话上下文可能丢失"
+      visual_mapping:
+        color_token: "status.critical"
+        motion_token: "pulse.red.urgent"
+        icon_token: "alert.octagon"
+      user_action:
+        - label: "刷新页面"
+          action: "refresh"
+        - label: "导出历史"
+          action: "export_history"
+    transient:
+      description: "网络抖动，系统可自动恢复"
+      visual_mapping:
+        color_token: "status.neutral"
+        motion_token: "spinner"
+        icon_token: "loader"
+      user_action:
+        - label: "等待自动恢复"
+          action: "wait"
+    retryable:
+      description: "请求频率已达上限"
+      visual_mapping:
+        color_token: "status.warning"
+        motion_token: "none"
+        icon_token: "clock"
+      user_action:
+        - label: "等待倒计时"
+          action: "wait_countdown"
+        - label: "升级套餐"
+          action: "upgrade"
+    degraded:
+      description: "部分功能可用，可继续生成"
+      visual_mapping:
+        color_token: "status.info"
+        motion_token: "none"
+        icon_token: "info.circle"
+      user_action:
+        - label: "继续生成"
+          action: "continue"
+
+llm_constraints:
+  - "禁止所有错误状态共用同一种红色视觉表达"
+  - "每个错误级别必须提供明确的用户行动指引"
+
+immutable_boundaries:
+  - boundary_type: "safety"
+    rule: "禁止所有错误状态共用同一种红色视觉表达"
+    violation_action: "block"
+  - boundary_type: "clarity"
+    rule: "每个错误级别必须提供明确的用户行动指引"
+    violation_action: "warn"</pre>
+          </div>
+          <div>
+            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); margin-right: 4px; margin-bottom: 4px;">✓ 机器可执行</span>
+            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); margin-right: 4px; margin-bottom: 4px;">✓ 场景归属</span>
+            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); margin-right: 4px; margin-bottom: 4px;">✓ 行为约束</span>
+            <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); margin-right: 4px; margin-bottom: 4px;">✓ 红线阻断</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- A/B 对比实验 -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">A/B</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">A/B 对比实验</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">同一 Prompt"生成限流提示"，未注入契约 vs 注入契约</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">未注入契约</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 12px;">Prompt: "生成一个限流提示界面"</p>
+            <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #cf1322; font-weight: 700;">🚨 请求过于频繁</p>
+              <p style="font-size: 13px; color: #cf1322; margin-top: 4px; font-weight: 500;">系统出现严重错误，请刷新页面重试。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; background: #cf1322; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: 600;">刷新页面</span>
+              </div>
+            </div>
+            <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 6px; padding: 10px 12px;">
+              <p style="font-size: 12px; color: #f5a623; font-weight: 600;">⚠️ 问题：AI 看到"严重"就用了红色，限流被渲染成致命错误</p>
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">用户看到红色就刷新页面，其实等 30 秒自动恢复即可</p>
+            </div>
+          </div>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">注入契约</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 12px;">Prompt + ERR-001.yaml 前缀注入</p>
+            <div style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+              <p style="font-size: 14px; color: #f5a623; font-weight: 700;">⏱️ 请求频率已达上限</p>
+              <p style="font-size: 13px; color: #f5a623; margin-top: 4px; font-weight: 500;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
+              <div style="display: flex; gap: 6px; margin-top: 8px;">
+                <span style="font-size: 13px; background: #f59e0b; color: #1e1e1e; padding: 3px 8px; border-radius: 4px; font-weight: 600;">升级 Plus</span>
+                <span style="font-size: 13px; border: 1px solid rgba(245,158,11,0.3); color: #f5a623; padding: 3px 8px; border-radius: 4px; font-weight: 600;">设置提醒</span>
+              </div>
+            </div>
+            <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px; padding: 10px 12px;">
+              <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 正确：AI 按 status.warning 生成黄色时钟 + 倒计时 + 升级入口</p>
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">用户知道这是限流，不是系统崩溃</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7 字段差异矩阵 -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">7</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">7 字段差异矩阵</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">逐字段对照：自然语言痛点 → YAML 解法 → 机器获得的能力</p>
+          </div>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+          <div class="diff-row">
+            <div class="diff-cell diff-header">YAML 字段</div>
+            <div class="diff-cell diff-header">自然语言怎么写的（Before）</div>
+            <div class="diff-cell diff-header">YAML 字段怎么解决的（After）</div>
+          </div>
+          <div class="diff-row">
+            <div class="diff-cell" style="font-family: 'SF Mono', monospace; color: var(--primary); font-weight: 600;">intent_id</div>
+            <div class="diff-cell" style="color: var(--text-secondary);">"错误状态要分级"<br><span style="color: #f5a623; font-size: 12px;">❌ 没有唯一标识，沟通时说"那个错误状态的东西"</span></div>
+            <div class="diff-cell" style="color: var(--text-primary);">ERR-001：精确指向<br><span style="color: #52c41a; font-size: 12px;">✓ 验收时引用版本号，Diff 可见</span></div>
+          </div>
+          <div class="diff-row">
+            <div class="diff-cell" style="font-family: 'SF Mono', monospace; color: var(--primary); font-weight: 600;">description</div>
+            <div class="diff-cell" style="color: var(--text-secondary);">"严重的用红色"<br><span style="color: #f5a623; font-size: 12px;">❌ "严重"是形容词，机器不知道什么算严重</span></div>
+            <div class="diff-cell" style="color: var(--text-primary);">现象+根因+后果<br><span style="color: #52c41a; font-size: 12px;">✓ 一句话说清边界</span></div>
+          </div>
+          <div class="diff-row">
+            <div class="diff-cell" style="font-family: 'SF Mono', monospace; color: var(--primary); font-weight: 600;">semantic_domain</div>
+            <div class="diff-cell" style="color: var(--text-secondary);">文档里没提<br><span style="color: #f5a623; font-size: 12px;">❌ 设计师知道是观察性的，机器不知道</span></div>
+            <div class="diff-cell" style="color: var(--text-primary);">observational<br><span style="color: #52c41a; font-size: 12px;">✓ 机器知道该查哪本字典，跨层禁止可执行</span></div>
+          </div>
+          <div class="diff-row">
+            <div class="diff-cell" style="font-family: 'SF Mono', monospace; color: var(--primary); font-weight: 600;">applicable_products</div>
+            <div class="diff-cell" style="color: var(--text-secondary);">无<br><span style="color: #f5a623; font-size: 12px;">❌ 不知道这个规范在哪个产品生效</span></div>
+            <div class="diff-cell" style="color: var(--text-primary);">["ChatGPT", "Kimi", "DeepSeek"]<br><span style="color: #52c41a; font-size: 12px;">✓ 全局/局部生效明确，排除列表可配</span></div>
+          </div>
+          <div class="diff-row">
+            <div class="diff-cell" style="font-family: 'SF Mono', monospace; color: var(--primary); font-weight: 600;">semantic_tokens</div>
+            <div class="diff-cell" style="color: var(--text-secondary);">"文案要写清楚"<br><span style="color: #f5a623; font-size: 12px;">❌ "清楚"是主观标准，走查时各执一词</span></div>
+            <div class="diff-cell" style="color: var(--text-primary);">四级枚举 + 颜色+行为+文案<br><span style="color: #52c41a; font-size: 12px;">✓ 每级绑定唯一视觉映射</span></div>
+          </div>
+          <div class="diff-row">
+            <div class="diff-cell" style="font-family: 'SF Mono', monospace; color: var(--primary); font-weight: 600;">llm_constraints</div>
+            <div class="diff-cell" style="color: var(--text-secondary);">"高危操作要二次确认"<br><span style="color: #f5a623; font-size: 12px;">❌ 写在文档里，AI 生成时不读</span></div>
+            <div class="diff-cell" style="color: var(--text-primary);">机器在生成前注入 Prompt<br><span style="color: #52c41a; font-size: 12px;">✓ 直接拦截，不按概率生成</span></div>
+          </div>
+          <div class="diff-row">
+            <div class="diff-cell" style="font-family: 'SF Mono', monospace; color: var(--primary); font-weight: 600;">immutable_boundaries</div>
+            <div class="diff-cell" style="color: var(--text-secondary);">无<br><span style="color: #f5a623; font-size: 12px;">❌ 没有"绝对不能碰"的红线</span></div>
+            <div class="diff-cell" style="color: var(--text-primary);">violation_action: block<br><span style="color: #52c41a; font-size: 12px;">✓ 违反直接阻断，代码合不进去</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 不是翻译格式，是增加机器可执行结构 -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">→</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">不是"翻译格式"，是"增加机器可执行结构"</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">自然语言规范无法被机器执行，YAML 字段可被机器在三个时间点校验</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">生成前</div>
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Prompt 前缀注入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">AI 按约束生成，不按概率生成</p>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">生成中</div>
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Schema 校验</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">前端按字段映射渲染，不硬编码颜色</p>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">生成后</div>
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">CI 拦截</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">缺少恢复路径的致命错误在提交时阻断</p>
+          </div>
+        </div>
+
+        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 14px; color: #52c41a; font-weight: 600; line-height: 1.6;">
+            走查是事后，机器拦截是事前。事前拦住比事后修改便宜 100 倍。<br>
+            自然语言规范无法被机器执行，"严重的用红色""文案要写清楚""要礼貌一点"对人类是隐喻，对机器是自由发挥的许可证。
+          </p>
+        </div>
+      </div>
+
+      <!-- 跨角色反馈 -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">R</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">同一根因，五个角色各踩各的坑</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">字段层差异解决的不是一个角色的问题，是整条链路</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">🎨 设计师</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px;">"新增了 error 状态凭直觉写文案，两周后走查才发现规范里根本没这个级别"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 语义字典 YAML 化、变更走 PR；契约必须引用已注册字段，未注册编译阻断</p>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">💻 前端 / AI 工程师</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px;">"规范只告诉我'写清楚'，没告诉我这个场景该用哪个字段"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ YAML 字段 + semantic_domain 联合定义，覆盖层强制注入语义</p>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">📋 DesignOps</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px;">"各产品线的规范版本对不上，同一个词三套说法"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 契约库作为组织级唯一真相源，禁止平行私有字典</p>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">🔍 语义翻译设计师 / 体验架构师</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px;">"模式库维护成本高，每次诊断都从零开始"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 从字典复用字段，快速匹配既有模式，诊断成本从 2 小时降到 10 分钟</p>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; grid-column: span 2;">
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">📊 管理层 / 决策者</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px;">"语义一致性投入多少、产出在哪，看不到"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 字段标准化后，一致性覆盖率可量化、可追踪、可考核</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 诚实清单 -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✓</div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">验证状态</h3>
+            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">字段层差异证明了什么</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 14px 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">自然语言 vs YAML 字段差异是否真实存在</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-left: 24px;">已验证 — 同一意图两种形态，机器执行能力在代码层面可观测</p>
+          </div>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 14px 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">自然语言规范是否可被机器执行</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-left: 24px;">已证伪 — "写清楚""严重的"无法被编译为机器规则，A/B 对比可见</p>
+          </div>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 14px 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">YAML 字段是否可被机器消费</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-left: 24px;">已验证 — 同一组字段编译为三种格式，各角色可接入工具链</p>
+          </div>
+          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 14px 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="width: 16px; height: 16px; border-radius: 50%; background: #f5a623; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">!</span>
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">对抗用例库是否完整</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-left: 24px;">待补充 — 需持续补充诱导越界的对抗 Prompt</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">字段层差异确认了：语义漂移的根因不止在界面层，也在规范层</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">当自然语言无法表达"这个红代表不可恢复"时，YAML 字段提供了从编码到验证的完整工作流</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

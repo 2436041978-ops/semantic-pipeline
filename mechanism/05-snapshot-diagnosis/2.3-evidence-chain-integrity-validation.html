@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 证据链完整性验证</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-pass {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-fail {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+
+  .chain-node {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: relative;
+  }
+  .chain-connector {
+    width: 2px;
+    height: 32px;
+    background: var(--border);
+    margin-left: 24px;
+  }
+
+  .trace-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: 2.3 证据链完整性验证 ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">快照匹配模式验证</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>2.3 证据链完整性验证</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">证据链完整性验证 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Evidence Chain Integrity</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        匹配不是终点——诊断报告要驱动归档、归档要支撑模式、模式要支撑契约。<br>
+        这条链路上的每一环引用关系必须完整，模式卡片挂了 snapshot_refs，那张快照必须真实存在。
+      </p>
+    </div>
+
+    <!-- 三道验证闸概览 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">引用对账</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">snapshot_refs 与 report_refs 必须可解析到真实存在的快照与报告 ID</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">方向完整性</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">next_action 必须与实际执行的归档动作一致——append_evidence 或 create_pattern</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">计数一致性</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">模式节点的证据计数必须与 snapshot_refs 列表长度一致</p>
+      </div>
+    </div>
+
+    <!-- 完整证据链追溯演示 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">→</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">完整证据链追溯</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">从模式卡片一路追到原始快照</p>
+        </div>
+      </div>
+
+      <!-- 链式展示 -->
+      <div style="padding-left: 12px;">
+        <!-- 节点 1：模式卡片 -->
+        <div class="chain-node" style="border-left: 3px solid #cf1322;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">模式节点</span>
+            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">ERR-001</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">错误状态后果差异未分级</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>snapshot_refs: ["SN-2026-001", "SN-2026-002", "SN-2026-003", ...]（共 23 张）</div>
+            <div>report_refs: ["RPT-2026-001", "RPT-2026-002", ...]（共 18 份）</div>
+            <div>evidence_count: 23</div>
+          </div>
+        </div>
+        <div class="chain-connector"></div>
+
+        <!-- 节点 2：诊断报告 -->
+        <div class="chain-node" style="border-left: 3px solid #4a9eff;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">诊断报告</span>
+            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">RPT-2026-001</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">三层判定诊断报告</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>snapshot_id: "SN-2026-001"</div>
+            <div>layer1_result: "error"（置信度 0.94）</div>
+            <div>layer2_result: "ERR-001"（置信度 0.92）</div>
+            <div>layer3_result: "color_mismatch"（置信度 0.88）</div>
+            <div>composite_confidence: 0.92</div>
+            <div>next_action: "append_evidence"</div>
+          </div>
+        </div>
+        <div class="chain-connector"></div>
+
+        <!-- 节点 3：原始快照 -->
+        <div class="chain-node" style="border-left: 3px solid #52c41a;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">原始快照</span>
+            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">SN-2026-001</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">ChatGPT "Something went wrong" 红色边框卡片</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>component_type: "Alert"</div>
+            <div>visual.color: "red" / visual.background: "solid"</div>
+            <div>copy.title: "Error" / copy.description: "Something went wrong"</div>
+            <div>context: "system_error"</div>
+            <div>screenshot_ref: "IMG-2026-001.png"</div>
+            <div>created_at: "2026-03-15T09:23:00Z"</div>
+          </div>
+        </div>
+        <div class="chain-connector"></div>
+
+        <!-- 节点 4：截图证据 -->
+        <div class="chain-node" style="border-left: 3px solid #a855f7;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3);">截图证据</span>
+            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">IMG-2026-001.png</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">界面截图（对象存储）</p>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>存储路径: s3://semantic-pipeline/snapshots/IMG-2026-001.png</div>
+            <div>哈希校验: sha256:9f86d08...（与上传时一致）</div>
+            <div>状态: ✓ 存在</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 12px 16px; margin-top: 16px;">
+        <p style="font-size: 13px; color: #52c41a; font-weight: 600;">✓ 引用对账通过：模式卡片 ERR-001 → 诊断报告 RPT-2026-001 → 原始快照 SN-2026-001 → 截图 IMG-2026-001.png，全部可解析且存在</p>
+      </div>
+    </div>
+
+    <!-- 引用对账：悬空引用检测 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✕</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">悬空引用检测</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Dangling Reference Detection · 模式卡片挂了快照 ID，但快照已被删除</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- 正常引用 -->
+        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">✓ 正常引用</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px; margin-bottom: 10px;">
+<pre style="white-space: pre-wrap; margin: 0;">pattern_id: "ERR-001"
+snapshot_refs:
+  - "SN-2026-001"  # ← 存在 ✓
+  - "SN-2026-002"  # ← 存在 ✓
+  - "SN-2026-003"  # ← 存在 ✓
+report_refs:
+  - "RPT-2026-001" # ← 存在 ✓</pre>
+          </div>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 全部 4 个引用可解析，对账通过</p>
+        </div>
+
+        <!-- 悬空引用 -->
+        <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">✕ 悬空引用（被捕获）</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px; margin-bottom: 10px;">
+<pre style="white-space: pre-wrap; margin: 0;">pattern_id: "ERR-001"
+snapshot_refs:
+  - "SN-2026-001"      # ← 存在 ✓
+  - "SN-2026-002"      # ← 存在 ✓
+  - "SN-2026-099"      # ← 不存在 ✗
+    # [ERROR] snapshot_not_found
+    # 该快照已于 2026-05-12 被删除
+report_refs:
+  - "RPT-2026-001"     # ← 存在 ✓</pre>
+          </div>
+          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; padding: 10px 12px;">
+            <p style="font-size: 12px; color: #cf1322; font-weight: 700; margin-bottom: 4px;">[CI 阻断] dangling-reference-detected</p>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">模式 ERR-001 引用快照 SN-2026-099 不存在。触发数据修复流程：从 snapshot_refs 移除该引用，或恢复快照。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 方向完整性验证 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">→</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">方向完整性验证</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Direction Integrity · next_action 必须与实际归档动作一致</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <!-- 一致案例 -->
+        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">✓ 方向一致</p>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-bottom: 10px;">
+            <div>报告 RPT-2026-001：next_action = "append_evidence"</div>
+            <div>实际执行：快照 SN-2026-001 归档到 ERR-001 模式节点下</div>
+          </div>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 方向一致，验证通过</p>
+        </div>
+
+        <!-- 不一致案例 -->
+        <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">✕ 方向不一致（被捕获）</p>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-bottom: 10px;">
+            <div>报告 RPT-2026-115：next_action = "create_pattern"</div>
+            <div>实际执行：快照被静默归档到 ERR-001（未创建新模式）</div>
+          </div>
+          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; padding: 10px 12px;">
+            <p style="font-size: 12px; color: #cf1322; font-weight: 700; margin-bottom: 4px;">[CI 阻断] action-direction-mismatch</p>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">报告建议创建新模式，但实际执行了 append_evidence。触发人工审计。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 计数一致性验证 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">#</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">计数一致性验证</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Count Consistency · 证据计数与引用列表长度必须一致</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- 一致 -->
+        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">✓ 计数一致</p>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-bottom: 10px;">
+            <div>模式 ERR-001：evidence_count = 23</div>
+            <div>snapshot_refs 列表长度 = 23</div>
+            <div>report_refs 列表长度 = 18</div>
+          </div>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 计数一致，验证通过</p>
+        </div>
+
+        <!-- 不一致 -->
+        <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">✕ 计数不一致（被捕获）</p>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-bottom: 10px;">
+            <div>模式 ERR-001：evidence_count = 23</div>
+            <div>snapshot_refs 列表长度 = 22</div>
+            <div style="color: #cf1322;">差异：evidence_count 比实际引用多 1</div>
+          </div>
+          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; padding: 10px 12px;">
+            <p style="font-size: 12px; color: #cf1322; font-weight: 700; margin-bottom: 4px;">[CI 阻断] evidence-count-mismatch</p>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">模式节点证据计数（23）与 snapshot_refs 列表长度（22）不一致。触发数据修复流程。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 对账脚本 CI 化 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">CI</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">对账脚本 CI 化</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">模式库数据变更即触发对账，悬空引用 error 级阻断合并</p>
+        </div>
+      </div>
+
+      <div class="yaml-block" style="margin-bottom: 16px;">
+<pre style="white-space: pre-wrap; margin: 0;"># evidence-chain-audit.yaml
+name: "Evidence Chain Integrity Check"
+on:
+  - push:
+      paths: ["patterns/**", "snapshots/**"]
+  - schedule:
+      cron: "0 2 * * *"  # 每日凌晨 2 点全量对账
+
+jobs:
+  dangling-reference-check:
+    steps:
+      - name: "Validate snapshot_refs"
+        run: |
+          for pattern in patterns/*; do
+            for ref in $(cat $pattern | jq -r '.snapshot_refs[]'); do
+              if ! snapshot_exists "$ref"; then
+                echo "[ERROR] Dangling reference: $ref in $pattern"
+                exit 1
+              fi
+            done
+          done
+
+  count-consistency-check:
+    steps:
+      - name: "Validate evidence_count"
+        run: |
+          for pattern in patterns/*; do
+            count=$(cat $pattern | jq -r '.evidence_count')
+            refs=$(cat $pattern | jq -r '.snapshot_refs | length')
+            if [ "$count" != "$refs" ]; then
+              echo "[ERROR] Count mismatch: $pattern ($count vs $refs)"
+              exit 1
+            fi
+          done
+
+  direction-integrity-check:
+    steps:
+      - name: "Validate next_action consistency"
+        run: |
+          for report in reports/*; do
+            action=$(cat $report | jq -r '.next_action')
+            actual=$(get_actual_action "$report")
+            if [ "$action" != "$actual" ]; then
+              echo "[ERROR] Direction mismatch: $report ($action vs $actual)"
+              exit 1
+            fi
+          done</pre>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">0</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">悬空引用</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">0</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">计数不一致</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">0</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">方向不一致</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 综合验证结论 -->
+    <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: var(--radius); padding: 24px; margin-bottom: 24px;">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">证据链完整性结论</p>
+      <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+        <div>• 引用对账：模式卡片 snapshot_refs 全部可解析到真实存在的快照，无悬空引用</div>
+        <div>• 方向完整性：next_action 与实际归档动作 100% 一致</div>
+        <div>• 计数一致性：evidence_count 与 snapshot_refs 列表长度 100% 一致</div>
+        <div>• 对账脚本已 CI 化：模式库数据变更即触发，每日全量对账</div>
+        <div style="color: #52c41a; font-weight: 700; margin-top: 8px;">✓ 证据链完整可追溯，匹配结果可信</div>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">三道验证闸全部通过</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">规则引擎逐层验证 → 阈值归档验证 → 证据链完整性验证</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

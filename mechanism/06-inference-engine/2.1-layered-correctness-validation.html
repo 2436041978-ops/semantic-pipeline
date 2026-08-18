@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 逐层正确性验证</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .layer-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+  .layer-card:hover {
+    border-color: #3a3a3e;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-pass {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-fail {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+  .status-warn {
+    background: rgba(245,158,11,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+  .status-info {
+    background: rgba(22,119,255,0.15);
+    color: #4a9eff;
+    border: 1px solid rgba(22,119,255,0.3);
+  }
+
+  .test-case {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+  }
+
+  .trace-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .trace-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
+  }
+  .trace-dot.pass { background: #52c41a; box-shadow: 0 0 0 3px rgba(82,196,26,0.2); }
+  .trace-dot.fail { background: #cf1322; box-shadow: 0 0 0 3px rgba(207,19,34,0.2); }
+  .trace-dot.skip { background: #f5a623; }
+  .trace-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .trace-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: LAYER-BY-LAYER CORRECTNESS ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">推演验证 · 逐层正确性</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>推演验证机制 · 2.1 逐层正确性验证</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">逐层正确性验证 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Layer-by-Layer Correctness</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        四层推演引擎各自独立判定，每层有独立的判定依据和短路规则。<br>
+        语法层和安全层是确定性规则（误拦率 = 0），语义层允许漏拦率 < 5%，美感层只输出建议不阻断。
+      </p>
+    </div>
+
+    <!-- 核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 14px; font-weight: 800; margin-bottom: 12px;">S</div>
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">语法层短路</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">非法结构直接判失败且不进入下层；合法结构放行进入语义层</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; color: #f5a623; font-size: 14px; font-weight: 800; margin-bottom: 12px;">M</div>
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">语义层定位</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">每项违规必须定位到 semantic_tokens.{组}.{级别}，漏拦率 < 5%</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 14px; font-weight: 800; margin-bottom: 12px;">F</div>
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">安全层阻断</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">每条 boundary 配触碰用例，定位到具体条款，误拦率 = 0</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: #4a9eff; font-size: 14px; font-weight: 800; margin-bottom: 12px;">A</div>
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">美感层建议</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">权重失配只输出建议、不阻断，验证"建议不阻断"边界</p>
+      </div>
+    </div>
+
+    <!-- ==================== 四层判定演示 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">1</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">四层判定演示</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">输入："生成一个醒目的限流提示"（诱导 AI 用红色）</p>
+        </div>
+      </div>
+
+      <!-- 判定流程 -->
+      <div style="margin-bottom: 24px;">
+        <!-- Layer 1: 语法层 -->
+        <div class="trace-row">
+          <div class="trace-dot pass"></div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="status-pill status-pass">✓ 通过</span>
+              <span class="trace-label">Layer 1 · 语法层</span>
+            </div>
+            <p class="trace-desc">输入结构合法（可解析的 JSON），放行进入语义层</p>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">判定依据：结构完整性校验 · 短路规则：非法结构直接判失败且不进入下层</p>
+          </div>
+        </div>
+        <div style="width: 2px; height: 20px; background: #2a2a2e; margin-left: 20px;"></div>
+
+        <!-- Layer 2: 语义层 -->
+        <div class="trace-row">
+          <div class="trace-dot pass"></div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="status-pill status-pass">✓ 拦截</span>
+              <span class="trace-label">Layer 2 · 语义层</span>
+            </div>
+            <p class="trace-desc">识别为 retryable 场景，但检测到 "醒目" 诱导语义 → 映射到 status.critical 越界</p>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">定位：semantic_tokens.error_severity.retryable · 违规：color_token 映射为 status.critical</p>
+          </div>
+        </div>
+        <div style="width: 2px; height: 20px; background: #2a2a2e; margin-left: 20px;"></div>
+
+        <!-- Layer 3: 安全层 -->
+        <div class="trace-row" style="border-color: rgba(207,19,34,0.3); background: rgba(207,19,34,0.05);">
+          <div class="trace-dot fail"></div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="status-pill status-fail">✕ 阻断</span>
+              <span class="trace-label">Layer 3 · 安全层</span>
+            </div>
+            <p class="trace-desc">触碰 immutable_boundary：禁止所有错误状态共用同一种红色视觉表达</p>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 4px;">定位：immutable_boundaries[0].safety · 动作：BLOCK · 必须修正后才能继续</p>
+          </div>
+        </div>
+        <div style="width: 2px; height: 20px; background: #2a2a2e; margin-left: 20px;"></div>
+
+        <!-- Layer 4: 美感层（短路，未执行） -->
+        <div class="trace-row" style="opacity: 0.5;">
+          <div class="trace-dot skip"></div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="status-pill status-warn">⏸ 短路</span>
+              <span class="trace-label">Layer 4 · 美感层</span>
+            </div>
+            <p class="trace-desc">安全层已阻断，美感层未执行（短路规则：上层阻断则下层跳过）</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 修正建议 -->
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; font-weight: 700; color: #52c41a; margin-bottom: 8px;">✓ 引擎判定：拦截正确</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+          语义层正确识别了"醒目"的诱导意图，将其映射为 status.critical 越界；<br>
+          安全层定位到 immutable_boundary.safety 条款，执行 BLOCK 动作；<br>
+          报告定位到具体契约条款，前端知道改哪里。
+        </p>
+      </div>
+    </div>
+
+    <!-- ==================== 每层独立用例验证 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">2</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">每层独立用例验证</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">每层有独立用例集，目标：语法层与安全层误拦率 = 0，语义层漏拦率 < 5%</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+        <!-- 语法层用例 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">语法层 · 短路验证（≥ 20 例）</p>
+          <div class="test-case">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="status-pill status-fail">✕ 失败</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">非法结构输入</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">不可解析的 JSON / 断裂的组件树</p>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 4px;">判定：直接失败，不进入下层 ✓</p>
+          </div>
+          <div class="test-case">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="status-pill status-pass">✓ 通过</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">合法结构输入</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">完整的组件语义快照 JSON</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">判定：放行进入语义层 ✓</p>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 12px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">目标指标</p>
+            <p style="font-size: 14px; color: #52c41a; font-weight: 700; margin-top: 4px;">误拦率 = 0%（确定性层）</p>
+          </div>
+        </div>
+
+        <!-- 语义层用例 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">语义层 · 逐项违规（每级别 ≥ 10 例）</p>
+          <div class="test-case">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="status-pill status-pass">✓ 拦截</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">fatal 场景缺失恢复路径</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">定位：semantic_tokens.error_severity.fatal.user_action</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">判定：违规，必须提供 refresh / export_history ✓</p>
+          </div>
+          <div class="test-case">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="status-pill status-pass">✓ 拦截</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">retryable 场景未显示倒计时</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">定位：semantic_tokens.error_severity.retryable.user_action</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">判定：违规，必须提供 wait_countdown ✓</p>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 12px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">目标指标</p>
+            <p style="font-size: 14px; color: #f5a623; font-weight: 700; margin-top: 4px;">漏拦率 < 5%</p>
+          </div>
+        </div>
+
+        <!-- 安全层用例 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">安全层 · 边界触碰（每条款 ≥ 2 例）</p>
+          <div class="test-case">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="status-pill status-fail">✕ 阻断</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">SAFETY · 全部错误共用红色</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">定位：immutable_boundaries[0].safety</p>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 4px;">动作：BLOCK · 必须修正后才能继续 ✓</p>
+          </div>
+          <div class="test-case">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="status-pill status-warn">⚠ 警告</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">CLARITY · 缺失用户行动指引</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">定位：immutable_boundaries[1].clarity</p>
+            <p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-top: 4px;">动作：WARN · 放行带警告 ✓</p>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 12px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">目标指标</p>
+            <p style="font-size: 14px; color: #52c41a; font-weight: 700; margin-top: 4px;">误拦率 = 0%（确定性层）</p>
+          </div>
+        </div>
+
+        <!-- 美感层用例 -->
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">美感层 · 建议不阻断（≥ 10 例）</p>
+          <div class="test-case">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="status-pill status-info">💡 建议</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">权重失配：红色脉冲用于 info</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">视觉权重与语义权重不匹配</p>
+            <p style="font-size: 12px; color: #4a9eff; font-weight: 600; margin-top: 4px;">判定：只输出建议，不阻断 ✓</p>
+          </div>
+          <div class="test-case">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span class="status-pill status-info">💡 建议</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">动画过度：degraded 使用脉冲</span>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">motion_token 与 severity 不匹配</p>
+            <p style="font-size: 12px; color: #4a9eff; font-weight: 600; margin-top: 4px;">判定：只输出建议，不阻断 ✓</p>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 12px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">目标指标</p>
+            <p style="font-size: 14px; color: #4a9eff; font-weight: 700; margin-top: 4px;">只建议 · 不阻断</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 误拦 vs 漏拦 对比 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">3</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">误拦 vs 漏拦 对比验证</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">三类失效全覆盖：漏拦、误拦、定位错误</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="status-pill status-pass">✓ 验证通过</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">漏拦验证</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">输入"生成醒目的限流提示"（诱导红色）</p>
+          <p style="font-size: 13px; color: #52c41a; font-weight: 600;">引擎识别诱导语义 → 正确拦截 ✓</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 8px;">语义层：识别"醒目"→ status.critical 越界</p>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="status-pill status-pass">✓ 验证通过</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">误拦验证</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">fatal 场景正确使用 status.critical + 脉冲 + 恢复路径</p>
+          <p style="font-size: 13px; color: #52c41a; font-weight: 600;">引擎判定合规 → 正确放行 ✓</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 8px;">安全层：所有 boundary 条款均满足</p>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span class="status-pill status-pass">✓ 验证通过</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">定位验证</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">删除界面缺二次确认，报告是否指对地方？</p>
+          <p style="font-size: 13px; color: #52c41a; font-weight: 600;">报告定位：immutable_boundaries[0].safety ✓</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 8px;">rule_ref: "destructive_action.confirmation_required"</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">逐层判定逻辑验证完毕</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">语法层/安全层误拦率 = 0%，语义层漏拦率 < 5%，美感层只建议不阻断</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

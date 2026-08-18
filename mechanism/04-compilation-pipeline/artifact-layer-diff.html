@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 产物层差异</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .before-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .after-card {
+    background: var(--card-bg);
+    border: 1px solid rgba(82,196,26,0.3);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .product-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .product-card.outdated {
+    border-color: rgba(245,158,11,0.3);
+    background: rgba(245,158,11,0.03);
+  }
+  .product-card.synced {
+    border-color: rgba(82,196,26,0.3);
+    background: rgba(82,196,26,0.03);
+  }
+
+  .version-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .version-old {
+    background: rgba(245,158,11,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+  .version-new {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .version-missing {
+    background: #1e1e22;
+    color: #666;
+    border: 1px solid #2a2a2e;
+  }
+
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .diff-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 11px;
+  }
+  .diff-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .diff-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .format-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #16161a;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .format-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .format-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract" class="active">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: PRODUCT LAYER DIFF ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--text-secondary); font-size: 14px; cursor: pointer; font-weight: 600; text-decoration: none;">Contract Library</a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">产物层差异</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 编译与交付层 · ④ 产物层差异</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">产物层差异 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Product Layer Diff</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        同一份契约，手工维护四份产物 vs 编译管线自动生成，分别长什么样？<br>
+        产物层的一致性，靠人维护为什么守不住？这个差别带来的能力是不是不可替代？
+      </p>
+    </div>
+
+    <!-- 三个核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">同一条规则，两种形态</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">手工维护：四份独立文件，各自解读规范。编译管线：一份 YAML → 编译为四份产物。</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">一致性靠人维护守不住</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">规范变了，四个人各自记得、各自有时间、各自理解。10 条规则 × 4 份产物 × 5 条产品线 = 200 个需要人脑对齐的点。</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">差别带来的能力不可替代</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">版本对账检测过期、哈希校验拦截手改、消费追踪定位滞后——从"人盯"变成"机管"。</p>
+      </div>
+    </div>
+
+    <!-- 场景：规范变更"限流提示增加倒计时" -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">Δ</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">变更场景：限流提示增加倒计时</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">规范变更：retryable 级别必须显示倒计时 + 升级入口。15 天后，四份产物分别是什么状态？</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- Before：手工维护 -->
+        <div class="before-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">Before</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">手工维护四份产物</span>
+          </div>
+
+          <div class="product-card outdated">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Prompt 前缀（AI 用）</span>
+              <span class="version-pill version-old">v1.0.0 · 过期</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">维护者忘了更新。AI 继续生成无倒计时的限流提示。</p>
+          </div>
+
+          <div class="product-card synced">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Checklist（走查用）</span>
+              <span class="version-pill version-new">v1.1.0 · 最新</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">走查工程师更新了。走查按新标准判不合格，但 AI 按旧版生成。</p>
+          </div>
+
+          <div class="product-card outdated">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">JSON Schema（前端校验用）</span>
+              <span class="version-pill version-old">v1.0.0 · 过期</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">前端手工加了 countdown 字段，拼写与文档不一致（count_down vs countdown）。校验形同虚设。</p>
+          </div>
+
+          <div class="product-card outdated">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">CI 规则（流水线用）</span>
+              <span class="version-pill version-missing">未更新</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">CI 工程师没收到通知。不拦截无倒计时的限流提示。</p>
+          </div>
+
+          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 12px; margin-top: 12px;">
+            <p style="font-size: 13px; color: #f5a623; font-weight: 600;">⚠️ 结果：四份产物，四个版本。走查按新版判不合格，但 AI 按旧版生成，前端校验不拦截，CI 不阻断。</p>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">没有任何机制能回答"这四份产物现在一致吗"。</p>
+          </div>
+        </div>
+
+        <!-- After：编译管线 -->
+        <div class="after-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">After</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">编译管线自动生成</span>
+          </div>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 8px;">单一来源：ERR-001.yaml</p>
+            <div class="yaml-block" style="font-size: 11px; padding: 10px;">
+<pre style="white-space: pre-wrap; margin: 0;">error_severity:
+  retryable:
+    visual_mapping:
+      color_token: "status.warning"
+      motion_token: "none"
+      icon_token: "clock"
+    user_action:
+      - label: "等待倒计时"
+        action: "wait_countdown"      # ← 新增
+      - label: "升级套餐"
+        action: "upgrade"             # ← 新增</pre>
+            </div>
+          </div>
+
+          <div class="product-card synced">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Prompt 前缀</span>
+              <span class="version-pill version-new">v1.1.0 · 已编译</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">Git 提交触发编译管线 → 自动生成 → 头部嵌入版本声明。</p>
+          </div>
+
+          <div class="product-card synced">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Checklist</span>
+              <span class="version-pill version-new">v1.1.0 · 已编译</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">同一契约编译，字段裁剪为走查项，无底层语法。</p>
+          </div>
+
+          <div class="product-card synced">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">JSON Schema</span>
+              <span class="version-pill version-new">v1.1.0 · 已编译</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">countdown 字段自动注入，拼写与契约一致。</p>
+          </div>
+
+          <div class="product-card synced">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">CI 规则</span>
+              <span class="version-pill version-new">v1.1.0 · 已编译</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">自动拦截无 countdown 字段的 retryable 级别错误。</p>
+          </div>
+
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 12px; margin-top: 12px;">
+            <p style="font-size: 13px; color: #52c41a; font-weight: 600;">✓ 结果：一处修改，四处同步，零遗漏。每份产物携带版本身份证。</p>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">版本对账可检测过期，哈希校验可拦截手改，消费追踪可定位滞后。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 逐产物差异对照表 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">≡</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">逐维度差异对照</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">六个维度对比：手工维护 vs 编译管线</p>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="diff-table">
+          <thead>
+            <tr>
+              <th style="width: 140px;">维度</th>
+              <th style="width: 1fr;">Before（手工维护）</th>
+              <th style="width: 1fr;">After（编译管线）</th>
+              <th style="width: 200px;">差异带来的能力</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight: 700; color: var(--text-primary);">事实源</td>
+              <td style="color: var(--text-secondary);">无。四份产物各自解读规范文档，同一条规则四种理解。</td>
+              <td style="color: var(--text-secondary);">YAML 契约唯一来源。语义只有一处定义，争议有仲裁依据。</td>
+              <td><span style="color: #52c41a; font-weight: 600;">单一真相源</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--text-primary);">同步方式</td>
+              <td style="color: var(--text-secondary);">四个人各自记得、各自有时间、各自理解。靠人脑对齐。</td>
+              <td style="color: var(--text-secondary);">Git 提交 → 钩子触发编译管线 → 四份产物自动生成 → 通知下游。</td>
+              <td><span style="color: #52c41a; font-weight: 600;">一处修改，四处同步</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--text-primary);">版本标识</td>
+              <td style="color: var(--text-secondary);">产物无版本信息。一个月后拿到文件，不知道新旧。</td>
+              <td style="color: var(--text-secondary);">产物头部嵌入版本声明：源契约 / 版本 / 编译时间 / Git Commit Hash。</td>
+              <td><span style="color: #52c41a; font-weight: 600;">过期可检测</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--text-primary);">一致性证明</td>
+              <td style="color: var(--text-secondary);">无法证明。走查按 Checklist 判合格，但 AI 按 Prompt 生成旧版。</td>
+              <td style="color: var(--text-secondary);">三层编译验证：结构校验 / 语义校验 / 交叉比对。一致性可证。</td>
+              <td><span style="color: #52c41a; font-weight: 600;">一致性可证</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--text-primary);">手改风险</td>
+              <td style="color: var(--text-secondary);">产物即源头，改了没人知道。两套"真相"同时在线。</td>
+              <td style="color: var(--text-secondary);">compiled/ 禁止手改。CI 校验产物哈希与编译记录，手改被拒绝合入。</td>
+              <td><span style="color: #52c41a; font-weight: 600;">完整性由机器保证</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight: 700; color: var(--text-primary);">字段适配</td>
+              <td style="color: var(--text-secondary);">同一份内容发给所有消费方。Prompt 里塞了 JSON Schema 语法。</td>
+              <td style="color: var(--text-secondary);">字段裁剪：Prompt 不带版本元数据，Checklist 不带底层语法，每份只拿自己需要的。</td>
+              <td><span style="color: #52c41a; font-weight: 600;">精准投递</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 产物身份证：版本声明演示 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">ID</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">产物身份证：给每份产物挂一张身份证</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">以前产物只有内容；现在产物携带来源 + 版本 + 一致性证明</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">Prompt 前缀（带身份证）</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;"># === COMPILED PRODUCT ===
+# source: intent/err-001.yaml
+# version: v1.1.0
+# compiled_at: 2026-07-12T13:40:00Z
+# commit: a1b2c3d
+# hash: sha256:9f8e7d...
+# DO NOT EDIT MANUALLY
+# ========================
+
+在生成错误状态界面时，必须遵守以下语义分级：
+- Fatal（系统级故障）：红色脉冲 + 八边形警告
+- Transient（网络抖动）：灰色加载 + 旋转图标
+- Retryable（限流）：黄色提示 + 时钟图标 + 必须显示倒计时
+- Degraded（部分可用）：蓝色提示 + 信息图标</pre>
+          </div>
+        </div>
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">Checklist（带身份证）</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;"># === COMPILED PRODUCT ===
+# source: intent/err-001.yaml
+# version: v1.1.0
+# compiled_at: 2026-07-12T13:40:00Z
+# commit: a1b2c3d
+# hash: sha256:3a4b5c...
+# DO NOT EDIT MANUALLY
+# ========================
+
+错误状态走查清单：
+- [ ] 是否区分了 Fatal/Transient/Retryable/Degraded 四级？
+- [ ] Retryable 是否有倒计时或升级入口？
+- [ ] 是否引用了意图契约 ERR-001 v1.1.0？</pre>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 16px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">版本对账演示</p>
+        <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">$ semantic-pipeline verify --product=prompt-err-001 --consumer=ai-generator
+
+[VERIFY] Checking product version against consumer registry...
+  Product: prompt-err-001
+  Product Version: v1.1.0 (commit: a1b2c3d)
+  Consumer Registry: ai-generator
+  Consumer Loaded Version: v1.0.0 (commit: e5f6a7b)
+
+[ALERT] Version mismatch detected!
+  Expected: v1.1.0
+  Actual: v1.0.0
+  Lag: 1 version behind
+  Action: Notify consumer owner to update
+
+[RESULT] ❌ FAILED — Consumer running stale product</pre>
+        </div>
+        <p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-top: 8px;">⏳ 消费方加载旧版本产物时，版本对账直接标记"消费版本滞后"，5 分钟内告警。</p>
+      </div>
+    </div>
+
+    <!-- 五角色反馈 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">👥</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">五角色反馈：同一根因，不同坑</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">产物无单一来源、无同步机制，在五个角色身上长出的坑各不相同</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">🎨 设计师</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">"规范改了，Prompt 前缀还是旧的，AI 继续按老规矩生成。"</p>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 机制解：产物头部嵌入版本声明，过期自动告警</p>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">💻 前端 / AI 工程师</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">"Checklist 是新的，CI 规则是旧的，走查和拦截标准不一致。"</p>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 机制解：单一来源编译，三层验证保证一致性</p>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">📋 DesignOps</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">"有人嫌麻烦直接手改了编译产物，两套'真相'同时在线。"</p>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 机制解：compiled/ 禁止手改，CI 拒绝手工修改</p>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">🏗️ 语义翻译设计师 / 体验架构师</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">"模式库维护成本高，每次变更要改四份文件。"</p>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 机制解：改一次 YAML，四处自动同步</p>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; grid-column: span 2;">
+          <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">📊 管理层 / 决策者</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">"规范更新了，但不知道哪些产物还没跟上。"</p>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 机制解：消费状态数据库，变更 5 分钟告警</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 结论 -->
+    <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: var(--radius); padding: 24px; margin-bottom: 24px;">
+      <p style="font-size: 16px; font-weight: 700; color: #52c41a; margin-bottom: 12px;">结论：不是"多了一种工具"，是"一致性从人管变成机管"</p>
+      <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+        手工维护只解决了"有产物"，编译管线解决了"产物一致"。<br>
+        没有编译管线的单一来源和同步机制，产物一致性只能靠人维护——而人维护在规模化下必然失效。<br>
+        10 条规则 × 4 份产物 × 5 条产品线 = <span style="color: var(--text-primary); font-weight: 700;">200 个需要人脑对齐的点</span>。<br>
+        单一来源不是工程洁癖，是一致性在规模化下的唯一解。
+      </p>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">产物层是 Schema-As-Code 的"最后一公里"</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">契约经编译管线翻译为四种消费格式 → 版本对账保证一致性 → 交付给四个消费方</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

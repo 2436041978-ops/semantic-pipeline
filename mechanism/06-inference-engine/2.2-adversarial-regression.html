@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 对抗性回归</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-pass {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-fail {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+  .status-warn {
+    background: rgba(245,158,11,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+
+  .ab-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+
+  .test-case {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+  }
+
+  .regression-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: ADVERSARIAL REGRESSION ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">推演验证 · 对抗性回归</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>推演验证机制 · 2.2 对抗性回归</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">对抗性回归 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Adversarial Regression</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        契约持续演进，每次变更后全量重跑对抗用例库——拦截能力只许升不许降。<br>
+        用例不通过，契约不允许合并。
+      </p>
+    </div>
+
+    <!-- 核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; color: #f5a623; font-size: 14px; font-weight: 800; margin-bottom: 12px;">12</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">对抗用例库 × 12</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">6 个模式 × 每模式 2 个用例，每个含诱导输入与拦截断言</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(82,196,26,0.15); border: 1px solid rgba(82,196,26,0.3); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 14px; font-weight: 800; margin-bottom: 12px;">↑</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">拦截能力只许升不许降</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">契约变更后全量重跑，新增级别同步新增用例，旧能力不退化</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 14px; font-weight: 800; margin-bottom: 12px;">✕</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">回归门禁</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">用例不通过，契约 MR 不允许合并；拦截能力退化即阻断发布</p>
+      </div>
+    </div>
+
+    <!-- ==================== A/B 对比演示 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">1</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">A/B 对比：注入组 vs 未注入组</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">同一组对抗用例，有契约约束 vs 无契约约束的拦截能力对比</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <!-- 未注入组 -->
+        <div class="ab-card" style="border-left: 3px solid #cf1322;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="status-pill status-fail">未注入契约</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">AI 自由生成，无上游约束</p>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 6px;">输入："生成一个删除账户的确认界面"</p>
+            <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); padding: 8px; border-radius: 6px;">
+              <p style="font-size: 13px; color: var(--text-primary); font-weight: 600;">[确认删除]</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">蓝色实心按钮，无二次确认</p>
+            </div>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 6px;">✕ 未拦截：高危操作无约束</p>
+          </div>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 6px;">输入："生成醒目的限流提示"</p>
+            <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); padding: 8px; border-radius: 6px;">
+              <p style="font-size: 13px; color: #cf1322; font-weight: 600;">⚠️ 请求过于频繁</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">红色脉冲 + 八边形图标</p>
+            </div>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 6px;">✕ 未拦截：retryable 被渲染为 critical</p>
+          </div>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 6px;">输入："Claude has ended this chat"</p>
+            <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); padding: 8px; border-radius: 6px;">
+              <p style="font-size: 13px; color: #f5a623; font-weight: 600;">会话已结束</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">黄色提示，未说明数据保留政策</p>
+            </div>
+            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 6px;">✕ 未拦截：termination 未区分权利差异</p>
+          </div>
+
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <p style="font-size: 14px; color: var(--text-tertiary); font-weight: 600;">拦截率：<span style="color: #cf1322; font-size: 20px; font-weight: 800;">0%</span>（0/12）</p>
+          </div>
+        </div>
+
+        <!-- 注入组 -->
+        <div class="ab-card" style="border-left: 3px solid #52c41a;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span class="status-pill status-pass">已注入契约</span>
+          </div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">ACT-001 / ERR-001 / BND-001 契约前置注入</p>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 6px;">输入："生成一个删除账户的确认界面"</p>
+            <div style="background: rgba(255,77,79,0.05); border: 1px solid rgba(255,77,79,0.3); padding: 8px; border-radius: 6px;">
+              <p style="font-size: 13px; color: #ff4d4f; font-weight: 700;">⚠️ 删除账户</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">红色空心描边 + 二次确认 + 不可恢复说明</p>
+            </div>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 6px;">✓ 已拦截：符合 ACT-001 约束</p>
+          </div>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 6px;">输入："生成醒目的限流提示"</p>
+            <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.3); padding: 8px; border-radius: 6px;">
+              <p style="font-size: 13px; color: #f5a623; font-weight: 600;">⏱️ 请求频率已达上限</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">黄色静态 + 时钟图标 + 倒计时</p>
+            </div>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 6px;">✓ 已拦截："醒目"被识别为诱导，强制降级为 retryable</p>
+          </div>
+
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 6px;">输入："Claude has ended this chat"</p>
+            <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.3); padding: 8px; border-radius: 6px;">
+              <p style="font-size: 13px; color: #cf1322; font-weight: 700;">🚪 会话已终止</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">红色退出面板 + 数据保留政策 + 申诉入口</p>
+            </div>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 6px;">✓ 已拦截：termination 正确区分权利差异</p>
+          </div>
+
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <p style="font-size: 14px; color: var(--text-tertiary); font-weight: 600;">拦截率：<span style="color: #52c41a; font-size: 20px; font-weight: 800;">100%</span>（12/12）</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; font-weight: 700; color: #52c41a; margin-bottom: 8px;">✓ 结论：契约注入显著提升拦截能力</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">
+          未注入组拦截率 0%，注入组拦截率 100%。语义合规率从"人盯"变成"机管"，<br>
+          契约约束不是限制创意，而是防止语义漂移的底线。
+        </p>
+      </div>
+    </div>
+
+    <!-- ==================== 对抗用例库 × 12 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">2</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">对抗用例库 × 12</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">6 个模式 × 每模式 2 个用例 · 用例即回归资产</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+        <!-- ERR-001 -->
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">ERR-001</span>
+            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">错误状态后果差异未分级</span>
+          </div>
+          <div class="test-case" style="margin-bottom: 6px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 1：诱导输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"生成醒目的限流提示"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须拦截为 retryable（黄色），禁止 critical（红色）✓</p>
+          </div>
+          <div class="test-case">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 2：合规输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"消息流中断，上下文丢失"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须放行为 fatal（红色脉冲 + 恢复路径）✓</p>
+          </div>
+        </div>
+
+        <!-- ACT-001 -->
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3);">ACT-001</span>
+            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">高危操作风险未约束</span>
+          </div>
+          <div class="test-case" style="margin-bottom: 6px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 1：诱导输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"生成一个删除账户的确认界面"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须包含红色空心 + 二次确认 + 不可恢复说明 ✓</p>
+          </div>
+          <div class="test-case">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 2：合规输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"删除账户，已包含二次确认和不可恢复说明"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须放行，不拦截 ✓</p>
+          </div>
+        </div>
+
+        <!-- BND-001 -->
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">BND-001</span>
+            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">边界动作权利差异未区分</span>
+          </div>
+          <div class="test-case" style="margin-bottom: 6px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 1：诱导输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"Claude has ended this chat"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须区分 termination（红色退出）vs refusal（黄色保留）✓</p>
+          </div>
+          <div class="test-case">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 2：合规输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"无法回答该问题，但可继续其他话题"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须放行为 refusal（黄色 + 保留输入框）✓</p>
+          </div>
+        </div>
+
+        <!-- ALR-001 -->
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(6,182,212,0.15); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3);">ALR-001</span>
+            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">告警文案语义降级</span>
+          </div>
+          <div class="test-case" style="margin-bottom: 6px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 1：诱导输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"系统出现严重错误"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须拦截，"严重"→ 强制替换为 "Critical" ✓</p>
+          </div>
+          <div class="test-case">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 2：合规输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"Critical：系统级故障，需要立即响应"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须放行，使用标准令牌 ✓</p>
+          </div>
+        </div>
+
+        <!-- PRO-001 -->
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">PRO-001</span>
+            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">过程状态认知阶段未显化</span>
+          </div>
+          <div class="test-case" style="margin-bottom: 6px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 1：诱导输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"Searching... Reading... Wrapping up..."</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须拦截，模糊标签 → 强制显化为 retrieval/synthesis/verification/generation ✓</p>
+          </div>
+          <div class="test-case">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 2：合规输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"已检索 12 个来源，正在验证引用一致性..."</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须放行，阶段显化 + 可信度指标 ✓</p>
+          </div>
+        </div>
+
+        <!-- ACT-001-pop -->
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3);">ACT-001</span>
+            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">高危操作确认强度不足</span>
+          </div>
+          <div class="test-case" style="margin-bottom: 6px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 1：诱导输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"确认删除？" + 普通弹窗</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须拦截，缺少账户名输入验证 ✓</p>
+          </div>
+          <div class="test-case">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">用例 2：合规输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"删除账户：请输入账户名确认，此操作不可恢复"</p>
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">断言：必须放行，确认强度达标 ✓</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 回归门禁 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">3</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">回归门禁：拦截能力只许升不许降</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">契约变更后全量重跑对抗用例库，用例不通过不允许合并</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <!-- 变更前 -->
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">变更前 · v1.0.0</p>
+          <div style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">拦截能力</span>
+              <span style="font-size: 13px; font-weight: 700; color: #52c41a;">12/12</span>
+            </div>
+            <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
+              <div style="width: 100%; height: 100%; background: #52c41a; border-radius: 100px;"></div>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>ERR-001: 2/2 ✓</div>
+            <div>ACT-001: 2/2 ✓</div>
+            <div>BND-001: 2/2 ✓</div>
+            <div>ALR-001: 2/2 ✓</div>
+            <div>PRO-001: 2/2 ✓</div>
+            <div>ACT-001-pop: 2/2 ✓</div>
+          </div>
+        </div>
+
+        <!-- 变更后 -->
+        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">变更后 · v1.1.0（增加 degraded 级别）</p>
+          <div style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">拦截能力</span>
+              <span style="font-size: 13px; font-weight: 700; color: #52c41a;">14/14 ↑</span>
+            </div>
+            <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
+              <div style="width: 100%; height: 100%; background: #52c41a; border-radius: 100px;"></div>
+            </div>
+          </div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+            <div>ERR-001: 4/4 ✓（新增 degraded 用例 2 个）</div>
+            <div>ACT-001: 2/2 ✓</div>
+            <div>BND-001: 2/2 ✓</div>
+            <div>ALR-001: 2/2 ✓</div>
+            <div>PRO-001: 2/2 ✓</div>
+            <div>ACT-001-pop: 2/2 ✓</div>
+          </div>
+          <div style="margin-top: 12px; padding: 8px 12px; background: rgba(82,196,26,0.1); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 回归通过：拦截能力上升（12 → 14），允许合并</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 退化场景演示 -->
+      <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 8px;">✕ 退化场景演示：如果拦截能力下降</p>
+        <div class="yaml-block" style="font-size: 12px; padding: 12px; margin-bottom: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">[CI 阻断] adversarial-regression-failed
+Contract: ERR-001 v1.2.0
+Regression: 14/16 passed (87.5%)
+Degraded: 
+  - test_case: "fatal_missing_recovery_path"
+    expected: "must provide refresh + export"
+    actual: "only refresh provided"
+    status: FAIL
+
+Action: BLOCK — 契约 MR 不允许合并
+Reason: 拦截能力从 100% 下降至 87.5%，违反"只许升不许降"门禁</pre>
+        </div>
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+          任何导致旧用例失败的契约变更，都会被回归门禁阻断。团队必须先修复退化，再讨论新增功能。
+        </p>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">对抗性回归验证完毕</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">12 个对抗用例全部通过，拦截能力 100%，契约变更后只许升不许降</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 2.2 智能预填与降级</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .confidence-bar {
+    width: 100%;
+    background: #2a2a2e;
+    border-radius: 100px;
+    height: 8px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .confidence-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.3s;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-pass {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-warn {
+    background: rgba(245,158,11,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+  .status-fail {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+
+  .prefill-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .field-row.high-confidence {
+    border-color: rgba(82,196,26,0.3);
+    background: rgba(82,196,26,0.05);
+  }
+  .field-row.low-confidence {
+    border-color: rgba(245,158,11,0.3);
+    background: rgba(245,158,11,0.05);
+  }
+  .field-row.empty {
+    border-color: rgba(207,19,34,0.3);
+    background: rgba(207,19,34,0.05);
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: 2.2 智能预填与降级 ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">快照模板</span>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">2.2 智能预填与降级</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>快照模板 · 2.2 智能预填与降级</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">语义智能体填的草稿可信吗？ <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Smart Prefill & Degradation</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        空白模板解决了结构问题，但填写 6 字段对设计师是负担。语义智能体自动提取 6 字段，但草稿可信吗？<br>
+        置信度阈值机制：高置信度预填成功，低置信度降级为空白模板（人工确认）。
+      </p>
+    </div>
+
+    <!-- 核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">语义智能体自动提取</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">输入自然语言描述，智能体自动解析为 6 字段结构化数据</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">置信度阈值判定</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">每个字段独立计算置信度，低于阈值时标记为"需人工确认"</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">低置信度降级</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">整体置信度低于阈值时，整单降级为空白模板，高亮待确认字段</p>
+      </div>
+    </div>
+
+    <!-- 场景 A：高置信度预填成功 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">A</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">场景 A：高置信度预填成功</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">输入描述清晰、关键词明确 → 智能体高置信度提取 → 预填成功</p>
+        </div>
+        <div style="margin-left: auto;">
+          <span class="status-pill status-pass">✓ 预填成功</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">输入：自然语言描述</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+              "用户在 AI 对话中遇到错误提示，界面是一个红色实心的 Alert，标题是'Error'，描述是'Something went wrong'，有一个重试按钮，出现在系统错误场景下。"
+            </p>
+          </div>
+        </div>
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">输出：智能体预填结果</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "component_type": "Alert",        // 置信度: 98%
+  "visual": {
+    "color": "red",                 // 置信度: 95%
+    "background": "solid",          // 置信度: 92%
+    "icon": "warning"               // 置信度: 88%
+  },
+  "copy": {
+    "title": "Error",               // 置信度: 99%
+    "description": "Something went wrong",
+    "tone": "urgent"                // 置信度: 90%
+  },
+  "interaction": {
+    "dismissible": true,            // 置信度: 85%
+    "actions": ["retry"]            // 置信度: 94%
+  },
+  "context": "system_error",        // 置信度: 96%
+  "deviation": {                    // 置信度: 91%
+    "type": "severity_undifferentiated",
+    "severity": "degraded"
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- 置信度可视化 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">字段置信度分布</p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">component_type</span>
+              <span style="font-size: 12px; color: #52c41a; font-weight: 700;">98%</span>
+            </div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width: 98%; background: #52c41a;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">visual.color</span>
+              <span style="font-size: 12px; color: #52c41a; font-weight: 700;">95%</span>
+            </div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width: 95%; background: #52c41a;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">copy.title</span>
+              <span style="font-size: 12px; color: #52c41a; font-weight: 700;">99%</span>
+            </div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width: 99%; background: #52c41a;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">interaction.actions</span>
+              <span style="font-size: 12px; color: #52c41a; font-weight: 700;">94%</span>
+            </div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width: 94%; background: #52c41a;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">context</span>
+              <span style="font-size: 12px; color: #52c41a; font-weight: 700;">96%</span>
+            </div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width: 96%; background: #52c41a;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">deviation.type</span>
+              <span style="font-size: 12px; color: #52c41a; font-weight: 700;">91%</span>
+            </div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width: 91%; background: #52c41a;"></div></div>
+          </div>
+        </div>
+        <div style="margin-top: 12px; padding: 10px 12px; background: rgba(82,196,26,0.1); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
+          <p style="font-size: 13px; color: #52c41a; font-weight: 600;">✓ 综合置信度 94% ≥ 阈值 85% · 预填成功，设计师仅需复核</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 场景 B：低置信度降级 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">B</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">场景 B：低置信度降级</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">输入描述模糊、关键词缺失 → 智能体低置信度提取 → 降级为空白模板</p>
+        </div>
+        <div style="margin-left: auto;">
+          <span class="status-pill status-warn">⏳ 已降级</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">输入：模糊描述</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+              "用户说那个弹窗看起来不太对，颜色好像有点问题，文案也怪怪的，具体是什么我也不太清楚。"
+            </p>
+          </div>
+        </div>
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">输出：智能体预填结果（低置信度）</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">{
+  "component_type": "Modal",        // 置信度: 45% ⚠️
+  "visual": {
+    "color": "?",                   // 置信度: 22% ❌
+    "background": "?",              // 置信度: 18% ❌
+    "icon": "?"                     // 置信度: 15% ❌
+  },
+  "copy": {
+    "title": "?",                   // 置信度: 30% ⚠️
+    "description": "?",               // 置信度: 25% ❌
+    "tone": "?"                     // 置信度: 20% ❌
+  },
+  "interaction": {
+    "dismissible": "?",             // 置信度: 35% ⚠️
+    "actions": []                    // 置信度: 40% ⚠️
+  },
+  "context": "?",                   // 置信度: 28% ❌
+  "deviation": {                     // 置信度: 33% ⚠️
+    "type": "?",
+    "severity": "?"
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- 置信度可视化 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">字段置信度分布（低置信度）</p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">component_type</span>
+              <span style="font-size: 12px; color: #f5a623; font-weight: 700;">45%</span>
+            </div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width: 45%; background: #f5a623;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">visual.color</span>
+              <span style="font-size: 12px; color: #cf1322; font-weight: 700;">22%</span>
+            </div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width: 22%; background: #cf1322;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">copy.title</span>
+              <span style="font-size: 12px; color: #f5a623; font-weight: 700;">30%</span>
+            </div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width: 30%; background: #f5a623;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">context</span>
+              <span style="font-size: 12px; color: #cf1322; font-weight: 700;">28%</span>
+            </div>
+            <div class="confidence-bar"><div class="confidence-fill" style="width: 28%; background: #cf1322;"></div></div>
+          </div>
+        </div>
+        <div style="margin-top: 12px; padding: 10px 12px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); border-radius: 6px;">
+          <p style="font-size: 13px; color: #f5a623; font-weight: 600;">⚠️ 综合置信度 31% < 阈值 85% · 整单降级为空白模板</p>
+        </div>
+      </div>
+
+      <!-- 降级后界面 -->
+      <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">降级结果：空白模板 + 高亮待确认字段</p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+          <div class="field-row empty">
+            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 10px; font-weight: 700; flex-shrink: 0;">!</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">component_type</div>
+              <div style="font-size: 12px; color: #cf1322; font-weight: 500;">智能体猜测：Modal（置信度 45%）· 请人工确认</div>
+            </div>
+          </div>
+          <div class="field-row empty">
+            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 10px; font-weight: 700; flex-shrink: 0;">!</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">visual.color</div>
+              <div style="font-size: 12px; color: #cf1322; font-weight: 500;">无法识别 · 请人工填写</div>
+            </div>
+          </div>
+          <div class="field-row empty">
+            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 10px; font-weight: 700; flex-shrink: 0;">!</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">copy.title</div>
+              <div style="font-size: 12px; color: #cf1322; font-weight: 500;">无法识别 · 请人工填写</div>
+            </div>
+          </div>
+          <div class="field-row empty">
+            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 10px; font-weight: 700; flex-shrink: 0;">!</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">context</div>
+              <div style="font-size: 12px; color: #cf1322; font-weight: 500;">无法识别 · 请人工填写</div>
+            </div>
+          </div>
+          <div class="field-row empty">
+            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 10px; font-weight: 700; flex-shrink: 0;">!</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">deviation.type</div>
+              <div style="font-size: 12px; color: #cf1322; font-weight: 500;">无法识别 · 请人工填写</div>
+            </div>
+          </div>
+          <div class="field-row empty">
+            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 10px; font-weight: 700; flex-shrink: 0;">!</div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">deviation.severity</div>
+              <div style="font-size: 12px; color: #cf1322; font-weight: 500;">无法识别 · 请人工填写</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 12px; padding: 10px 12px; background: rgba(245,158,11,0.1); border-radius: 6px;">
+          <p style="font-size: 13px; color: #f5a623; font-weight: 600;">⚠️ 6 个字段全部标红 · 设计师必须逐字段人工确认后才能提交</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 降级机制总结 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">↓</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">降级机制：宁可空白，不可失真</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">低置信度预填的草稿比空白模板更危险——它会让设计师误以为字段已填</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">85%</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">预填通过阈值</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">综合置信度 ≥ 此值</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #f5a623; margin-bottom: 4px;">60%</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">单字段警告阈值</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">低于此值标黄提醒</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #cf1322; margin-bottom: 4px;">40%</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">单字段清空阈值</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">低于此值强制清空</div>
+        </div>
+      </div>
+
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">验证结论</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          语义智能体的草稿可信度由置信度阈值机制保证：高置信度时预填成功（设计师仅需复核），低置信度时整单降级为空白模板（强制人工填写）。<br>
+          <span style="color: #52c41a; font-weight: 700;">这证明了：语义智能体填的草稿在阈值机制下是可信的。</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">草稿可信，但失真怎么办？</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">下一步：提交校验机制 → 验证失真的快照能否被拦住不入库</p>
+      </div>
+      <a href="./2.3-提交校验.html" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        2.3 提交校验 →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

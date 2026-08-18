@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 契约的机器防线</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .gate-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .gate-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .gate-number {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .gate-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .gate-subtitle {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  .check-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .check-table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+    background: #16161a;
+  }
+  .check-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: top;
+  }
+  .check-table tr:hover td {
+    background: rgba(22,119,255,0.03);
+  }
+
+  .status-block {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .status-blocked {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+  .status-pass {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-warn {
+    background: rgba(245,158,11,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+
+  .error-box {
+    background: rgba(207,19,34,0.05);
+    border: 1px solid rgba(207,19,34,0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    color: #e5e5e5;
+    line-height: 1.6;
+  }
+
+  .before-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid #f5a623;
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .after-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid #52c41a;
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .trace-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .trace-connector {
+    width: 2px;
+    height: 24px;
+    background: var(--border);
+    margin-left: 20px;
+  }
+  .trace-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
+  }
+  .trace-dot.blocked {
+    background: #cf1322;
+    box-shadow: 0 0 0 3px rgba(207,19,34,0.2);
+  }
+  .trace-dot.pass {
+    background: #52c41a;
+    box-shadow: 0 0 0 3px rgba(82,196,26,0.2);
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </div>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract" class="active">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: MACHINE DEFENSE ==================== -->
+<div class="page active">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Schema-As-Code
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">契约的机器防线</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>Schema-As-Code 验证层 · 契约的机器防线</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">契约的机器防线 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Machine Defense</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        契约不是文档，是机器执行的拦截规则。<br>
+        写的时候防呆、入库前校验、入库后对账——三道闸贯穿契约全生命周期。
+      </p>
+    </div>
+
+    <!-- 三个核心命题 -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">结构违规可被拦截</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">缺字段、版本号非法、层级挂错 → 被字段完整性 / 结构合法性校验阻断，错误定位到具体字段路径。</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; color: #f5a623; font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">语义违规可被拦截</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">description 无现象根因后果、llm_constraints 不可判定 → 被契约评审 + 可判定性校验拦截。</p>
+      </div>
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(82,196,26,0.15); border: 1px solid rgba(82,196,26,0.3); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">同步违规可被拦截</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">手改产物、下游拿过期版本 → 被产物哈希校验 / 版本声明对账标记告警。</p>
+      </div>
+    </div>
+
+    <!-- ==================== 第一道闸：入口防呆 ==================== -->
+    <div class="gate-card">
+      <div class="gate-header">
+        <div class="gate-number">1</div>
+        <div>
+          <div class="gate-title">入口防呆</div>
+          <div class="gate-subtitle">Gate 1 · 写的时候防呆——格式错误在产生前就消除</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div class="before-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">手写 YAML</span>
+          </div>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;">intent_id: "ERR-001"
+description: "错误状态规范"
+semantic_domain: "observational"
+semantic_tokens:
+  error_severity:
+    fatal:
+      visual_mapping:
+        color_token: "status.critical"
+      user_action:
+        - label: "刷新"
+          action: "refresh"
+    transient:
+      visual_mapping:
+        color_token: "status.neutral"
+      user_action:
+        - label: "等待"
+          action: "wait"
+llm_constraints:
+  - "文案要友好一点"
+immutable_boundaries:
+  - boundary_type: "safety"
+    rule: "禁止全部红色"
+    violation_action: "block"</pre>
+          </div>
+          <div style="margin-top: 12px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 6px;">手写问题：</p>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>
+                <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">缺 version 字段</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>
+                <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">缺 applicable_products 字段</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>
+                <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">llm_constraints 不可判定（"友好一点"）</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>
+                <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">缩进错误风险</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="after-card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">表单生成</span>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <p style="font-size: 13px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">契约编辑器表单</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; min-width: 120px;">intent_id</span>
+                <span style="font-size: 13px; color: var(--text-primary); font-weight: 500;">ERR-001</span>
+                <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(82,196,26,0.15); color: #52c41a; font-weight: 600;">✓</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; min-width: 120px;">version</span>
+                <span style="font-size: 13px; color: var(--text-primary); font-weight: 500;">1.0.0</span>
+                <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(82,196,26,0.15); color: #52c41a; font-weight: 600;">✓ SemVer</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; min-width: 120px;">semantic_domain</span>
+                <span style="font-size: 13px; color: var(--text-primary); font-weight: 500;">observational</span>
+                <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(82,196,26,0.15); color: #52c41a; font-weight: 600;">✓ 字典已注册</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; min-width: 120px;">applicable_products</span>
+                <span style="font-size: 13px; color: var(--text-primary); font-weight: 500;">["*"]</span>
+                <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(82,196,26,0.15); color: #52c41a; font-weight: 600;">✓</span>
+              </div>
+              <div style="display: flex; align-items: start; gap: 8px;">
+                <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; min-width: 120px;">llm_constraints</span>
+                <div>
+                  <span style="font-size: 13px; color: var(--text-primary); font-weight: 500;">"禁止所有错误状态共用同一种红色视觉表达"</span>
+                  <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(82,196,26,0.15); color: #52c41a; font-weight: 600; margin-left: 6px;">✓ 可判定</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: start; gap: 8px;">
+                <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; min-width: 120px;">immutable_boundaries</span>
+                <div>
+                  <span style="font-size: 13px; color: var(--text-primary); font-weight: 500;">safety / block</span>
+                  <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(82,196,26,0.15); color: #52c41a; font-weight: 600; margin-left: 6px;">✓</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top: 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 12px;">
+            <p style="font-size: 13px; color: #52c41a; font-weight: 600;">✓ 表单校验通过：7 字段齐全、版本 SemVer、约束可判定、字典引用合法</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 12px 16px;">
+        <p style="font-size: 13px; color: var(--primary); font-weight: 600;">→ 不是"写错后拦截"，是"写不出来"——表单字段与 schema/intent-schema.json 同源生成，格式错误在产生前就消除。</p>
+      </div>
+    </div>
+
+    <!-- ==================== 第二道闸：入库校验 ==================== -->
+    <div class="gate-card">
+      <div class="gate-header">
+        <div class="gate-number">2</div>
+        <div>
+          <div class="gate-title">入库校验</div>
+          <div class="gate-subtitle">Gate 2 · 入库前五项前置校验——任一不过即阻断</div>
+        </div>
+      </div>
+
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">五项安检 + 对抗用例拦截结果</p>
+
+      <div style="overflow-x: auto; margin-bottom: 20px;">
+        <table class="check-table">
+          <thead>
+            <tr>
+              <th style="width: 140px;">安检项</th>
+              <th style="width: 220px;">查什么</th>
+              <th style="width: 240px;">对抗用例（故意写错）</th>
+              <th style="width: 180px;">拦截结果</th>
+              <th>错误定位</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">覆盖层存在性</span></td>
+              <td>semantic_domain 是否在字典预定义列表</td>
+              <td>semantic_domain: "custom_domain"</td>
+              <td><span class="status-block status-blocked">✕ BLOCKED</span></td>
+              <td>SEMANTIC_DOMAIN_UNDEFINED</td>
+            </tr>
+            <tr>
+              <td><span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">绑定存在性</span></td>
+              <td>color_token / motion_token / icon_token 是否在字典</td>
+              <td>color_token: "status.unknown"</td>
+              <td><span class="status-block status-blocked">✕ BLOCKED</span></td>
+              <td>BINDING_UNDEFINED</td>
+            </tr>
+            <tr>
+              <td><span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">场景一致性</span></td>
+              <td>scenario_mappings 是否指向字典已注册的覆盖层</td>
+              <td>scenario_mappings 引用未注册 domain</td>
+              <td><span class="status-block status-blocked">✕ BLOCKED</span></td>
+              <td>SCENARIO_DOMAIN_MISMATCH</td>
+            </tr>
+            <tr>
+              <td><span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">字段完整性</span></td>
+              <td>7 个顶层字段是否齐全、version 是否符合 SemVer x.y.z</td>
+              <td>缺 immutable_boundaries + version: "1.0"</td>
+              <td><span class="status-block status-blocked">✕ BLOCKED</span></td>
+              <td>FIELD_INCOMPLETE / VERSION_INVALID</td>
+            </tr>
+            <tr>
+              <td><span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">结构合法性</span></td>
+              <td>YAML 语法、缩进、类型是否符合 schema；必填子字段检查</td>
+              <td>缩进错误 + 缺 llm_constraints 子字段</td>
+              <td><span class="status-block status-blocked">✕ BLOCKED</span></td>
+              <td>SCHEMA_VIOLATION / SUBFIELD_MISSING</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">6/6</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">对抗用例</div>
+          <div style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">全部拦截</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">100%</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">拦截率</div>
+          <div style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">结构违规属确定性判定</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 800; color: #4a9eff; margin-bottom: 4px;">5</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">安检项</div>
+          <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-top: 4px;">任一不过即阻断</div>
+        </div>
+      </div>
+
+      <!-- 错误响应示例 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">错误响应格式：{ code, message, location }</p>
+        <div class="error-box">
+          <div style="color: #cf1322; font-weight: 700;">[BLOCKED] FIELD_INCOMPLETE</div>
+          <div style="margin-top: 4px;">message: "契约缺少必填字段: immutable_boundaries"</div>
+          <div>location: "root.immutable_boundaries"</div>
+          <div style="margin-top: 4px; color: #f5a623;">hint: "请补充不可变边界定义，或检查字段缩进"</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 第三道闸：同步防线 ==================== -->
+    <div class="gate-card">
+      <div class="gate-header">
+        <div class="gate-number">3</div>
+        <div>
+          <div class="gate-title">同步防线</div>
+          <div class="gate-subtitle">Gate 3 · 入库后对账——产物与源契约持续一致</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">版本声明对账</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">每个编译产物头部嵌入版本声明，消费方加载时核对。</p>
+          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
+<pre style="white-space: pre-wrap; margin: 0;"># === COMPILED FROM ===
+# source: contracts/ERR-001.yaml
+# version: 1.1.0
+# compiled_at: 2026-07-13T09:00:00Z
+# hash: sha256:abc123...
+# =====================</pre>
+          </div>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">手改拒绝</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">compiled/ 目录全部由编译管线产出，CI 校验产物哈希。</p>
+          <div class="error-box">
+            <div style="color: #cf1322; font-weight: 700;">[CI REJECTED] HASH_MISMATCH</div>
+            <div style="margin-top: 4px;">compiled/prompts/ERR-001.md</div>
+            <div>expected: sha256:abc123...</div>
+            <div>actual: sha256:def456...</div>
+            <div style="margin-top: 4px; color: #f5a623;">Action: REJECT — 手改产物禁止合入</div>
+          </div>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">消费追踪</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">追踪每个产物被哪些下游消费，版本不一致自动告警。</p>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">Prompt 前缀: v1.1.0 ✓</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">JSON Schema: v1.1.0 ✓</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">CI 规则: v1.0.0 ⚠ 过期</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 告警规则 -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">告警规则</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="trace-row">
+            <div class="trace-dot blocked"></div>
+            <div>
+              <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">提交后 5 分钟未触发 CI</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">契约入库后编译管线未启动 → 立即告警</p>
+            </div>
+          </div>
+          <div class="trace-connector"></div>
+          <div class="trace-row">
+            <div class="trace-dot blocked"></div>
+            <div>
+              <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">编译通过后 10 分钟未注入</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">产物未同步到下游消费点 → 立即告警</p>
+            </div>
+          </div>
+          <div class="trace-connector"></div>
+          <div class="trace-row">
+            <div class="trace-dot pass"></div>
+            <div>
+              <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">注入后 1 小时未同步 DesignOps</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">Checklist / 走查清单未更新 → 告警</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 调整前 vs 调整后 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">≠</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">调整前 vs 调整后</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">DesignOps 真实踩坑场景：三道闸就位后的走向完全不同</p>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="check-table">
+          <thead>
+            <tr>
+              <th style="width: 160px;">对比项</th>
+              <th style="width: 1fr;">调整前（真实踩坑场景）</th>
+              <th style="width: 1fr;">调整后（三道闸就位）</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">过期产物</span></td>
+              <td><span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">下游用 v1.0.0，契约已到 v1.1.0，无人察觉</span></td>
+              <td><span style="font-size: 13px; color: #52c41a; font-weight: 600;">产物头部版本声明与契约库对账，不一致即标记告警</span></td>
+            </tr>
+            <tr>
+              <td><span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">手改产物</span></td>
+              <td><span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">直接改 compiled/ 下的 Prompt 前缀，评审才发现对不上</span></td>
+              <td><span style="font-size: 13px; color: #52c41a; font-weight: 600;">CI 校验产物哈希与编译记录，手改产物被拒绝合入</span></td>
+            </tr>
+            <tr>
+              <td><span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">结构写错</span></td>
+              <td><span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">缺字段、版本号乱写，入库后下游才报错</span></td>
+              <td><span style="font-size: 13px; color: #52c41a; font-weight: 600;">编辑器表单层防呆 + 入库五项校验阻断，错误定位到字段路径</span></td>
+            </tr>
+            <tr>
+              <td><span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">归因留痕</span></td>
+              <td><span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"谁改的、什么时候改的"靠问</span></td>
+              <td><span style="font-size: 13px; color: #52c41a; font-weight: 600;">结构违规按字段路径归因，同步违规按消费方归因，全程留痕</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== 诚实清单 ==================== -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✓</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">诚实清单</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">设计层已完成 vs 执行层需补齐</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">已完成的（设计层）</p>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a; margin-top: 6px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">三类违规的用例定义与预期结果</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a; margin-top: 6px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">入库五项校验的判定逻辑与错误结构</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a; margin-top: 6px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">版本声明格式与同步对账规则设计</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a; margin-top: 6px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">三层编译验证的流程定义</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a; margin-top: 6px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">契约加载与解析的单点演示（演示环境）</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: #f5a623; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">需工程团队补齐的（执行层）</p>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623; margin-top: 6px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">契约编辑器工程实现（里程碑 M3）</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623; margin-top: 6px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">schema/intent-schema.json 与编辑器表单同源生成机制</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623; margin-top: 6px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">产物哈希校验 CI + 消费状态数据库</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623; margin-top: 6px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">测试用例集（语义验证）与交叉比对工具（一致性验证）</span>
+            </div>
+            <div style="display: flex; align-items: start; gap: 8px; padding: 10px 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623; margin-top: 6px; flex-shrink: 0;"></span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">/api/contracts/validate 与 /api/contracts/compile 生产部署</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 12px 16px;">
+        <p style="font-size: 13px; color: var(--primary); font-weight: 600;">→ 这不是缺陷，是分工：本篇定义"守住契约应该测什么、通过标准是什么"，工程团队负责"怎么自动化跑、怎么接入生产环境"。</p>
+      </div>
+    </div>
+
+    <!-- 底部 CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">契约不是"写好了就完事"，是"一直在工作"</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">入口防呆 → 入库校验 → 同步对账，三道闸贯穿契约全生命周期</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+        返回 Contract Library →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+</body>
+</html>

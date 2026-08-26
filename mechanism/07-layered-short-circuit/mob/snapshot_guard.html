@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 快照质量防线 · 四层验证</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .section-title { display: flex; align-items: center; gap: 10px; margin: 20px 0 10px; }
+  .progress-track { height: 6px; background: #2a2a2e; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 3px; background: #52c41a; }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 阶段三 ⑦</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">快照质量防线</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Four-Layer Validation</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">从模板生成到归档入库的四层验证 · 全部通过才允许进入语义模式库</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 导语 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        四层验证串行执行：<span style="color: var(--text-primary); font-weight: 700;">模板合规 → 语义令牌匹配 → 不可变边界检查 → 归档一致性确认</span>。任一不过即阻断，只有 4/4 通过的快照才允许归档。
+      </p>
+      <div class="progress-track" style="margin-top: 10px;"><div class="progress-fill" style="width: 100%;"></div></div>
+      <p class="text-micro" style="color: #52c41a; margin-top: 4px;">验证进度 4/4 · PASS</p>
+    </div>
+  </div>
+
+  <!-- 快照输入 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('input')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-blue">输入</span>
+          <h2 class="text-h2">语义快照输入</h2>
+        </div>
+        <svg class="chevron" id="chevron-input" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Semantic Snapshot Input · 预设场景与失败用例</p>
+    </div>
+    <div class="collapsible-content" id="content-input">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">快速加载 · 合法场景</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <span class="badge badge-red">fatal · 消息流中断</span>
+          <span class="badge badge-gray">transient · 网络抖动</span>
+          <span class="badge badge-amber">retryable · 请求频繁</span>
+          <span class="badge badge-blue">degraded · 部分失败</span>
+        </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">对抗用例 · 预期被拦截</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <span class="badge badge-red">❌ 结构缺失（Layer 1 拦截）</span>
+          <span class="badge badge-red">❌ 边界冲突（Layer 3 拦截）</span>
+        </div>
+        <div class="code-block" style="font-size: 11px;">
+<pre>{
+  "snapshot_id": "SN-2026-0712-001",
+  "component_type": "Alert",
+  "visual_record": "红色脉冲 + 八边形图标",
+  "user_confusion": "用户点了刷新但对话已丢失",
+  "context": "连续发送 20 条消息后触发"
+}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 1 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('l1')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-green">Layer 1 · PASS</span>
+          <h2 class="text-h2">模板合规性验证</h2>
+        </div>
+        <svg class="chevron" id="chevron-l1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Template Compliance · 检查 5 个必需字段与类型正确性</p>
+    </div>
+    <div class="collapsible-content" id="content-l1">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 8px;">快照必须符合 6 字段模板：字段缺失或类型错误（如 visual_record 传成数组）直接阻断，不进入后续层级。</p>
+        <div class="code-block" style="font-size: 11px;">
+<pre>check: required_fields
+  - snapshot_id     ✓ string, SN-* 格式
+  - product         ✓ string
+  - component_type  ✓ enum
+  - visual_record   ✓ string
+  - user_confusion  ✓ string
+  - context         ✓ string
+result: PASS
+# 对抗用例"结构缺失"在此层被拦截</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 2 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('l2')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-green">Layer 2 · PASS</span>
+          <h2 class="text-h2">语义令牌匹配</h2>
+        </div>
+        <svg class="chevron" id="chevron-l2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Token Matching · 将快照值与契约语义令牌比对</p>
+    </div>
+    <div class="collapsible-content" id="content-l2">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 8px;">快照中的视觉与语义描述必须能匹配到字典中已注册的语义令牌，自由文本或字典外命名不得入库。</p>
+        <div class="code-block" style="font-size: 11px;">
+<pre>match: visual_record → 字典查表
+  "红色脉冲 + 八边形图标"
+  → color_token: "status.critical"   ✓ 已注册
+  → motion_token: "pulse.red.urgent" ✓ 已注册
+  → icon_token: "alert.octagon"      ✓ 已注册
+result: PASS · 3/3 tokens matched</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 3 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('l3')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-green">Layer 3 · PASS</span>
+          <h2 class="text-h2">不可变边界检查</h2>
+        </div>
+        <svg class="chevron" id="chevron-l3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Boundary Check · 检测是否违反 immutable_boundaries</p>
+    </div>
+    <div class="collapsible-content" id="content-l3">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 8px;">快照内容不得违反契约声明的不可变边界（safety / clarity）。命中即阻断，防止"错误模式"被当作正常样本归档。</p>
+        <div class="code-block" style="font-size: 11px;">
+<pre>check: immutable_boundaries
+  - safety:  "禁止所有错误状态共用同一种红色"
+             未触发 ✓（本快照含分级信息）
+  - clarity: "每个错误级别必须提供明确行动指引"
+             通过 ✓
+result: PASS
+# 对抗用例"边界冲突"在此层被拦截</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer 4 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('l4')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-green">Layer 4 · PASS</span>
+          <h2 class="text-h2">归档一致性确认</h2>
+        </div>
+        <svg class="chevron" id="chevron-l4" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Archive Consistency · 生成语义哈希，确认可追溯性</p>
+    </div>
+    <div class="collapsible-content" id="content-l4">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 8px;">为通过前三层的快照生成语义哈希，写入归档记录——同一模式的后续快照可据此聚类、比对与回溯。</p>
+        <div class="code-block" style="font-size: 11px;">
+<pre>archive:
+  semantic_hash: "sha256:9f2c…a41e"
+  matched_pattern: "ERR-001"
+  cluster: "错误状态后果差异未分级"
+  dictionary_version: "v2.1.0"
+  archived_at: "2026-07-12T10:24:00Z"
+result: PASS · 可追溯，允许入库</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
+    <div style="padding: 16px;">
+      <p class="text-h3" style="margin-bottom: 4px; color: #52c41a;">只有全部通过的快照，才允许进入语义模式库</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">四层防线各守一段：结构合法（L1）→ 语义有典可查（L2）→ 不碰不可变边界（L3）→ 归档可追溯（L4）。低质量快照在入库前被拦截，模式库只沉淀合格品。Guard → Contract → Verify。</p>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- 底部 Tab 导航 -->
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='./snapshot.html'">
+    <div class="nav-icon">📐</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='./case_diagnosis.html'">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item active" onclick="window.location.href='./快照质量防线-四层验证mob.html'">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">验证</div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

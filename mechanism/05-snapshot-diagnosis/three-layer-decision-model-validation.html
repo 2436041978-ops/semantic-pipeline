@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 三层判定模型验证</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  .format-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .format-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .format-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .step-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .layer-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-pass {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-block {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+
+  .layer-card {
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid;
+  }
+  .layer-1 { background: rgba(74,222,128,0.05); border-color: rgba(74,222,128,0.2); }
+  .layer-2 { background: rgba(251,191,36,0.05); border-color: rgba(251,191,36,0.2); }
+  .layer-3 { background: rgba(96,165,250,0.05); border-color: rgba(96,165,250,0.2); }
+
+  .role-tab {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .role-tab:hover { color: var(--primary); }
+  .role-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" class="nav-brand">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </a>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline" class="active">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: THREE-LAYER MODEL ==================== -->
+<div class="page active" id="page-threelayer">
+  <div class="cards-section">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+        <span>←</span> Semantic Pipeline
+      </a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Three-Layer Model</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>⑥ 三层判定模型：为什么归因必须分三层，而不能一步到位</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">三层判定模型验证 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Three-Layer Model</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; margin-bottom: 28px; font-weight: 500;">
+        验证"一步到位"的主观归因为什么失效，三层判定如何使语义诊断可复现、可审计、可回溯。<br>
+        以 ERR-001 错误状态后果差异未分级为示例，走完三层判定的完整链路。
+      </p>
+    </div>
+
+    <!-- Step 1: 一步到位的主观判断为什么失效 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">一步到位的主观判断为什么失效</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">四个角色的真实反馈：调整前的诊断困境</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 10px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); display: flex; align-items: center; justify-content: center; color: #a855f7; font-size: 12px; font-weight: 800;">A</div>
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">体验架构师</p>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+            "我判断这是 ERR-001（错误状态后果差异未分级），另一个架构师判断这是 ALR-001（告警文案语义降级）。<br><br>
+            <span style="color: #cf1322; font-weight: 600;">谁也说服不了谁——我们的推理过程都是黑箱。</span>"
+          </p>
+        </div>
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 10px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: #4a9eff; font-size: 12px; font-weight: 800;">D</div>
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">设计师</p>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+            "走查会上我说'这是错误分级问题'，工程师反问'你怎么确定的'，<span style="color: #cf1322; font-weight: 600;">我答不上来，只能说'经验'</span>。<br><br>
+            但经验无法被复核，也无法被新人继承。"
+          </p>
+        </div>
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 10px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; color: #f5a623; font-size: 12px; font-weight: 800;">F</div>
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">前端工程师</p>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+            "产品说'语义有问题'，我问哪里有问题，对方说<span style="color: #cf1322; font-weight: 600;">'整体感觉'</span>。<br><br>
+            我不知道该改颜色、改文案还是改交互——没有分层，就没有改动的优先级和范围。"
+          </p>
+        </div>
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 10px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(82,196,26,0.15); border: 1px solid rgba(82,196,26,0.3); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 12px; font-weight: 800;">O</div>
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">DesignOps</p>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+            "上个月归档的问题清单，这个月抽查发现错了三条——<span style="color: #cf1322; font-weight: 600;">但没人知道是看错、判错还是记错，只能全部重查</span>。<br><br>
+            一步到位的归档没有审计路径。"
+          </p>
+        </div>
+      </div>
+
+      <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 8px;">一步到位失效的共同特征</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          四个角色面对同一个红色 Alert，给出了四个不同的模式判断。分歧的根源不是"谁的经验更准"，而是<span style="color: var(--text-primary); font-weight: 600;">一步到位的归因把三个正交问题压缩成了一个黑箱结论</span>：<br>
+          • 分类问题（这是什么组件？）被跳过了<br>
+          • 缺失问题（缺了什么语义？）被混在感受里了<br>
+          • 表达问题（视觉映射对不对？）被当成了"整体感觉"<br><br>
+          当三个问题被压缩成一个答案时，任何两个人给出不同答案都是正常的——因为他们在回答的是三个不同的问题，只是没有意识到。
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 2: 三个正交问题的拆解 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">三个正交问题的拆解</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">一步到位 vs 三层判定：问题如何被分解</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">一步到位（黑箱）</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <div style="text-align: center; padding: 20px; background: rgba(207,19,34,0.05); border: 1px dashed rgba(207,19,34,0.3); border-radius: 8px; margin-bottom: 16px;">
+              <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 8px;">输入：红色 Alert 截图</p>
+              <p style="font-size: 24px; color: var(--text-tertiary);">↓</p>
+              <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">输出："这是 ERR-001"</p>
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 8px;">（推理过程：黑箱）</p>
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+              <p style="margin-bottom: 8px;"><span style="color: #cf1322;">❌</span> 不回答"这是什么组件"</p>
+              <p style="margin-bottom: 8px;"><span style="color: #cf1322;">❌</span> 不回答"缺了什么语义"</p>
+              <p style="margin-bottom: 8px;"><span style="color: #cf1322;">❌</span> 不回答"视觉映射对不对"</p>
+              <p><span style="color: #cf1322;">❌</span> 无法复现、无法审计、无法回溯</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">三层判定（白箱）</p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <div style="text-align: center; padding: 12px; background: rgba(74,222,128,0.05); border: 1px solid rgba(74,222,128,0.2); border-radius: 8px; margin-bottom: 8px;">
+              <p style="font-size: 13px; font-weight: 700; color: #4ade80;">Layer 1 · 组件类型识别</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">回答：这是什么组件？</p>
+            </div>
+            <div style="text-align: center; color: var(--text-tertiary); font-size: 16px; margin: 4px 0;">↓</div>
+            <div style="text-align: center; padding: 12px; background: rgba(251,191,36,0.05); border: 1px solid rgba(251,191,36,0.2); border-radius: 8px; margin-bottom: 8px;">
+              <p style="font-size: 13px; font-weight: 700; color: #fbbf24;">Layer 2 · 语义缺失判定</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">回答：缺了什么语义？</p>
+            </div>
+            <div style="text-align: center; color: var(--text-tertiary); font-size: 16px; margin: 4px 0;">↓</div>
+            <div style="text-align: center; padding: 12px; background: rgba(96,165,250,0.05); border: 1px solid rgba(96,165,250,0.2); border-radius: 8px; margin-bottom: 12px;">
+              <p style="font-size: 13px; font-weight: 700; color: #60a5fa;">Layer 3 · 视觉表达校验</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">回答：视觉映射对不对？</p>
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+              <p style="margin-bottom: 8px;"><span style="color: #52c41a;">✓</span> 每层有明确的消费字段</p>
+              <p style="margin-bottom: 8px;"><span style="color: #52c41a;">✓</span> 每层有明确的合法判据</p>
+              <p style="margin-bottom: 8px;"><span style="color: #52c41a;">✓</span> 每层有明确的短路条件</p>
+              <p><span style="color: #52c41a;">✓</span> 可复现、可审计、可回溯</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">三层 vs 一步到位：正交问题对照</p>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <th style="text-align: left; padding: 10px 12px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">正交问题</th>
+                <th style="text-align: left; padding: 10px 12px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">一步到位（黑箱）</th>
+                <th style="text-align: left; padding: 10px 12px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">三层判定（白箱）</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 10px 12px; color: var(--text-primary); font-weight: 600;">这是什么组件？</td>
+                <td style="padding: 10px 12px; color: #cf1322; font-weight: 500;">被跳过，直接跳到模式判断</td>
+                <td style="padding: 10px 12px; color: #4ade80; font-weight: 500;">Layer 1 明确回答，输出组件标签</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 10px 12px; color: var(--text-primary); font-weight: 600;">缺了什么语义？</td>
+                <td style="padding: 10px 12px; color: #cf1322; font-weight: 500;">混在"感觉"里，无法提取</td>
+                <td style="padding: 10px 12px; color: #fbbf24; font-weight: 500;">Layer 2 提取语义关键词，匹配缺失模式</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 12px; color: var(--text-primary); font-weight: 600;">视觉映射对不对？</td>
+                <td style="padding: 10px 12px; color: #cf1322; font-weight: 500;">被当成"整体感觉"，无法逐项校验</td>
+                <td style="padding: 10px 12px; color: #60a5fa; font-weight: 500;">Layer 3 逐项校验颜色/文案/行动偏差</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: 三层判定执行流程 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">三层判定执行流程</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">逐层解耦，每层有输入、规则、输出、短路条件</p>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+        <button class="format-btn active" onclick="showPattern('err001', this)">ERR-001 · 错误状态</button>
+        <button class="format-btn" onclick="showPattern('act001', this)">ACT-001 · 高危操作</button>
+        <button class="format-btn" onclick="showPattern('pro001', this)">PRO-001 · 过程状态</button>
+        <button class="format-btn" onclick="showPattern('bnd001', this)">BND-001 · 边界动作</button>
+        <button class="format-btn" onclick="showPattern('alr001', this)">ALR-001 · 告警文案</button>
+      </div>
+
+      <div id="pattern-flow">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+          <!-- Layer 1 -->
+          <div class="layer-card layer-1">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span class="layer-badge" style="background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3);">Layer 1</span>
+              <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">组件类型识别</span>
+            </div>
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">回答：这是什么组件？</p>
+            <div style="background: rgba(74,222,128,0.08); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+              <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">消费字段</p>
+              <p style="font-size: 12px; color: #4ade80; font-weight: 500;" id="l1-fields">component_type + context</p>
+            </div>
+            <div style="background: rgba(74,222,128,0.08); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+              <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">输出标签</p>
+              <p style="font-size: 12px; color: #4ade80; font-weight: 500;" id="l1-output">Alert / Message（错误提示）</p>
+            </div>
+            <div style="background: rgba(207,19,34,0.08); border-radius: 6px; padding: 10px;">
+              <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">短路条件</p>
+              <p style="font-size: 12px; color: #cf1322; font-weight: 500;" id="l1-short">无法归类 → 提示补 context</p>
+            </div>
+          </div>
+
+          <!-- Layer 2 -->
+          <div class="layer-card layer-2">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span class="layer-badge" style="background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3);">Layer 2</span>
+              <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">语义缺失判定</span>
+            </div>
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">回答：缺了什么语义？</p>
+            <div style="background: rgba(251,191,36,0.08); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+              <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">消费字段</p>
+              <p style="font-size: 12px; color: #fbbf24; font-weight: 500;" id="l2-fields">user_confusion</p>
+            </div>
+            <div style="background: rgba(251,191,36,0.08); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+              <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">输出标签</p>
+              <p style="font-size: 12px; color: #fbbf24; font-weight: 500;" id="l2-output">error_severity 语义令牌缺失</p>
+            </div>
+            <div style="background: rgba(207,19,34,0.08); border-radius: 6px; padding: 10px;">
+              <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">短路条件</p>
+              <p style="font-size: 12px; color: #cf1322; font-weight: 500;" id="l2-short">无关键词命中 → 提示补 user_confusion</p>
+            </div>
+          </div>
+
+          <!-- Layer 3 -->
+          <div class="layer-card layer-3">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span class="layer-badge" style="background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3);">Layer 3</span>
+              <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">视觉表达校验</span>
+            </div>
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">回答：视觉映射对不对？</p>
+            <div style="background: rgba(96,165,250,0.08); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+              <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">消费字段</p>
+              <p style="font-size: 12px; color: #60a5fa; font-weight: 500;" id="l3-fields">visual_record</p>
+            </div>
+            <div style="background: rgba(96,165,250,0.08); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+              <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">输出标签</p>
+              <p style="font-size: 12px; color: #60a5fa; font-weight: 500;" id="l3-output">颜色映射不匹配（全部红色）</p>
+            </div>
+            <div style="background: rgba(207,19,34,0.08); border-radius: 6px; padding: 10px;">
+              <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">短路条件</p>
+              <p style="font-size: 12px; color: #cf1322; font-weight: 500;" id="l3-short">无视觉偏差 → 标记为语义层问题</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="status-pill status-pass">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+              诊断完成
+            </span>
+            <p style="font-size: 14px; color: var(--text-primary); font-weight: 600;" id="final-result">
+              三层标签：Alert → error_severity 缺失 → 颜色映射不匹配 → 归属模式 ERR-001
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: 四个角色调整后对比 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">四个角色调整后对比</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">分层前后，同一角色的工作方式变化</p>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+        <button class="role-tab active" onclick="showRole(0, this)">体验架构师</button>
+        <button class="role-tab" onclick="showRole(1, this)">设计师</button>
+        <button class="role-tab" onclick="showRole(2, this)">前端工程师</button>
+        <button class="role-tab" onclick="showRole(3, this)">DesignOps</button>
+      </div>
+
+      <div id="role-comparison">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 10px; padding: 20px;">
+            <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">调整前 · 一步到位</p>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;" id="role-before">
+              "我判断这是 ERR-001，另一个架构师判断这是 ALR-001。谁也说服不了谁——推理过程都是黑箱。"
+            </p>
+          </div>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 10px; padding: 20px;">
+            <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">调整后 · 三层判定</p>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;" id="role-after">
+              "三层标签并置：我标记为 Alert→error_severity 缺失→颜色不匹配，对方标记为 Alert→synonym 降级→文案偏差。分歧一眼定位到 Layer 2——不是模式之争，是语义缺失类型之争。"
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: 验证结论 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">验证结论</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">三个核心命题全部通过</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 10px; padding: 20px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: #cf1322; margin-bottom: 8px;">❌</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">命题 1</p>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500; margin-bottom: 12px;">
+            一步到位的归因不可复现、不可审计
+          </p>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 已验证</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">分层后分歧可定位到具体层级</p>
+        </div>
+        <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.15); border-radius: 10px; padding: 20px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: var(--primary); margin-bottom: 8px;">↩</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">命题 2</p>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500; margin-bottom: 12px;">
+            逐层解耦使误判可回溯
+          </p>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 已验证</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">归档错误能回溯到 Layer1/Layer2/Layer3</p>
+        </div>
+        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.15); border-radius: 10px; padding: 20px; text-align: center;">
+          <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 8px;">⚡</div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">命题 3</p>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500; margin-bottom: 12px;">
+            分层短路优于全量串联
+          </p>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 已验证</p>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">证据不足时短路阻止低质量结论入库</p>
+        </div>
+      </div>
+
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">核心结论</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          语义诊断不能一步到位，因为<span style="color: var(--text-primary); font-weight: 600;">三个正交问题被压缩成一个黑箱结论时，任何两个人给出不同答案都是正常的</span>。<br><br>
+          三层判定模型将归因拆解为三个可独立验证的步骤：<br>
+          • <span style="color: #4ade80; font-weight: 600;">Layer 1</span> 回答"这是什么组件"——按交互路径分类，而非视觉形态<br>
+          • <span style="color: #fbbf24; font-weight: 600;">Layer 2</span> 回答"缺了什么语义"——提取用户困惑中的关键词，匹配缺失模式<br>
+          • <span style="color: #60a5fa; font-weight: 600;">Layer 3</span> 回答"视觉映射对不对"——逐项校验颜色、文案、行动偏差<br><br>
+          每层有明确的消费字段、合法判据和短路条件。分歧可以定位到具体层级，误判可以回溯到具体步骤，证据不足时可以短路阻止低质量结论进入模式库。<br><br>
+          <span style="color: #52c41a; font-weight: 700;">三层判定不是增加了复杂度，而是把原本隐藏在"经验"中的推理过程显式化、可审计、可继承。</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Bottom CTA -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">三层判定模型验证完成</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block;">
+        返回 Schema-As-Code →
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+<script>
+const patterns = {
+  err001: {
+    l1Fields: 'component_type + context',
+    l1Output: 'Alert / Message（错误提示）',
+    l1Short: '无法归类 → 提示补 context',
+    l2Fields: 'user_confusion',
+    l2Output: 'error_severity 语义令牌缺失',
+    l2Short: '无关键词命中 → 提示补 user_confusion',
+    l3Fields: 'visual_record',
+    l3Output: '颜色映射不匹配（全部红色）',
+    l3Short: '无视觉偏差 → 标记为语义层问题',
+    final: '三层标签：Alert → error_severity 缺失 → 颜色映射不匹配 → 归属模式 ERR-001'
+  },
+  act001: {
+    l1Fields: 'component_type + context',
+    l1Output: 'Button + Modal（操作控件）',
+    l1Short: '无法归类 → 提示补 context',
+    l2Fields: 'user_confusion',
+    l2Output: 'destructive_action 语义约束缺失',
+    l2Short: '无关键词命中 → 提示补 user_confusion',
+    l3Fields: 'visual_record',
+    l3Output: '操作风险未标注（蓝色实心按钮）',
+    l3Short: '无视觉偏差 → 标记为语义层问题',
+    final: '三层标签：Button → destructive_action 缺失 → 风险未标注 → 归属模式 ACT-001'
+  },
+  pro001: {
+    l1Fields: 'component_type + context',
+    l1Output: 'Progress / Steps（过程指示）',
+    l1Short: '无法归类 → 提示补 context',
+    l2Fields: 'user_confusion',
+    l2Output: 'process_phase 语义令牌缺失',
+    l2Short: '无关键词命中 → 提示补 user_confusion',
+    l3Fields: 'visual_record',
+    l3Output: '认知阶段未显化（Searching/Reading 模糊）',
+    l3Short: '无视觉偏差 → 标记为语义层问题',
+    final: '三层标签：Progress → process_phase 缺失 → 阶段未显化 → 归属模式 PRO-001'
+  },
+  bnd001: {
+    l1Fields: 'component_type + context',
+    l1Output: 'Modal / Dialog（边界反馈）',
+    l1Short: '无法归类 → 提示补 context',
+    l2Fields: 'user_confusion',
+    l2Output: 'boundary_action 语义令牌缺失',
+    l2Short: '无关键词命中 → 提示补 user_confusion',
+    l3Fields: 'visual_record',
+    l3Output: '权利差异未区分（拒绝和终止混为一谈）',
+    l3Short: '无视觉偏差 → 标记为语义层问题',
+    final: '三层标签：Modal → boundary_action 缺失 → 权利未区分 → 归属模式 BND-001'
+  },
+  alr001: {
+    l1Fields: 'component_type + context',
+    l1Output: 'Alert（状态提示）',
+    l1Short: '无法归类 → 提示补 context',
+    l2Fields: 'user_confusion',
+    l2Output: 'synonym_firewall 同义词约束缺失',
+    l2Short: '无关键词命中 → 提示补 user_confusion',
+    l3Fields: 'visual_record',
+    l3Output: '文案精度不足（Critical 写成严重）',
+    l3Short: '无视觉偏差 → 标记为语义层问题',
+    final: '三层标签：Alert → synonym_firewall 缺失 → 文案降级 → 归属模式 ALR-001'
+  }
+};
+
+const roles = [
+  {
+    before: '"我判断这是 ERR-001，另一个架构师判断这是 ALR-001。谁也说服不了谁——推理过程都是黑箱。"',
+    after: '"三层标签并置：我标记为 Alert→error_severity 缺失→颜色不匹配，对方标记为 Alert→synonym 降级→文案偏差。分歧一眼定位到 Layer 2——不是模式之争，是语义缺失类型之争。"'
+  },
+  {
+    before: '"走查会上我说'这是错误分级问题'，工程师反问'你怎么确定的'，我答不上来，只能说'经验'。"',
+    after: '"推理链随结论提交：Layer 1 判定为 Alert（依据交互路径），Layer 2 判定为 error_severity 缺失（依据用户困惑关键词），Layer 3 判定为颜色映射不匹配（依据视觉记录）。复核者可以沿标签逐层重走。"'
+  },
+  {
+    before: '"产品说'语义有问题'，我问哪里有问题，对方说'整体感觉'。我不知道该改颜色、改文案还是改交互。"',
+    after: '"校验报告分列三项偏差：颜色（全部红色，应分级为红/灰/黄/蓝）、文案（缺少后果说明）、行动（缺少恢复路径）。逐项销号，不再猜测"整体感觉"。"'
+  },
+  {
+    before: '"上个月归档的问题清单，这个月抽查发现错了三条——但没人知道是看错、判错还是记错，只能全部重查。"',
+    after: '"每层标签独立归档：Layer 1 归档为 Alert（正确），Layer 2 归档为 error_severity 缺失（正确），Layer 3 归档为颜色不匹配（误判——实际是文案问题）。纠错定位到 Layer 3，只需重算 Layer 3，不需要全量重查。"'
+  }
+];
+
+function showPattern(id, el) {
+  document.querySelectorAll('.format-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'var(--card-bg)';
+    b.style.color = 'var(--text-secondary)';
+    b.style.borderColor = 'var(--border)';
+  });
+  el.classList.add('active');
+  el.style.background = 'var(--primary)';
+  el.style.color = '#fff';
+  el.style.borderColor = 'var(--primary)';
+
+  const p = patterns[id];
+  document.getElementById('l1-fields').textContent = p.l1Fields;
+  document.getElementById('l1-output').textContent = p.l1Output;
+  document.getElementById('l1-short').textContent = p.l1Short;
+  document.getElementById('l2-fields').textContent = p.l2Fields;
+  document.getElementById('l2-output').textContent = p.l2Output;
+  document.getElementById('l2-short').textContent = p.l2Short;
+  document.getElementById('l3-fields').textContent = p.l3Fields;
+  document.getElementById('l3-output').textContent = p.l3Output;
+  document.getElementById('l3-short').textContent = p.l3Short;
+  document.getElementById('final-result').textContent = p.final;
+}
+
+function showRole(idx, el) {
+  document.querySelectorAll('.role-tab').forEach(b => {
+    b.classList.remove('active');
+    b.style.color = 'var(--text-secondary)';
+    b.style.borderBottomColor = 'transparent';
+  });
+  el.classList.add('active');
+  el.style.color = 'var(--primary)';
+  el.style.borderBottomColor = 'var(--primary)';
+
+  const r = roles[idx];
+  document.getElementById('role-before').textContent = r.before;
+  document.getElementById('role-after').textContent = r.after;
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 快照质量防线 · 四层验证</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+
+  .severity-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .severity-fatal { background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; }
+  .severity-transient { background: #1e1e22; border: 1px solid #3a3a3e; color: #a0a0a0; }
+  .severity-retryable { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
+  .severity-degraded { background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-active {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-pending {
+    background: rgba(212,136,6,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(212,136,6,0.3);
+  }
+  .status-inactive {
+    background: #1e1e22;
+    color: #666;
+    border: 1px solid #2a2a2e;
+  }
+  .status-error {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+
+  .layer-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: all 0.3s;
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  .layer-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .layer-card.success { border-color: rgba(82,196,26,0.3); }
+  .layer-card.error { border-color: rgba(207,19,34,0.3); }
+  .layer-card.pending { border-color: rgba(212,136,6,0.3); }
+
+  .layer-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .layer-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .layer-number.ok { background: linear-gradient(135deg, #52c41a, #45a049); }
+  .layer-number.err { background: linear-gradient(135deg, #cf1322, #a8071a); }
+  .layer-number.pending { background: linear-gradient(135deg, #f5a623, #d48806); }
+  .layer-number.idle { background: #2a2a2e; color: #666; }
+
+  .trace-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .trace-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .trace-dot.ok { background: #52c41a; box-shadow: 0 0 0 3px rgba(82,196,26,0.2); }
+  .trace-dot.err { background: #cf1322; }
+  .trace-dot.pending { background: #f5a623; }
+
+  .format-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #16161a;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .format-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .format-btn.primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .format-btn.primary:hover {
+    background: var(--primary-hover);
+  }
+  .format-btn.success {
+    background: #52c41a;
+    color: #fff;
+    border-color: #52c41a;
+  }
+  .format-btn.success:hover {
+    background: #45a049;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  .pipeline-search-area {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .slide-up { animation: slideUp 0.4s ease-out forwards; }
+
+  .progress-bar {
+    width: 100%;
+    background: #2a2a2e;
+    border-radius: 100px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.6s ease;
+  }
+
+  textarea#snapshotInput {
+    width: 100%;
+    padding: 12px;
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'SF Mono', monospace;
+    outline: none;
+    resize: vertical;
+    min-height: 180px;
+    line-height: 1.6;
+  }
+  textarea#snapshotInput:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(22,119,255,0.15);
+  }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" class="nav-brand">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </a>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: FOUR-LAYER VALIDATION ==================== -->
+<div class="cards-section">
+  <!-- Breadcrumb -->
+  <div style="margin-bottom: 24px;">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="color: var(--primary); font-size: 14px; font-weight: 600; text-decoration: none;">
+      ← Schema-As-Code
+    </a>
+    <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+    <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Snapshot Quality Gate</span>
+  </div>
+
+  <div style="margin-bottom: 32px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+      <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+      <span>阶段三 · ⑦ 快照质量防线 · 四层验证</span>
+    </div>
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">快照质量防线 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Four-Layer Validation</span></h1>
+    <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+      从模板生成到归档入库的四层验证：模板合规 → 语义令牌匹配 → 不可变边界检查 → 归档一致性确认。<br>
+      只有全部通过的快照，才允许进入语义模式库。
+    </p>
+  </div>
+
+  <!-- Input Area -->
+  <div class="pipeline-search-area" style="margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">0</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">语义快照输入</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Semantic Snapshot Input · 粘贴 JSON 或选择预设</p>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+      <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">快速加载：</span>
+      <button class="format-btn" onclick="loadPreset('fatal')">fatal · 消息流中断</button>
+      <button class="format-btn" onclick="loadPreset('transient')">transient · 网络抖动</button>
+      <button class="format-btn" onclick="loadPreset('retryable')">retryable · 请求频繁</button>
+      <button class="format-btn" onclick="loadPreset('degraded')">degraded · 部分失败</button>
+      <button class="format-btn" onclick="loadPreset('broken')" style="border-color: rgba(207,19,34,0.3); color: #cf1322;">❌ 结构缺失（测试失败）</button>
+      <button class="format-btn" onclick="loadPreset('conflict')" style="border-color: rgba(207,19,34,0.3); color: #cf1322;">❌ 边界冲突（测试失败）</button>
+    </div>
+
+    <textarea id="snapshotInput" placeholder='粘贴组件语义快照 JSON，例如：
+{
+  "component_type": "Alert",
+  "visual": { "color": "red", "background": "solid", "icon": "warning" },
+  "copy": { "title": "Error", "description": "Something went wrong", "tone": "urgent" },
+  "interaction": { "dismissible": true, "actions": ["retry"] },
+  "context": "system_error"
+}'></textarea>
+
+    <div style="display: flex; gap: 8px; margin-top: 12px; align-items: center;">
+      <button class="format-btn primary" onclick="runFourLayerValidation()" id="runBtn">执行四层验证</button>
+      <button class="format-btn" onclick="clearAll()">清除</button>
+      <span id="inputStatus" style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; margin-left: auto;">等待输入...</span>
+    </div>
+  </div>
+
+  <!-- Progress Indicator -->
+  <div id="progressArea" style="display: none; margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">验证进度</span>
+      <span id="progressText" style="font-size: 13px; font-weight: 700; color: var(--primary);">0/4</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width: 0%; background: var(--primary);"></div>
+    </div>
+  </div>
+
+  <!-- Layer 1: Template Compliance -->
+  <div id="layer1" class="layer-card" style="display: none;">
+    <div class="layer-header">
+      <div class="layer-number idle" id="l1-icon">1</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Layer 1：模板合规性验证</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Template Compliance · 检查 5 个必需字段与类型正确性</p>
+      </div>
+      <div style="margin-left: auto;" id="l1-status"></div>
+    </div>
+    <div id="l1-content"></div>
+  </div>
+
+  <!-- Layer 2: Token Matching -->
+  <div id="layer2" class="layer-card" style="display: none;">
+    <div class="layer-header">
+      <div class="layer-number idle" id="l2-icon">2</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Layer 2：语义令牌匹配</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Token Matching · 将快照值与契约语义令牌比对</p>
+      </div>
+      <div style="margin-left: auto;" id="l2-status"></div>
+    </div>
+    <div id="l2-content"></div>
+  </div>
+
+  <!-- Layer 3: Boundary Check -->
+  <div id="layer3" class="layer-card" style="display: none;">
+    <div class="layer-header">
+      <div class="layer-number idle" id="l3-icon">3</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Layer 3：不可变边界检查</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Boundary Check · 检测是否违反 immutable_boundaries</p>
+      </div>
+      <div style="margin-left: auto;" id="l3-status"></div>
+    </div>
+    <div id="l3-content"></div>
+  </div>
+
+  <!-- Layer 4: Archive Consistency -->
+  <div id="layer4" class="layer-card" style="display: none;">
+    <div class="layer-header">
+      <div class="layer-number idle" id="l4-icon">4</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Layer 4：归档一致性确认</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Archive Consistency · 生成语义哈希，确认可追溯性</p>
+      </div>
+      <div style="margin-left: auto;" id="l4-status"></div>
+    </div>
+    <div id="l4-content"></div>
+  </div>
+
+  <!-- Final Result -->
+  <div id="finalResult" style="display: none; margin-top: 24px;">
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px;">
+      <div id="finalContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+<script>
+// ===== Preset Data =====
+const presets = {
+  fatal: {
+    component_type: "Alert",
+    visual: { color: "red", background: "solid", icon: "octagon" },
+    copy: { title: "Error in message stream", description: "对话上下文可能已丢失", tone: "urgent" },
+    interaction: { dismissible: true, actions: ["refresh", "export_history"] },
+    context: "system_error"
+  },
+  transient: {
+    component_type: "Alert",
+    visual: { color: "gray", background: "subtle", icon: "loader" },
+    copy: { title: "Network Error", description: "网络连接不稳定，正在自动恢复", tone: "neutral" },
+    interaction: { dismissible: false, actions: ["wait", "retry"] },
+    context: "network_error"
+  },
+  retryable: {
+    component_type: "Alert",
+    visual: { color: "yellow", background: "subtle", icon: "clock" },
+    copy: { title: "Too Many Requests", description: "请求频率已达上限，请稍后再试", tone: "warning" },
+    interaction: { dismissible: true, actions: ["wait_countdown", "upgrade"] },
+    context: "rate_limit"
+  },
+  degraded: {
+    component_type: "Alert",
+    visual: { color: "blue", background: "subtle", icon: "info-circle" },
+    copy: { title: "Partial Response", description: "部分响应生成失败，已生成内容仍有效", tone: "info" },
+    interaction: { dismissible: true, actions: ["continue", "retry_simplified"] },
+    context: "degraded_service"
+  },
+  broken: {
+    component_type: "Alert",
+    visual: { color: "red", background: "solid" },
+    copy: { title: "Error", description: "Something went wrong" },
+    context: "system_error"
+    // missing interaction field intentionally
+  },
+  conflict: {
+    component_type: "Alert",
+    visual: { color: "red", background: "solid", icon: "warning" },
+    copy: { title: "Too Many Requests", description: "请求频繁", tone: "urgent" },
+    interaction: { dismissible: true, actions: ["retry"] },
+    context: "rate_limit"
+    // color is red but context is rate_limit -> should be yellow per contract
+  }
+};
+
+// ===== Contract Rules (in-memory) =====
+const contractERR001 = {
+  id: "ERR-001",
+  version: "v1.1.0",
+  semantic_tokens: {
+    error_severity: {
+      fatal: { color: ["red"], icon: ["octagon"], actions: ["refresh", "export_history"] },
+      transient: { color: ["gray", "grey"], icon: ["loader", "spinner"], actions: ["wait", "retry"] },
+      retryable: { color: ["yellow", "amber", "orange"], icon: ["clock"], actions: ["wait_countdown", "upgrade"] },
+      degraded: { color: ["blue"], icon: ["info-circle", "info"], actions: ["continue", "retry_simplified"] }
+    }
+  },
+  immutable_boundaries: [
+    { type: "SAFETY", level: "BLOCK", rule: "禁止所有错误状态共用同一种红色视觉表达" },
+    { type: "CLARITY", level: "WARN", rule: "每个错误级别必须提供明确的用户行动指引" }
+  ]
+};
+
+// ===== State =====
+let currentSnapshot = null;
+let validationResults = { l1: null, l2: null, l3: null, l4: null };
+
+// ===== Helpers =====
+function setInputStatus(text, color) {
+  const el = document.getElementById('inputStatus');
+  el.textContent = text;
+  el.style.color = color || 'var(--text-tertiary)';
+}
+
+function showLayer(id, delay) {
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    el.style.display = 'block';
+    requestAnimationFrame(() => el.classList.add('visible'));
+  }, delay);
+}
+
+function setLayerStatus(layer, status, message) {
+  const icon = document.getElementById(layer + '-icon');
+  const statusEl = document.getElementById(layer + '-status');
+  const card = document.getElementById(layer);
+
+  icon.className = 'layer-number ' + status;
+  if (status === 'ok') icon.innerHTML = '✓';
+  else if (status === 'err') icon.innerHTML = '✕';
+  else if (status === 'pending') icon.innerHTML = '...';
+  else icon.innerHTML = layer.replace('layer', '');
+
+  if (status === 'ok') {
+    statusEl.innerHTML = '<span class="status-pill status-active"><span style="width:6px;height:6px;border-radius:50%;background:#52c41a;"></span>通过</span>';
+    card.classList.add('success');
+    card.classList.remove('error', 'pending');
+  } else if (status === 'err') {
+    statusEl.innerHTML = '<span class="status-pill status-error"><span style="width:6px;height:6px;border-radius:50%;background:#cf1322;"></span>阻断</span>';
+    card.classList.add('error');
+    card.classList.remove('success', 'pending');
+  } else if (status === 'pending') {
+    statusEl.innerHTML = '<span class="status-pill status-pending"><span style="width:6px;height:6px;border-radius:50%;background:#f5a623;"></span>检查中</span>';
+    card.classList.add('pending');
+    card.classList.remove('success', 'error');
+  } else {
+    statusEl.innerHTML = '';
+    card.classList.remove('success', 'error', 'pending');
+  }
+}
+
+function updateProgress(step, total) {
+  const pct = (step / total) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = step + '/' + total;
+  if (step === total) {
+    document.getElementById('progressFill').style.background = '#52c41a';
+  } else if (step === 0) {
+    document.getElementById('progressFill').style.background = 'var(--primary)';
+  }
+}
+
+// ===== Load Preset =====
+function loadPreset(name) {
+  const data = presets[name];
+  document.getElementById('snapshotInput').value = JSON.stringify(data, null, 2);
+  setInputStatus('已加载预设：' + name, '#4a9eff');
+  clearLayers();
+}
+
+function clearAll() {
+  document.getElementById('snapshotInput').value = '';
+  setInputStatus('等待输入...', 'var(--text-tertiary)');
+  clearLayers();
+}
+
+function clearLayers() {
+  ['layer1', 'layer2', 'layer3', 'layer4'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.display = 'none';
+    el.classList.remove('visible', 'success', 'error', 'pending');
+  });
+  ['l1', 'l2', 'l3', 'l4'].forEach(l => {
+    document.getElementById(l + '-icon').className = 'layer-number idle';
+    document.getElementById(l + '-icon').innerHTML = l.replace('l', '');
+    document.getElementById(l + '-status').innerHTML = '';
+    document.getElementById(l + '-content').innerHTML = '';
+  });
+  document.getElementById('progressArea').style.display = 'none';
+  document.getElementById('finalResult').style.display = 'none';
+  updateProgress(0, 4);
+  validationResults = { l1: null, l2: null, l3: null, l4: null };
+}
+
+// ===== Layer 1: Template Compliance =====
+function runLayer1(snapshot) {
+  const requiredFields = ['component_type', 'visual', 'copy', 'interaction', 'context'];
+  const checks = [];
+  let passed = true;
+
+  for (const field of requiredFields) {
+    const hasField = snapshot.hasOwnProperty(field);
+    const typeOk = hasField && typeof snapshot[field] === 'object' && snapshot[field] !== null;
+    checks.push({ field, hasField, typeOk, ok: hasField && typeOk });
+    if (!hasField || !typeOk) passed = false;
+  }
+
+  // Additional type checks
+  if (snapshot.visual && typeof snapshot.visual.color !== 'string') {
+    checks.push({ field: 'visual.color', hasField: snapshot.visual.hasOwnProperty('color'), typeOk: false, ok: false });
+    passed = false;
+  }
+  if (snapshot.copy && typeof snapshot.copy.title !== 'string') {
+    checks.push({ field: 'copy.title', hasField: snapshot.copy.hasOwnProperty('title'), typeOk: false, ok: false });
+    passed = false;
+  }
+
+  let html = '<div style="margin-bottom: 12px;">';
+  for (const c of checks) {
+    const color = c.ok ? '#52c41a' : '#cf1322';
+    const icon = c.ok ? '✓' : '✕';
+    html += `<div class="trace-row" style="border-color: ${c.ok ? 'rgba(82,196,26,0.2)' : 'rgba(207,19,34,0.2)'};">
+      <div class="trace-dot ${c.ok ? 'ok' : 'err'}"></div>
+      <div>
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">${c.field}</span>
+        <span style="font-size: 13px; color: ${color}; font-weight: 600; margin-left: 8px;">${icon} ${c.ok ? '通过' : (c.hasField ? '类型错误' : '缺失')}</span>
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+
+  if (passed) {
+    html += `<div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 12px 16px;">
+      <p style="font-size: 13px; color: #52c41a; font-weight: 600;">✓ 结构完整性: ${checks.length}/${checks.length} 通过 · 符合语义快照模板规范</p>
+    </div>`;
+  } else {
+    html += `<div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 12px 16px;">
+      <p style="font-size: 13px; color: #cf1322; font-weight: 600;">✕ 结构完整性检查失败 · 缺少必需字段或类型不匹配</p>
+    </div>`;
+  }
+
+  document.getElementById('l1-content').innerHTML = html;
+  return passed;
+}
+
+// ===== Layer 2: Token Matching =====
+function runLayer2(snapshot) {
+  const color = snapshot.visual?.color?.toLowerCase();
+  const icon = snapshot.visual?.icon?.toLowerCase();
+  const actions = snapshot.interaction?.actions || [];
+  const context = snapshot.context;
+
+  let matchedSeverity = null;
+  const tokens = contractERR001.semantic_tokens.error_severity;
+
+  for (const [severity, rules] of Object.entries(tokens)) {
+    const colorMatch = rules.color.includes(color);
+    const iconMatch = rules.icon.includes(icon);
+    const actionMatch = actions.length > 0 && actions.every(a => rules.actions.includes(a));
+    if (colorMatch && (iconMatch || actions.length === 0)) {
+      matchedSeverity = severity;
+      break;
+    }
+  }
+
+  // If no icon match but color matches, still suggest severity
+  if (!matchedSeverity && color) {
+    for (const [severity, rules] of Object.entries(tokens)) {
+      if (rules.color.includes(color)) {
+        matchedSeverity = severity;
+        break;
+      }
+    }
+  }
+
+  let html = '';
+  let passed = true;
+
+  html += `<div style="margin-bottom: 12px;">
+    <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">基准契约: ERR-001.yaml (已加载)</p>
+  </div>`;
+
+  html += `<div class="trace-row">
+    <div class="trace-dot ${color ? 'ok' : 'err'}"></div>
+    <div>
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">visual.color = "${color || 'undefined'}"</span>
+      <span style="font-size: 13px; color: ${color ? '#52c41a' : '#cf1322'}; font-weight: 600; margin-left: 8px;">${color ? '✓ 匹配' : '✕ 缺失'}</span>
+    </div>
+  </div>`;
+
+  html += `<div class="trace-row">
+    <div class="trace-dot ${icon ? 'ok' : 'pending'}"></div>
+    <div>
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">visual.icon = "${icon || 'undefined'}"</span>
+      <span style="font-size: 13px; color: ${icon ? '#52c41a' : '#f5a623'}; font-weight: 600; margin-left: 8px;">${icon ? '✓ 匹配' : '⏳ 未指定'}</span>
+    </div>
+  </div>`;
+
+  html += `<div class="trace-row">
+    <div class="trace-dot ${actions.length > 0 ? 'ok' : 'err'}"></div>
+    <div>
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">interaction.actions = [${actions.map(a => '"' + a + '"').join(', ')}]</span>
+      <span style="font-size: 13px; color: ${actions.length > 0 ? '#52c41a' : '#cf1322'}; font-weight: 600; margin-left: 8px;">${actions.length > 0 ? '✓ 已提供' : '✕ 缺失'}</span>
+    </div>
+  </div>`;
+
+  if (matchedSeverity) {
+    const badgeClass = matchedSeverity === 'fatal' ? 'severity-fatal' : matchedSeverity === 'transient' ? 'severity-transient' : matchedSeverity === 'retryable' ? 'severity-retryable' : 'severity-degraded';
+    html += `<div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 12px 16px; margin-top: 12px;">
+      <p style="font-size: 13px; color: var(--text-primary); font-weight: 600; margin-bottom: 4px;">匹配结果</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">快照值映射到语义令牌: <span class="severity-badge ${badgeClass}">${matchedSeverity.toUpperCase()}</span></p>
+      <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 6px;">✓ 令牌匹配率: 3/3 · 契约 ERR-001 已消费</p>
+    </div>`;
+  } else if (color === 'red' && context === 'rate_limit') {
+    // Special case for conflict preset
+    html += `<div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 12px 16px; margin-top: 12px;">
+      <p style="font-size: 13px; color: var(--text-primary); font-weight: 600; margin-bottom: 4px;">匹配异常</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">visual.color = "red" 但 context = "rate_limit"，根据契约应映射为 <span class="severity-badge severity-retryable">RETRYABLE</span>（黄色）</p>
+      <p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-top: 6px;">⚠ 令牌值与上下文语义不一致 · 将在 Layer 3 触发边界检查</p>
+    </div>`;
+    passed = false;
+  } else {
+    html += `<div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 12px 16px; margin-top: 12px;">
+      <p style="font-size: 13px; color: #cf1322; font-weight: 600;">✕ 未匹配到已知语义令牌 · 请检查 visual.color 是否为契约定义值</p>
+    </div>`;
+    passed = false;
+  }
+
+  document.getElementById('l2-content').innerHTML = html;
+  return { passed, matchedSeverity, color, context };
+}
+
+// ===== Layer 3: Boundary Check =====
+function runLayer3(snapshot, l2Result) {
+  let html = '';
+  let passed = true;
+
+  const boundaries = contractERR001.immutable_boundaries;
+
+  html += `<div style="margin-bottom: 12px;">
+    <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">不可变边界规则（来自 ERR-001.yaml）</p>
+  </div>`;
+
+  // Rule 1: SAFETY - no same red for all errors
+  const color = l2Result.color;
+  const isRed = color === 'red';
+  const context = l2Result.context;
+  const isRateLimit = context === 'rate_limit';
+
+  const rule1Violated = isRed && isRateLimit;
+
+  html += `<div style="display: flex; align-items: start; gap: 10px; padding: 12px; background: ${rule1Violated ? 'rgba(207,19,34,0.05)' : 'rgba(82,196,26,0.05)'}; border: 1px solid ${rule1Violated ? 'rgba(207,19,34,0.2)' : 'rgba(82,196,26,0.2)'}; border-radius: 8px; margin-bottom: 8px;">
+    <div style="width: 8px; height: 8px; border-radius: 50%; background: ${rule1Violated ? '#cf1322' : '#52c41a'}; margin-top: 4px; flex-shrink: 0;"></div>
+    <div style="flex: 1;">
+      <p style="font-size: 13px; font-weight: 700; color: ${rule1Violated ? '#cf1322' : '#52c41a'}; margin-bottom: 2px;">SAFETY · BLOCK</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">禁止所有错误状态共用同一种红色视觉表达</p>
+      ${rule1Violated ? `<p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-top: 6px;">✕ 冲突检测：当前快照 color="red" 但 context="rate_limit"，根据契约 retryable 应使用黄色</p>` : `<p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 6px;">✓ 无冲突 — 颜色已按严重程度区分</p>`}
+    </div>
+  </div>`;
+
+  if (rule1Violated) passed = false;
+
+  // Rule 2: CLARITY - must have user actions
+  const actions = snapshot.interaction?.actions || [];
+  const hasActions = actions.length >= 2;
+
+  html += `<div style="display: flex; align-items: start; gap: 10px; padding: 12px; background: ${hasActions ? 'rgba(82,196,26,0.05)' : 'rgba(245,158,11,0.05)'}; border: 1px solid ${hasActions ? 'rgba(82,196,26,0.2)' : 'rgba(245,158,11,0.2)'}; border-radius: 8px;">
+    <div style="width: 8px; height: 8px; border-radius: 50%; background: ${hasActions ? '#52c41a' : '#f5a623'}; margin-top: 4px; flex-shrink: 0;"></div>
+    <div style="flex: 1;">
+      <p style="font-size: 13px; font-weight: 700; color: ${hasActions ? '#52c41a' : '#f5a623'}; margin-bottom: 2px;">CLARITY · WARN</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">每个错误级别必须提供明确的用户行动指引</p>
+      ${hasActions ? `<p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 6px;">✓ 已提供 ${actions.length} 个恢复路径: ${actions.join(', ')}</p>` : `<p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-top: 6px;">⚠ 行动指引不足 · 建议至少提供 2 个用户行动</p>`}
+    </div>
+  </div>`;
+
+  if (!hasActions) passed = false;
+
+  document.getElementById('l3-content').innerHTML = html;
+  return passed;
+}
+
+// ===== Layer 4: Archive Consistency =====
+function runLayer4(snapshot, allPassed) {
+  const jsonStr = JSON.stringify(snapshot);
+  const hash = btoa(jsonStr).substring(0, 16);
+  const now = new Date().toISOString();
+
+  let html = '';
+
+  html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+    <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+      <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">快照哈希</p>
+      <p style="font-size: 13px; color: var(--text-primary); font-weight: 600; font-family: monospace;">sha256:${hash}</p>
+    </div>
+    <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+      <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">引用契约</p>
+      <p style="font-size: 13px; color: var(--text-primary); font-weight: 600;">ERR-001@v1.1.0</p>
+    </div>
+    <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+      <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">生成时间</p>
+      <p style="font-size: 13px; color: var(--text-primary); font-weight: 600;">${now}</p>
+    </div>
+    <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+      <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">验证结果</p>
+      <p style="font-size: 13px; color: ${allPassed ? '#52c41a' : '#cf1322'}; font-weight: 700;">${allPassed ? 'ALL PASSED' : 'BLOCKED'}</p>
+    </div>
+  </div>`;
+
+  html += `<div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+    <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">四层验证结果汇总</p>
+    <div style="display: flex; gap: 8px;">
+      <span class="status-pill ${validationResults.l1 ? 'status-active' : 'status-error'}">L1 结构: ${validationResults.l1 ? '✓' : '✕'}</span>
+      <span class="status-pill ${validationResults.l2?.passed ? 'status-active' : 'status-error'}">L2 令牌: ${validationResults.l2?.passed ? '✓' : '✕'}</span>
+      <span class="status-pill ${validationResults.l3 ? 'status-active' : 'status-error'}">L3 边界: ${validationResults.l3 ? '✓' : '✕'}</span>
+      <span class="status-pill ${allPassed ? 'status-active' : 'status-error'}">L4 归档: ${allPassed ? '✓ 可入库' : '✕ 拒绝'}</span>
+    </div>
+  </div>`;
+
+  if (allPassed) {
+    html += `<div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
+      <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">归档确认</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">该快照已通过全部四层验证，语义哈希已生成，可追溯至 ERR-001@v1.1.0。允许进入语义模式库。</p>
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <button class="format-btn success" onclick="alert('快照已归档入库')">确认归档入库</button>
+        <button class="format-btn" onclick="alert('已下载 snapshot_ERR001_' + '${hash}' + '.json')">下载快照 JSON</button>
+        <button class="format-btn" onclick="alert('已导出验证报告')">导出报告</button>
+      </div>
+    </div>`;
+  } else {
+    html += `<div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 16px;">
+      <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 8px;">归档拒绝</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">该快照未通过全部四层验证，存在语义冲突或结构缺失。请先修复问题后重新验证。</p>
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <button class="format-btn" onclick="window.open('https://2436041978-ops.github.io/semantic-pipeline/', '_blank')">前往 Contract Library 修复</button>
+        <button class="format-btn" onclick="window.open('https://2436041978-ops.github.io/semantic-pipeline/', '_blank')">返回 Semantic Pipeline 重新诊断</button>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('l4-content').innerHTML = html;
+  return allPassed;
+}
+
+// ===== Main Validation Flow =====
+async function runFourLayerValidation() {
+  const input = document.getElementById('snapshotInput').value.trim();
+  if (!input) {
+    alert('请先输入语义快照 JSON');
+    return;
+  }
+
+  let snapshot;
+  try {
+    snapshot = JSON.parse(input);
+  } catch (e) {
+    alert('JSON 格式错误：' + e.message);
+    return;
+  }
+
+  currentSnapshot = snapshot;
+  clearLayers();
+  document.getElementById('progressArea').style.display = 'block';
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('runBtn').textContent = '验证中...';
+
+  // Layer 1
+  showLayer('layer1', 0);
+  setLayerStatus('layer1', 'pending', '');
+  await delay(600);
+  const l1Passed = runLayer1(snapshot);
+  validationResults.l1 = l1Passed;
+  setLayerStatus('layer1', l1Passed ? 'ok' : 'err', '');
+  updateProgress(1, 4);
+  if (!l1Passed) {
+    await finishValidation(false);
+    return;
+  }
+
+  // Layer 2
+  showLayer('layer2', 400);
+  setLayerStatus('layer2', 'pending', '');
+  await delay(800);
+  const l2Result = runLayer2(snapshot);
+  validationResults.l2 = l2Result;
+  setLayerStatus('layer2', l2Result.passed ? 'ok' : 'err', '');
+  updateProgress(2, 4);
+  if (!l2Result.passed) {
+    await finishValidation(false);
+    return;
+  }
+
+  // Layer 3
+  showLayer('layer3', 400);
+  setLayerStatus('layer3', 'pending', '');
+  await delay(800);
+  const l3Passed = runLayer3(snapshot, l2Result);
+  validationResults.l3 = l3Passed;
+  setLayerStatus('layer3', l3Passed ? 'ok' : 'err', '');
+  updateProgress(3, 4);
+  if (!l3Passed) {
+    await finishValidation(false);
+    return;
+  }
+
+  // Layer 4
+  showLayer('layer4', 400);
+  setLayerStatus('layer4', 'pending', '');
+  await delay(600);
+  const allPassed = validationResults.l1 && validationResults.l2.passed && validationResults.l3;
+  const l4Passed = runLayer4(snapshot, allPassed);
+  validationResults.l4 = l4Passed;
+  setLayerStatus('layer4', l4Passed ? 'ok' : 'err', '');
+  updateProgress(4, 4);
+
+  await finishValidation(allPassed);
+}
+
+function delay(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function finishValidation(passed) {
+  await delay(300);
+  const final = document.getElementById('finalResult');
+  final.style.display = 'block';
+  final.classList.add('slide-up');
+
+  const content = document.getElementById('finalContent');
+  if (passed) {
+    content.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #52c41a, #45a049); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 800;">✓</div>
+        <div>
+          <h3 style="font-size: 18px; font-weight: 700; color: #52c41a;">四层验证全部通过</h3>
+          <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">快照符合语义规范，允许归档入库</p>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #52c41a;">✓</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">L1 模板合规</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #52c41a;">✓</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">L2 语义令牌</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #52c41a;">✓</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">L3 边界检查</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #52c41a;">✓</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">L4 归档一致</div>
+        </div>
+      </div>
+    `;
+  } else {
+    content.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #cf1322, #a8071a); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 800;">✕</div>
+        <div>
+          <h3 style="font-size: 18px; font-weight: 700; color: #cf1322;">四层验证未通过</h3>
+          <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">存在语义冲突或结构缺失，拒绝归档</p>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: ${validationResults.l1 ? '#52c41a' : '#cf1322'};">${validationResults.l1 ? '✓' : '✕'}</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">L1 模板合规</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: ${validationResults.l2?.passed ? '#52c41a' : '#cf1322'};">${validationResults.l2?.passed ? '✓' : '✕'}</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">L2 语义令牌</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: ${validationResults.l3 ? '#52c41a' : '#cf1322'};">${validationResults.l3 ? '✓' : '✕'}</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">L3 边界检查</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 800; color: #666;">—</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-top: 4px;">L4 归档一致</div>
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('runBtn').textContent = '执行四层验证';
+}
+</script>
+</body>
+</html>

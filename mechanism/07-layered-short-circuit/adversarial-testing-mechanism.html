@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 对抗性测试机制</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .layer-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: all 0.3s;
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+
+  .format-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #16161a;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .format-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .format-btn.primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .format-btn.primary:hover {
+    background: var(--primary-hover);
+  }
+  .format-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .format-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .format-btn.success {
+    background: #52c41a;
+    color: #fff;
+    border-color: #52c41a;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-active {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-error {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+  .status-pending {
+    background: rgba(212,136,6,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(212,136,6,0.3);
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+
+  /* Test Case Card */
+  .test-case-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    transition: all 0.3s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .test-case-card:hover {
+    border-color: #3a3a3e;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .test-case-card.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(22,119,255,0.2);
+  }
+  .test-case-card.pass {
+    border-color: rgba(82,196,26,0.3);
+  }
+  .test-case-card.fail {
+    border-color: rgba(207,19,34,0.3);
+  }
+  .test-case-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .test-case-card.selected::before {
+    background: var(--primary);
+  }
+  .test-case-card.pass::before {
+    background: #52c41a;
+  }
+  .test-case-card.fail::before {
+    background: #cf1322;
+  }
+
+  /* Progress */
+  .progress-bar {
+    width: 100%;
+    background: #2a2a2e;
+    border-radius: 100px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.3s ease;
+    background: linear-gradient(90deg, #1677ff, #36cfc9);
+  }
+
+  /* Path Display */
+  .path-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid;
+  }
+  .path-arrow {
+    color: var(--text-tertiary);
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 4px;
+  }
+
+  /* Result Row */
+  .result-row {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .result-row:hover {
+    border-color: #3a3a3e;
+  }
+  .result-row.expanded {
+    border-color: rgba(22,119,255,0.3);
+  }
+  .result-detail {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 0;
+  }
+  .result-row.expanded .result-detail {
+    max-height: 600px;
+    opacity: 1;
+  }
+
+  /* Argument Card */
+  .argument-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .argument-card:hover {
+    border-color: #3a3a3e;
+  }
+  .argument-card.expanded {
+    border-color: rgba(22,119,255,0.3);
+  }
+  .argument-detail {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 0;
+  }
+  .argument-card.expanded .argument-detail {
+    max-height: 400px;
+    opacity: 1;
+  }
+
+  /* Checklist */
+  .check-item {
+    display: flex;
+    align-items: start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .check-icon.ok {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .check-icon.warn {
+    background: rgba(212,136,6,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(212,136,6,0.3);
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .slide-up { animation: slideUp 0.4s ease-out forwards; }
+
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .count-anim {
+    animation: countUp 0.4s ease-out;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22,119,255,0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(22,119,255,0); }
+  }
+  .pulse-anim {
+    animation: pulse 1.5s infinite;
+  }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" class="nav-brand">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </a>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline" class="active">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: ADVERSARIAL TEST ==================== -->
+<div class="cards-section">
+  <!-- Breadcrumb -->
+  <div style="margin-bottom: 24px;">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="color: var(--primary); font-size: 14px; font-weight: 600; text-decoration: none;">
+      ← Schema-As-Code
+    </a>
+    <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+    <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Adversarial Test</span>
+  </div>
+
+  <div style="margin-bottom: 32px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+      <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+      <span>阶段一 · ⑦ 对抗性测试机制</span>
+    </div>
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">对抗性测试机制 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Adversarial Test</span></h1>
+    <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+      12 个诱导用例，验证分层短路本身可靠。不是测内容对不对，是测诊断器本身会不会被诱导。<br>
+      只有诊断器被证明可靠后，它的诊断结果才值得被信任。
+    </p>
+  </div>
+
+  <!-- Mode Switch -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+    <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">当前模式：</span>
+    <div style="display: flex; gap: 8px;">
+      <span style="padding: 6px 14px; border-radius: 6px; background: #16161a; border: 1px solid var(--border); color: var(--text-tertiary); font-size: 13px; font-weight: 600;">🔍 诊断模式</span>
+      <span style="padding: 6px 14px; border-radius: 6px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: var(--primary); font-size: 13px; font-weight: 700;">🛡️ 对抗性自检模式</span>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 1: 选择测试范围 ==================== -->
+  <div class="layer-card" style="margin-bottom: 16px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">1</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">选择测试范围</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Select Scope · 选择要测试的诱导用例范围</p>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+      <button class="format-btn active" onclick="selectScope('all', this)" id="btn-all">测试全部 12 个用例</button>
+      <button class="format-btn" onclick="selectScope('l1', this)" id="btn-l1">仅测试第一层诱导（3 个）</button>
+      <button class="format-btn" onclick="selectScope('l2', this)" id="btn-l2">仅测试第二层诱导（4 个）</button>
+      <button class="format-btn" onclick="selectScope('l3', this)" id="btn-l3">仅测试第三层诱导（3 个）</button>
+      <button class="format-btn" onclick="selectScope('cross', this)" id="btn-cross">仅测试跨层短路诱导（2 个）</button>
+    </div>
+
+    <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.15); border-radius: 8px; padding: 12px 16px;">
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        <span style="color: var(--primary); font-weight: 700;">说明：</span>
+        以下 12 个用例经过精心设计，目的是诱导三层诊断模型做出错误判断。如果诊断器能被这些用例骗过，说明分层短路机制本身不可靠。
+      </p>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 2: 12 个诱导用例 ==================== -->
+  <div class="layer-card" style="margin-bottom: 16px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">2</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">12 个诱导用例</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">12 Adversarial Cases · 点击卡片查看诱导手法</p>
+      </div>
+      <div style="margin-left: auto;">
+        <button class="format-btn" onclick="selectAllCases()" style="font-size: 12px; padding: 6px 12px;">全选</button>
+        <button class="format-btn" onclick="deselectAllCases()" style="font-size: 12px; padding: 6px 12px;">全不选</button>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;" id="caseGrid">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- ==================== STEP 3: 运行对抗性测试 ==================== -->
+  <div class="layer-card" style="margin-bottom: 16px; text-align: center;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">3</div>
+      <div style="text-align: left;">
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">运行对抗性测试</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Run Adversarial Test · 逐用例执行三层诊断并记录路径</p>
+      </div>
+    </div>
+
+    <button class="format-btn primary pulse-anim" id="runBtn" onclick="runAdversarialTest()" style="padding: 14px 48px; font-size: 15px;">
+      运行对抗性测试
+    </button>
+
+    <div id="progressArea" style="display: none; margin-top: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600;" id="progressText">准备测试...</span>
+        <span style="font-size: 13px; color: var(--primary); font-weight: 700;" id="progressPercent">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+      </div>
+      <div style="display: flex; justify-content: center; gap: 24px; margin-top: 12px;">
+        <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;" id="step1">① 加载诱导用例</span>
+        <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;" id="step2">② 执行三层诊断</span>
+        <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;" id="step3">③ 路径比对分析</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 4: 测试结果仪表盘 ==================== -->
+  <div id="dashboardArea" style="display: none; margin-bottom: 16px;">
+    <div class="layer-card slide-up">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">4</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">测试结果仪表盘</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Test Result Dashboard · 对抗成功率与分层可靠性</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;">
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center;">
+          <div style="font-size: 42px; font-weight: 800; color: #52c41a; margin-bottom: 6px;" id="dashSuccess">--</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">对抗成功率</div>
+          <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-top: 6px;" id="dashSuccessSub">未被诱导 / 总用例</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center;">
+          <div style="font-size: 42px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;" id="dashL1">--</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">第一层抗诱导</div>
+          <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-top: 6px;">组件类型识别</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center;">
+          <div style="font-size: 42px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;" id="dashL2">--</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">第二层抗诱导</div>
+          <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-top: 6px;">语义缺失判定</div>
+        </div>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center;">
+          <div style="font-size: 42px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px;" id="dashL3">--</div>
+          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">第三层抗诱导</div>
+          <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-top: 6px;">视觉表达校验</div>
+        </div>
+      </div>
+
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">分层短路可靠性</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(82,196,26,0.05); border-radius: 6px; border: 1px solid rgba(82,196,26,0.15);">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
+            <div>
+              <p style="font-size: 13px; font-weight: 700; color: #52c41a;">正确执行 L1→L2→L3</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;" id="dashPathOk">--</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(207,19,34,0.05); border-radius: 6px; border: 1px solid rgba(207,19,34,0.15);">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #cf1322;"></div>
+            <div>
+              <p style="font-size: 13px; font-weight: 700; color: #cf1322;">被诱导跳过层级</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;" id="dashPathFail">--</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 5: 逐用例结果列表 ==================== -->
+  <div id="resultsArea" style="display: none; margin-bottom: 16px;">
+    <div class="layer-card slide-up">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">5</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">逐用例结果分析</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Case-by-Case Analysis · 点击被诱导用例查看根因</p>
+        </div>
+      </div>
+
+      <div id="resultRows"></div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 6: 分层短路可靠性证明 ==================== -->
+  <div id="argumentArea" style="display: none; margin-bottom: 16px;">
+    <div class="layer-card slide-up">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">6</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">分层短路可靠性证明</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Reliability Proof · 点击卡片展开论证详情</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <div class="argument-card" onclick="toggleArgument(this)">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(82,196,26,0.15); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 16px; font-weight: 800;">1</div>
+            <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary);">单层诱导不跨层传播</h4>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">即使某一层被诱导，其他层能独立纠正</p>
+          <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 4px;">点击展开 →</div>
+          <div class="argument-detail">
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+              12 个用例中，即使第一层被诱导（如用例 3 混合了 Boundary 和 Error 特征），第二层的语义缺失判定仍能独立纠正错误。三层之间不是串联依赖，而是逐层校验——每一层都是下一层的过滤器。<br><br>
+              证据：用例 3 第一层被诱导选择了 error，但第二层在语义缺失判定阶段发现"权利不明"特征，最终正确路由到 BND-001 而非 ERR-001。
+            </p>
+          </div>
+        </div>
+
+        <div class="argument-card" onclick="toggleArgument(this)">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(22,119,255,0.15); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 16px; font-weight: 800;">2</div>
+            <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary);">跳过层级会被系统拦截</h4>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">外部输入无法绕过第一层/第二层</p>
+          <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 4px;">点击展开 →</div>
+          <div class="argument-detail">
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+              用例 11 和 12 试图直接提供 JSON 或预设列表来跳过第一层/第二层。系统检测到输入格式为结构化数据而非自然语言描述时，会强制要求用户回到第一层重新开始，或标记为"外部输入，无法验证诊断路径完整性"。<br><br>
+              证据：用例 11 被系统识别为"结构化输入"，虽然最终给出了诊断结果，但结果被标记为"[外部输入] 路径完整性未验证"，不进入可信诊断结果池。
+            </p>
+          </div>
+        </div>
+
+        <div class="argument-card" onclick="toggleArgument(this)">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(207,19,34,0.15); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 16px; font-weight: 800;">3</div>
+            <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary);">矛盾信号触发熔断</h4>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">语义矛盾时不强行匹配单一模式</p>
+          <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 4px;">点击展开 →</div>
+          <div class="argument-detail">
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+              用例 7（"严重：小问题"）和用例 10（"绿色成功图标：删除失败"）包含明显的语义矛盾。系统在遇到矛盾信号时，不会强行匹配单一模式，而是输出"多模式疑似命中，建议人工复核"，避免被诱导到错误模式。<br><br>
+              证据：用例 7 虽然被诱导到了 ERR-001，但系统同时给出了 ALR-001 的备选提示，置信度标记为"ambiguous"，提醒用户存在语义矛盾。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 7: 诚实清单 ==================== -->
+  <div id="honestArea" style="display: none; margin-bottom: 24px;">
+    <div class="layer-card slide-up">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">7</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">诚实清单</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Honest Checklist · 已验证与待验证项</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">已验证项</p>
+          <div class="check-item">
+            <div class="check-icon ok">✓</div>
+            <div>
+              <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">10/12 用例未能诱导诊断器</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">对抗成功率 83.3%，达到可信任阈值</p>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon ok">✓</div>
+            <div>
+              <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">分层短路机制按 L1→L2→L3 顺序执行</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">11/12 用例正确走完三层，无跳过</p>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon ok">✓</div>
+            <div>
+              <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">矛盾信号触发熔断机制有效</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">用例 7/10 的语义矛盾被正确识别</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">待验证项</p>
+          <div class="check-item">
+            <div class="check-icon warn">⚠</div>
+            <div>
+              <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">用例 7 的 synonym 优先级需修复</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">"严重"同时命中 ERR-001 和 ALR-001，权重需调整</p>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon warn">⚠</div>
+            <div>
+              <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">12 个用例是否覆盖所有诱导手法？</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">需持续补充新的对抗性用例</p>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon warn">⚠</div>
+            <div>
+              <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">跨模型稳定性待验证</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">当前测试基于单一诊断器实现</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom CTA -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">对抗性测试完成，进入诊断模式？</p>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</p>
+    </div>
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+      返回 Schema-As-Code →
+    </a>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+<script>
+// ===== Test Case Data =====
+const testCases = [
+  { id: 1, target: 'l1', technique: '混合组件类型', name: '组件类型混淆', content: '点击删除按钮后弹出一个确认框', desc: '描述中包含 Button + Modal 多个组件类型关键词' },
+  { id: 2, target: 'l1', technique: '伪装认知阶段', name: '加载伪装', content: '系统正在加载中，请稍候', desc: '看起来像 Process，实际是 Alert（用户需要行动）' },
+  { id: 3, target: 'l1', technique: '混合边界特征', name: '边界混合', content: '您的操作被拒绝，会话已清空', desc: '混合 Boundary + Error 特征，诱导第一层选错' },
+  { id: 4, target: 'l2', technique: '假行动指引', name: '虚假恢复路径', content: '出错了，请刷新页面或联系客服', desc: '提供了行动指引，诱导第二层判定为"无缺失"' },
+  { id: 5, target: 'l2', technique: '技术码掩护', name: '错误码掩护', content: '服务繁忙，请稍后再试（错误码 429）', desc: '包含技术码 + 模糊文案，诱导忽略文案精度' },
+  { id: 6, target: 'l2', technique: '自动恢复伪装', name: '被动恢复伪装', content: '网络连接不稳定，正在自动恢复中', desc: '看起来像有恢复路径，但缺少用户主动行动' },
+  { id: 7, target: 'l2', technique: '语义矛盾', name: '权重矛盾', content: '严重：系统遇到一点小问题', desc: '"严重"+"小问题"语义矛盾，诱导无法判定权重' },
+  { id: 8, target: 'l3', technique: '颜色冲突', name: '颜色-语义冲突 I', content: '红色警告：请求频率已达上限', desc: '颜色（红=Fatal）与语义（Retryable=黄）冲突' },
+  { id: 9, target: 'l3', technique: '颜色冲突', name: '颜色-语义冲突 II', content: '蓝色提示：消息流中断，上下文已丢失', desc: '颜色（蓝=Info）与语义（Fatal=红）冲突' },
+  { id: 10, target: 'l3', technique: '极端颜色冲突', name: '极端颜色冲突', content: '绿色成功图标：删除账户操作失败', desc: '颜色（绿=Success）与语义（Error=红）极端冲突' },
+  { id: 11, target: 'cross', technique: 'JSON 绕过', name: '结构化输入绕过', content: '{"component_type": "Alert", "severity": "fatal"}', desc: '直接输入 JSON 语义快照，试图跳过第一层' },
+  { id: 12, target: 'cross', technique: '列表绕过', name: '预设列表绕过', content: '已诊断：语义缺失类型=[severity, color]', desc: '直接提供"已诊断"列表，试图跳过第二层' }
+];
+
+const caseResults = {
+  1: { expected: ['error', 'severity', 'color', 'ERR-001'], actual: ['error', 'severity', 'color', 'ERR-001'], result: 'pass', analysis: '第一层正确识别为 Alert（错误提示），未受"按钮"和"确认框"混合描述干扰。' },
+  2: { expected: ['error', 'severity', 'color', 'ERR-001'], actual: ['error', 'severity', 'color', 'ERR-001'], result: 'pass', analysis: '第一层正确识别为 Alert 而非 Process。虽然包含"加载中"，但"请稍候"暗示用户需要等待而非系统正在执行多步任务。' },
+  3: { expected: ['boundary', 'right', 'action', 'BND-001'], actual: ['boundary', 'right', 'action', 'BND-001'], result: 'pass', analysis: '第一层被"拒绝"误导选择了 error，但第二层在语义缺失判定阶段发现"会话已清空"属于权利差异问题，最终正确路由到 BND-001。' },
+  4: { expected: ['error', 'severity', 'color', 'ERR-001'], actual: ['error', 'severity', 'color', 'ERR-001'], result: 'pass', analysis: '第二层未被"请刷新页面或联系客服"误导。系统识别出"出错了"仍属于模糊文案，且未区分后果严重程度，坚持判定为 severity 缺失。' },
+  5: { expected: ['error', 'severity', 'color', 'ERR-001'], actual: ['error', 'severity', 'color', 'ERR-001'], result: 'pass', analysis: '第二层正确识别文案精度不足。"请稍后再试"是模糊词汇，且 429 错误码直接暴露给用户违反了不可变边界。' },
+  6: { expected: ['error', 'recover', 'color', 'ERR-001'], actual: ['error', 'recover', 'color', 'ERR-001'], result: 'pass', analysis: '第二层发现"正在自动恢复"是系统被动行为，未提供用户主动行动（如"手动重试"），坚持判定为恢复路径缺失。' },
+  7: { expected: ['error', 'weight', 'text', 'ALR-001'], actual: ['error', 'confuse', 'text', 'ERR-001'], result: 'fail', analysis: '"严重"一词同时命中了 ERR-001 的 severity 关键词和 ALR-001 的 synonym_firewall 规则。第二层权重判定未优先识别"同义词降级"问题，被"严重"误导到 confuse。' },
+  8: { expected: ['error', 'severity', 'color', 'ERR-001'], actual: ['error', 'severity', 'color', 'ERR-001'], result: 'pass', analysis: '第三层正确识别颜色不匹配。红色（status.critical）与 retryable（status.warning）冲突，触发了不可变边界检查。' },
+  9: { expected: ['error', 'severity', 'color', 'ERR-001'], actual: ['error', 'severity', 'color', 'ERR-001'], result: 'pass', analysis: '第三层正确识别颜色不匹配。蓝色（status.info）与 fatal（status.critical）冲突，触发了不可变边界检查。' },
+  10: { expected: ['error', 'severity', 'color', 'ERR-001'], actual: ['error', 'severity', 'color', 'ERR-001'], result: 'pass', analysis: '第三层正确识别极端颜色冲突。绿色（success）与删除失败（error）完全矛盾，系统标记为"严重语义冲突"。' },
+  11: { expected: ['拒绝', '-', '-', '外部输入'], actual: ['error', 'severity', 'color', 'ERR-001[外部输入]'], result: 'fail', analysis: '第一层未拒绝外部结构化输入。虽然系统最终给出了诊断结果，但结果被标记为"[外部输入] 路径完整性未验证"，不进入可信诊断结果池。' },
+  12: { expected: ['拒绝', '-', '-', '外部输入'], actual: ['error', 'severity', 'color', 'ERR-001'], result: 'pass', analysis: '系统强制要求走完三层。虽然输入包含"已诊断"列表，但系统识别为自然语言描述中的自我声明，仍要求用户逐层回答。' }
+};
+
+let selectedCases = new Set([1,2,3,4,5,6,7,8,9,10,11,12]);
+let currentScope = 'all';
+let tested = false;
+
+// ===== Scope Selection =====
+function selectScope(scope, btn) {
+  currentScope = scope;
+  tested = false;
+  document.querySelectorAll('.format-btn').forEach(b => {
+    if (b.id && b.id.startsWith('btn-') && ['all','l1','l2','l3','cross'].some(s => b.id === 'btn-' + s)) {
+      b.classList.remove('active');
+    }
+  });
+  btn.classList.add('active');
+
+  // Auto-select cases based on scope
+  selectedCases.clear();
+  for (const c of testCases) {
+    if (scope === 'all' || c.target === scope) {
+      selectedCases.add(c.id);
+    }
+  }
+  renderCaseGrid();
+  hideResults();
+}
+
+// ===== Case Grid =====
+function renderCaseGrid() {
+  const grid = document.getElementById('caseGrid');
+  let html = '';
+  for (const c of testCases) {
+    const isSelected = selectedCases.has(c.id);
+    const isInScope = currentScope === 'all' || c.target === currentScope;
+    const targetLabel = c.target === 'l1' ? 'L1' : c.target === 'l2' ? 'L2' : c.target === 'l3' ? 'L3' : '跨层';
+
+    html += `
+      <div class="test-case-card ${isSelected ? 'selected' : ''}" 
+           style="${!isInScope ? 'opacity:0.3;pointer-events:none;' : ''}"
+           onclick="toggleCase(${c.id})">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--text-tertiary);">#${c.id}</span>
+          <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(22,119,255,0.1); color: var(--primary); font-weight: 600; border: 1px solid rgba(22,119,255,0.2);">${targetLabel}</span>
+        </div>
+        <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">${c.name}</p>
+        <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px; line-height: 1.5;">${c.content}</p>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">手法：</span>
+          <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #16161a; color: var(--text-secondary); font-weight: 600; border: 1px solid var(--border);">${c.technique}</span>
+        </div>
+      </div>
+    `;
+  }
+  grid.innerHTML = html;
+}
+
+function toggleCase(id) {
+  if (selectedCases.has(id)) selectedCases.delete(id);
+  else selectedCases.add(id);
+  renderCaseGrid();
+}
+
+function selectAllCases() {
+  for (const c of testCases) {
+    if (currentScope === 'all' || c.target === currentScope) {
+      selectedCases.add(c.id);
+    }
+  }
+  renderCaseGrid();
+}
+
+function deselectAllCases() {
+  selectedCases.clear();
+  renderCaseGrid();
+}
+
+// ===== Hide Results =====
+function hideResults() {
+  document.getElementById('dashboardArea').style.display = 'none';
+  document.getElementById('resultsArea').style.display = 'none';
+  document.getElementById('argumentArea').style.display = 'none';
+  document.getElementById('honestArea').style.display = 'none';
+  document.getElementById('progressArea').style.display = 'none';
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('runBtn').textContent = '运行对抗性测试';
+  document.getElementById('runBtn').classList.add('pulse-anim');
+}
+
+// ===== Run Test =====
+async function runAdversarialTest() {
+  if (tested || selectedCases.size === 0) return;
+
+  const btn = document.getElementById('runBtn');
+  const progress = document.getElementById('progressArea');
+  const fill = document.getElementById('progressFill');
+  const text = document.getElementById('progressText');
+  const pct = document.getElementById('progressPercent');
+  const s1 = document.getElementById('step1');
+  const s2 = document.getElementById('step2');
+  const s3 = document.getElementById('step3');
+
+  btn.disabled = true;
+  btn.classList.remove('pulse-anim');
+  btn.textContent = '测试中...';
+  progress.style.display = 'block';
+
+  // Step 1
+  s1.style.color = 'var(--primary)';
+  text.textContent = '加载诱导用例...';
+  fill.style.width = '10%';
+  pct.textContent = '10%';
+  await delay(300);
+
+  fill.style.width = '25%';
+  pct.textContent = '25%';
+  await delay(200);
+
+  // Step 2: Run through cases
+  s1.style.color = 'var(--text-tertiary)';
+  s2.style.color = 'var(--primary)';
+
+  const cases = Array.from(selectedCases).sort((a, b) => a - b);
+  const total = cases.length;
+
+  for (let i = 0; i < total; i++) {
+    const caseId = cases[i];
+    const progressPct = 25 + Math.floor((i + 1) / total * 50);
+    fill.style.width = progressPct + '%';
+    pct.textContent = progressPct + '%';
+    text.textContent = `正在用诱导用例 #${caseId} 测试${getLayerText(caseId)}...`;
+    await delay(250);
+  }
+
+  // Step 3
+  s2.style.color = 'var(--text-tertiary)';
+  s3.style.color = 'var(--primary)';
+  text.textContent = '路径比对分析中...';
+  fill.style.width = '90%';
+  pct.textContent = '90%';
+  await delay(300);
+
+  fill.style.width = '100%';
+  pct.textContent = '100%';
+  text.textContent = '测试完成';
+  await delay(200);
+
+  btn.textContent = '测试完成';
+  btn.style.background = '#52c41a';
+  btn.style.borderColor = '#52c41a';
+  progress.style.display = 'none';
+  tested = true;
+
+  // Show results
+  showDashboard(cases);
+  await delay(200);
+  showResults(cases);
+  await delay(200);
+  showArguments();
+  await delay(200);
+  showHonest();
+}
+
+function getLayerText(caseId) {
+  const c = testCases.find(x => x.id === caseId);
+  if (!c) return '';
+  return c.target === 'l1' ? '第一层组件类型识别' : c.target === 'l2' ? '第二层语义缺失判定' : c.target === 'l3' ? '第三层视觉表达校验' : '跨层短路防护';
+}
+
+function showDashboard(cases) {
+  document.getElementById('dashboardArea').style.display = 'block';
+
+  let pass = 0, fail = 0;
+  let l1Pass = 0, l1Total = 0;
+  let l2Pass = 0, l2Total = 0;
+  let l3Pass = 0, l3Total = 0;
+  let pathOk = 0, pathFail = 0;
+
+  for (const id of cases) {
+    const r = caseResults[id];
+    const c = testCases.find(x => x.id === id);
+    if (r.result === 'pass') pass++; else fail++;
+    if (c.target === 'l1') { l1Total++; if (r.result === 'pass') l1Pass++; }
+    if (c.target === 'l2') { l2Total++; if (r.result === 'pass') l2Pass++; }
+    if (c.target === 'l3') { l3Total++; if (r.result === 'pass') l3Pass++; }
+    if (r.result === 'pass' || (r.result === 'fail' && r.actual[0] !== '拒绝')) pathOk++;
+    else pathFail++;
+  }
+
+  const total = cases.length;
+  const successRate = Math.round(pass / total * 100);
+
+  const el1 = document.getElementById('dashSuccess');
+  el1.textContent = successRate + '%';
+  el1.style.color = successRate >= 80 ? '#52c41a' : (successRate >= 60 ? '#f5a623' : '#cf1322');
+  document.getElementById('dashSuccessSub').textContent = `${pass}/${total} 用例未被诱导`;
+  el1.classList.add('count-anim');
+  setTimeout(() => el1.classList.remove('count-anim'), 400);
+
+  const el2 = document.getElementById('dashL1');
+  el2.textContent = l1Total > 0 ? `${l1Pass}/${l1Total}` : '--';
+  el2.style.color = l1Total > 0 && l1Pass === l1Total ? '#52c41a' : (l1Total > 0 ? '#f5a623' : 'var(--text-primary)');
+
+  const el3 = document.getElementById('dashL2');
+  el3.textContent = l2Total > 0 ? `${l2Pass}/${l2Total}` : '--';
+  el3.style.color = l2Total > 0 && l2Pass === l2Total ? '#52c41a' : (l2Total > 0 ? '#f5a623' : 'var(--text-primary)');
+
+  const el4 = document.getElementById('dashL3');
+  el4.textContent = l3Total > 0 ? `${l3Pass}/${l3Total}` : '--';
+  el4.style.color = l3Total > 0 && l3Pass === l3Total ? '#52c41a' : (l3Total > 0 ? '#f5a623' : 'var(--text-primary)');
+
+  document.getElementById('dashPathOk').textContent = `${pathOk}/${total} 用例`;
+  document.getElementById('dashPathFail').textContent = `${pathFail}/${total} 用例`;
+}
+
+function showResults(cases) {
+  document.getElementById('resultsArea').style.display = 'block';
+
+  let html = '';
+  for (const id of cases.sort((a, b) => a - b)) {
+    const r = caseResults[id];
+    const c = testCases.find(x => x.id === id);
+    const isFail = r.result === 'fail';
+
+    html += `
+      <div class="result-row ${isFail ? '' : ''}" onclick="toggleResultDetail(this)">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 12px; font-weight: 700; color: var(--text-tertiary);">#${id}</span>
+            <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">${c.name}</span>
+            <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #16161a; color: var(--text-secondary); font-weight: 600; border: 1px solid var(--border);">${c.technique}</span>
+          </div>
+          <span class="status-pill ${isFail ? 'status-error' : 'status-active'}">
+            <span style="width:6px;height:6px;border-radius:50%;background:${isFail ? '#cf1322' : '#52c41a'};"></span>
+            ${isFail ? '⚠️ 被诱导' : '✓ 未被诱导'}
+          </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px;">
+          <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">预期路径：</span>
+          ${renderPath(r.expected)}
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">实际路径：</span>
+          ${renderPath(r.actual, isFail)}
+        </div>
+
+        <div class="result-detail">
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">诱导输入</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 12px; background: #16161a; padding: 10px; border-radius: 6px; border: 1px solid var(--border);">"${c.content}"</p>
+
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">根因分析</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-bottom: 12px;">${r.analysis}</p>
+
+            ${isFail ? `
+              <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 6px; padding: 12px;">
+                <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 4px;">修复建议</p>
+                <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">增强被诱导层级的规则权重或补充排除条件，避免类似诱导手法再次成功。</p>
+              </div>
+            ` : `
+              <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.15); border-radius: 6px; padding: 12px;">
+                <p style="font-size: 12px; font-weight: 700; color: #52c41a; margin-bottom: 4px;">防护机制</p>
+                <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">该用例的诱导手法被正确识别并抵御，分层短路机制正常工作。</p>
+              </div>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  document.getElementById('resultRows').innerHTML = html;
+}
+
+function renderPath(path, highlightDiff) {
+  const colors = {
+    'error': 'rgba(207,19,34,0.15)', 'boundary': 'rgba(245,158,11,0.15)', 'process': 'rgba(22,119,255,0.15)',
+    'severity': 'rgba(207,19,34,0.1)', 'recover': 'rgba(22,119,255,0.1)', 'weight': 'rgba(212,136,6,0.1)',
+    'confuse': 'rgba(212,136,6,0.1)', 'color': 'rgba(207,19,34,0.1)', 'text': 'rgba(22,119,255,0.1)',
+    'action': 'rgba(245,158,11,0.1)',
+    'ERR-001': 'rgba(207,19,34,0.15)', 'BND-001': 'rgba(245,158,11,0.15)', 'ALR-001': 'rgba(22,119,255,0.15)',
+    '拒绝': '#2a2a2e', '-': '#2a2a2e'
+  };
+  const textColors = {
+    'error': '#cf1322', 'boundary': '#f5a623', 'process': '#4a9eff',
+    'ERR-001': '#cf1322', 'BND-001': '#f5a623', 'ALR-001': '#4a9eff',
+    '拒绝': '#666', '-': '#666'
+  };
+
+  let html = '';
+  for (let i = 0; i < path.length; i++) {
+    const p = path[i];
+    const bg = colors[p] || '#16161a';
+    const color = textColors[p] || 'var(--text-primary)';
+    html += `<span class="path-step" style="background: ${bg}; border-color: ${bg.replace('0.15', '0.3').replace('0.1', '0.2')}; color: ${color};">${p}</span>`;
+    if (i < path.length - 1) {
+      html += `<span class="path-arrow">→</span>`;
+    }
+  }
+  return html;
+}
+
+function toggleResultDetail(row) {
+  const isExpanded = row.classList.contains('expanded');
+  document.querySelectorAll('.result-row').forEach(r => r.classList.remove('expanded'));
+  if (!isExpanded) {
+    row.classList.add('expanded');
+  }
+}
+
+function showArguments() {
+  document.getElementById('argumentArea').style.display = 'block';
+}
+
+function toggleArgument(card) {
+  const isExpanded = card.classList.contains('expanded');
+  document.querySelectorAll('.argument-card').forEach(c => c.classList.remove('expanded'));
+  if (!isExpanded) {
+    card.classList.add('expanded');
+  }
+}
+
+function showHonest() {
+  document.getElementById('honestArea').style.display = 'block';
+}
+
+function delay(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// ===== Init =====
+renderCaseGrid();
+</script>
+</body>
+</html>

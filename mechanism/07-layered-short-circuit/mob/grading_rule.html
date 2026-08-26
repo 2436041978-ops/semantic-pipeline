@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 分级规则验证机制</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .section-title { display: flex; align-items: center; gap: 10px; margin: 20px 0 10px; }
+  .progress-track { height: 6px; background: #2a2a2e; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 3px; background: #52c41a; }
+  .heat { display: grid; grid-template-columns: 64px repeat(4, 1fr); gap: 3px; font-size: 10px; }
+  .heat-cell { border-radius: 5px; padding: 8px 4px; text-align: center; color: var(--text-secondary); background: #16161a; border: 1px solid var(--border); font-weight: 600; }
+  .heat-head { color: var(--text-tertiary); font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .heat-ok { background: rgba(82,196,26,0.18); color: #6abe4a; border-color: rgba(82,196,26,0.35); }
+  .heat-err1 { background: rgba(245,158,11,0.18); color: #f5a623; border-color: rgba(245,158,11,0.35); }
+  .heat-err3 { background: rgba(207,19,34,0.22); color: #ff5c6c; border-color: rgba(207,19,34,0.4); }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 阶段三 ⑦</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">分级规则验证机制</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Rule Validation</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">准确率、误报率、漏报率——先验证规则本身对不对，再用它拦截生产漂移</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 导语 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        用<span style="color: var(--text-primary); font-weight: 700;">人工标注的测试集</span>验证分级规则的三指标。规则本身被验证为可靠后，才能放心地用它去拦截生产环境的语义漂移。
+      </p>
+    </div>
+  </div>
+
+  <!-- STEP 1 选择规则 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s1')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-blue">STEP 1</span>
+          <h2 class="text-h2">选择要验证的规则</h2>
+        </div>
+        <svg class="chevron" id="chevron-s1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">当前：ERR-001 · error_severity</p>
+    </div>
+    <div class="collapsible-content" id="content-s1">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <span class="badge badge-red">ERR-001 · error_severity</span>
+          <span class="badge badge-gray">ACT-001 · destructive_action</span>
+          <span class="badge badge-gray">PRO-001 · process_phase</span>
+          <span class="badge badge-gray">BND-001 · boundary_action</span>
+          <span class="badge badge-gray">ALR-001 · synonym_firewall</span>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">ERR-001 分级规则摘要</p>
+            <span class="badge badge-green" style="font-size: 9px;">已加载</span>
+          </div>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.9;">分级维度：error_severity（4 级）<br>判定依据：关键词 + 视觉映射<br>规则条目：12 关键词 + 2 边界<br>最后更新：2026-07-12</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 测试集 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s2')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-purple">STEP 2</span>
+          <h2 class="text-h2">选择测试集</h2>
+        </div>
+        <svg class="chevron" id="chevron-s2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">已人工标注正确答案的样本集 · v1.1（100 条）</p>
+    </div>
+    <div class="collapsible-content" id="content-s2">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <span class="badge badge-green">错误状态分级测试集 v1.1（100 条）</span>
+          <span class="badge badge-gray">v1.0（80 条）</span>
+          <span class="badge badge-gray">上传自定义测试集</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+          <div style="background: var(--surface); border: 1px solid rgba(207,19,34,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #cf1322;">25</p><p class="text-micro" style="color: var(--text-tertiary);">fatal</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #a0a0a0;">24</p><p class="text-micro" style="color: var(--text-tertiary);">transient</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #f5a623;">25</p><p class="text-micro" style="color: var(--text-tertiary);">retryable</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(22,119,255,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #4a9eff;">26</p><p class="text-micro" style="color: var(--text-tertiary);">degraded</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 运行验证 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s3')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-amber">STEP 3</span>
+          <h2 class="text-h2">运行规则验证</h2>
+        </div>
+        <svg class="chevron" id="chevron-s3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">批量预测并与标注答案比对</p>
+    </div>
+    <div class="collapsible-content" id="content-s3">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">① 加载规则树</p>
+            <p class="text-micro" style="color: var(--text-secondary);">从契约 YAML 编译确定性规则树</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">② 批量预测</p>
+            <p class="text-micro" style="color: var(--text-secondary);">100 条样本逐条过规则树，输出预测级别</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">③ 比对计算</p>
+            <p class="text-micro" style="color: var(--text-secondary);">预测 vs 人工标注，计算三指标并生成混淆矩阵</p>
+          </div>
+        </div>
+        <div class="progress-track" style="margin-top: 10px;"><div class="progress-fill" style="width: 100%;"></div></div>
+        <p class="text-micro" style="color: #52c41a; margin-top: 4px;">验证完成 100%</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 三指标仪表盘 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <span class="badge badge-green">STEP 4</span>
+        <h2 class="text-h2">三指标仪表盘</h2>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+        <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+          <p class="text-h1" style="color: #52c41a;">94%</p>
+          <p class="text-micro" style="color: var(--text-tertiary);">准确率 Accuracy<br>阈值 ≥90% ✓</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+          <p class="text-h1" style="color: #52c41a;">3%</p>
+          <p class="text-micro" style="color: var(--text-tertiary);">误报率 FPR<br>阈值 ≤5% ✓</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+          <p class="text-h1" style="color: #52c41a;">5%</p>
+          <p class="text-micro" style="color: var(--text-tertiary);">漏报率 FNR<br>阈值 ≤5% ✓</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5 混淆矩阵 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s5')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-purple">STEP 5</span>
+          <h2 class="text-h2">混淆矩阵</h2>
+        </div>
+        <svg class="chevron" id="chevron-s5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">预测级别 vs 标注级别的分布</p>
+    </div>
+    <div class="collapsible-content" id="content-s5">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-caption" style="color: var(--text-secondary); margin-bottom: 10px;">对角线为正确预测；颜色越深表示误判越严重。</p>
+        <div style="display: flex; gap: 12px; margin-bottom: 10px;">
+          <span class="text-micro" style="color: #6abe4a;">■ 正确预测</span>
+          <span class="text-micro" style="color: #f5a623;">■ 1 条误判</span>
+          <span class="text-micro" style="color: #ff5c6c;">■ ≥3 条误判</span>
+        </div>
+        <div class="heat">
+          <div class="heat-head"></div>
+          <div class="heat-head" style="color:#cf1322;">fatal</div>
+          <div class="heat-head">transient</div>
+          <div class="heat-head" style="color:#f5a623;">retryable</div>
+          <div class="heat-head" style="color:#4a9eff;">degraded</div>
+          <div class="heat-head" style="color:#cf1322;">fatal</div>
+          <div class="heat-cell heat-ok">24 ✓</div>
+          <div class="heat-cell heat-err1">1</div>
+          <div class="heat-cell">0</div>
+          <div class="heat-cell">0</div>
+          <div class="heat-head">transient</div>
+          <div class="heat-cell heat-err1">1</div>
+          <div class="heat-cell heat-ok">23 ✓</div>
+          <div class="heat-cell">0</div>
+          <div class="heat-cell">0</div>
+          <div class="heat-head" style="color:#f5a623;">retryable</div>
+          <div class="heat-cell">0</div>
+          <div class="heat-cell heat-err1">1</div>
+          <div class="heat-cell heat-ok">23 ✓</div>
+          <div class="heat-cell heat-err1">1</div>
+          <div class="heat-head" style="color:#4a9eff;">degraded</div>
+          <div class="heat-cell">0</div>
+          <div class="heat-cell">0</div>
+          <div class="heat-cell heat-err1">2</div>
+          <div class="heat-cell heat-ok">24 ✓</div>
+        </div>
+        <p class="text-micro" style="color: var(--text-tertiary); margin-top: 8px;">行 = 人工标注 · 列 = 规则预测 · 共 6 条误判（94/100 正确）</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6 错误案例分析 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s6')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-red">STEP 6</span>
+          <h2 class="text-h2">错误案例分析</h2>
+        </div>
+        <svg class="chevron" id="chevron-s6" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">误报与漏报的根因归类</p>
+    </div>
+    <div class="collapsible-content" id="content-s6">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span class="badge badge-amber" style="font-size: 9px;">误报 · 3 条</span>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">把低风险判成高风险</p>
+          </div>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">根因：通用关键词（如"失败""错误"）未结合场景限定，命中了 fatal 关键词表；集中在 retryable → fatal 方向。</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(207,19,34,0.3); border-radius: var(--radius-sm); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span class="badge badge-red" style="font-size: 9px;">漏报 · 5 条</span>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">高风险被降级</p>
+          </div>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">根因：部分样本缺少致命态专属词（如"数据丢失""不可恢复"），被规则降级为 retryable/degraded；集中在 fatal → 低级 与 degraded 边界方向。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 7 规则调优建议 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s7')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-blue">STEP 7</span>
+          <h2 class="text-h2">规则调优建议</h2>
+        </div>
+        <svg class="chevron" id="chevron-s7" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">基于错误案例的可执行修改项</p>
+    </div>
+    <div class="collapsible-content" id="content-s7">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">① 给通用关键词加场景限定</p>
+            <p class="text-micro" style="color: var(--text-secondary);">"失败/错误"等词必须与"不可恢复""数据丢失"组合出现才触发 fatal，消除 retryable 方向的误报。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">② 扩充 fatal 关键词的同义表达</p>
+            <p class="text-micro" style="color: var(--text-secondary);">补充口语化/方言化表述（如"炸了""挂了且回不来"），降低漏报率。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">③ 强化 degraded 与 retryable 的边界条件</p>
+            <p class="text-micro" style="color: var(--text-secondary);">以"用户能否继续完成核心任务"作为边界判定轴，修订 2 条边界规则。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 8 结论与版本追踪 -->
+  <div class="card" style="margin-bottom: 16px;">
+    <div style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <span class="badge badge-green">STEP 8</span>
+        <h2 class="text-h2">验证结论与版本追踪</h2>
+      </div>
+
+      <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">✓ 已验证</p>
+      <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; align-items: center; gap: 8px;"><span style="color: #52c41a; font-weight: 800;">✓</span><span class="text-caption" style="color: var(--text-primary); font-weight: 600;">准确率 94% ≥ 阈值 90%</span></div>
+          <div style="display: flex; align-items: center; gap: 8px;"><span style="color: #52c41a; font-weight: 800;">✓</span><span class="text-caption" style="color: var(--text-primary); font-weight: 600;">误报率 3% / 漏报率 5% ≤ 阈值 5%</span></div>
+          <div style="display: flex; align-items: center; gap: 8px;"><span style="color: #52c41a; font-weight: 800;">✓</span><span class="text-caption" style="color: var(--text-primary); font-weight: 600;">无系统性误判（误判分散，非单方向偏置）</span></div>
+        </div>
+      </div>
+
+      <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">⚠ 待验证</p>
+      <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; align-items: flex-start; gap: 8px;"><span style="color: #f5a623; font-weight: 800;">⚠</span><span class="text-caption" style="color: var(--text-secondary);">时间稳定性——需连续 30 天生产回放复测</span></div>
+          <div style="display: flex; align-items: flex-start; gap: 8px;"><span style="color: #f5a623; font-weight: 800;">⚠</span><span class="text-caption" style="color: var(--text-secondary);">样本偏差——测试集以书面语为主，方言/口语覆盖不足</span></div>
+          <div style="display: flex; align-items: flex-start; gap: 8px;"><span style="color: #f5a623; font-weight: 800;">⚠</span><span class="text-caption" style="color: var(--text-secondary);">边界漂移——如 503 等状态在降级/重试之间游走，需持续监控</span></div>
+        </div>
+      </div>
+
+      <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">版本对比 · v1.0 → v1.1（基于 100 条测试集）</p>
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="text-caption" style="color: var(--text-secondary);">准确率</span>
+          <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">89% → 94% <span style="color: #52c41a;">+5%</span></span>
+        </div>
+        <div class="progress-track" style="margin-bottom: 10px;"><div class="progress-fill" style="width: 94%;"></div></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="text-caption" style="color: var(--text-secondary);">误报率</span>
+          <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">7% → 3% <span style="color: #52c41a;">-4%</span></span>
+        </div>
+        <div class="progress-track" style="margin-bottom: 10px;"><div class="progress-fill" style="width: 15%; background: #f5a623;"></div></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="text-caption" style="color: var(--text-secondary);">漏报率</span>
+          <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">8% → 5% <span style="color: #52c41a;">-3%</span></span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width: 25%; background: #cf1322;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结卡 -->
+  <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(22,119,255,0.12), rgba(54,207,201,0.08)); border: 1px solid rgba(22,119,255,0.3);">
+    <div style="padding: 20px; text-align: center;">
+      <p class="text-h2" style="color: var(--text-primary); margin-bottom: 8px;">"规则先自证，再拦截"</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">
+        94% 准确率通过阈值，v1.1 可投入生产拦截；<br>
+        三指标 + 混淆矩阵 + 版本追踪，<br>
+        让每一次规则调优都可量化、可回滚。
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<!-- 底部导航 -->
+<div class="bottom-nav">
+  <div class="nav-item" onclick="location.href='./snapshot.html'">
+    <div class="nav-icon">📘</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item" onclick="location.href='./case_diagnosis.html'">
+    <div class="nav-icon">🔍</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item active" onclick="location.href='./分级规则验证机制mob.html'">
+    <div class="nav-icon">✓</div>
+    <div class="nav-label">验证</div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  content.classList.toggle('open');
+  chevron.classList.toggle('rotated');
+}
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

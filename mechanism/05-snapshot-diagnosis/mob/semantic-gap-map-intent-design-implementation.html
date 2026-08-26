@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 语义断层地图：设计意图 vs 设计稿表现 vs 工程实现</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .section-title { display: flex; align-items: center; gap: 10px; margin: 20px 0 10px; }
+  .mobile-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+  .mobile-table th { background: #222226; color: var(--text-secondary); font-weight: 600; padding: 10px 8px; text-align: left; white-space: nowrap; font-size: 11px; border-bottom: 1px solid var(--border); }
+  .mobile-table td { padding: 10px 8px; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-weight: 500; line-height: 1.5; vertical-align: top; }
+  .mobile-table tr:last-child td { border-bottom: none; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px; }
+  .table-scroll .mobile-table { min-width: 560px; }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 语义断层地图 ⑥</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">语义断层地图</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">设计意图 vs 设计稿表现 vs 工程实现 · 以 ERR-001 为示例</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 导语 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        Guard 阶段的收官产物：把诊断出的模式翻译回交付链语言，告诉组织<span style="color: var(--text-primary); font-weight: 700;">断层在哪两次交接里</span>，从而告诉 Contract 阶段<span style="color: var(--text-primary); font-weight: 700;">契约该打进哪个桩</span>。
+      </p>
+    </div>
+  </div>
+
+  <!-- STEP 1 三栏断层 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s1')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-red">STEP 1</span>
+          <h2 class="text-h2">漂移是 AI 制造的，还是交付链早就断的？</h2>
+        </div>
+        <svg class="chevron" id="chevron-s1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">三栏断层地图定位语义压缩发生在哪一次交接</p>
+    </div>
+    <div class="collapsible-content" id="content-s1">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <span class="badge badge-red">ERR-001 错误状态</span>
+          <span class="badge badge-amber">ACT-001 高危操作</span>
+          <span class="badge badge-blue">PRO-001 过程状态</span>
+          <span class="badge badge-purple">BND-001 边界动作</span>
+          <span class="badge badge-gray">ALR-001 告警文案</span>
+        </div>
+        <div style="background: rgba(82,196,26,0.06); border: 1px solid rgba(82,196,26,0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">① 设计意图 · 规范文档（自然语言）</p>
+            <span class="badge badge-green" style="font-size: 9px;">语义留存 100%</span>
+          </div>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8; font-style: italic;">"错误提示应区分严重程度：致命错误需醒目警示并引导用户保全上下文；临时性错误应弱化表达，避免用户过度反应。"</p>
+        </div>
+        <div style="text-align: center; color: #f5a623; font-size: 11px; font-weight: 700; padding: 2px 0;">↓ ①→② 压缩 4→2</div>
+        <div style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">② 设计稿表现 · Figma 稿 + 标注</p>
+            <span class="badge badge-amber" style="font-size: 9px;">语义留存 ~40%</span>
+          </div>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">错误组件库共 3 套样式：Error Banner（红）、Toast（灰）、Inline（橙）。<span style="color: #f5a623; font-weight: 700;">无级别字段，无场景映射表。</span></p>
+        </div>
+        <div style="text-align: center; color: #cf1322; font-size: 11px; font-weight: 700; padding: 2px 0;">↓ ②→③ 压缩 2→1</div>
+        <div style="background: rgba(207,19,34,0.06); border: 1px solid rgba(207,19,34,0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <p class="text-caption" style="color: #cf1322; font-weight: 700;">③ 工程实现 · 接口字段 + 组件 Props</p>
+            <span class="badge badge-red" style="font-size: 9px;">语义留存 ~10%</span>
+          </div>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">后端下发 isError: true（布尔值）；前端 Alert type="error" 一个参数打天下。</p>
+        </div>
+        <div class="code-block" style="font-size: 11px;">
+<pre>语义压缩路径
+四级分级（致命/可恢复/降级/提示）
+  → 两套样式（Error / 非 Error）   # ①→② 压缩 4→2
+  → 一个布尔值（true / false）     # ②→③ 压缩 2→1</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 压缩点定位 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s2')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-purple">STEP 2</span>
+          <h2 class="text-h2">两次交接的压缩点定位</h2>
+        </div>
+        <svg class="chevron" id="chevron-s2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">语义存活曲线：横向看衰减，纵向看断层位置（左右滑动）</p>
+    </div>
+    <div class="collapsible-content" id="content-s2">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div class="table-scroll" style="margin-bottom: 10px;">
+          <table class="mobile-table">
+            <thead>
+              <tr><th>语义维度</th><th>① 意图</th><th>② 设计稿</th><th>③ 工程实现</th><th>断层位置</th></tr>
+            </thead>
+            <tbody>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">错误分级</td><td>四级：致命/可恢复/降级/提示</td><td>两套样式：Banner / Toast</td><td>isError: boolean</td><td style="color: #cf1322;">②→③ 压缩 4→2→1</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">颜色语义</td><td>"致命警示红，可恢复提示黄"</td><td>Error Banner 统一 #EF4444</td><td>color: danger</td><td style="color: #cf1322;">①→② 色板塌缩为单色</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">行动引导</td><td>"致命需提供上下文保全入口"</td><td>无相关组件</td><td>无相关字段</td><td style="color: #cf1322;">①→② 行动意图未进组件库</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">文案约束</td><td>"必须说明后果与恢复预期"</td><td>占位文案"出错了，请重试"</td><td>文案由前端硬编码</td><td style="color: #cf1322;">①→② 约束退化为占位符</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.25); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">读法说明</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;"><b style="color: var(--text-primary);">横向看</b>：语义存活曲线，每个维度如何逐级衰减。<b style="color: var(--text-primary);">纵向看</b>：断层位置列把压缩精确定位到某一次交接。对于 ERR-001，<span style="color: #a855f7; font-weight: 700;">所有四个维度的压缩都发生在 ①→② 或 ②→③</span>——交付链前两环已丢失 90% 语义信息，AI 只是在最后一环继承了被压缩殆尽的输入。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 三种语言 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s3')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-amber">STEP 3</span>
+          <h2 class="text-h2">三种交付物说三种语言</h2>
+        </div>
+        <svg class="chevron" id="chevron-s3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">语言形态的不可互算性：机器能校验的，语义最贫瘠</p>
+    </div>
+    <div class="collapsible-content" id="content-s3">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">设计意图 · 自然语言段落</p>
+              <span class="badge badge-red" style="font-size: 9px;">机器不可校验</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">形容词与副词："应区分严重程度""需醒目警示"——不可运算</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">设计稿表现 · 视觉组件 + 标注</p>
+              <span class="badge badge-red" style="font-size: 9px;">机器不可校验</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">样式差异与组件命名："Error Banner""Toast"——命名是字符串，无语义结构</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">工程实现 · 接口字段 + Props</p>
+              <span class="badge badge-amber" style="font-size: 9px;">可校验但贫瘠</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">枚举值与布尔值：isError: true / type: "error"——语义已被压缩殆尽</p>
+          </div>
+        </div>
+        <div style="background: rgba(207,19,34,0.06); border: 1px solid rgba(207,19,34,0.25); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">关键发现</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">第三栏（工程实现）是<span style="color: var(--text-primary); font-weight: 700;">唯一机器可校验的</span>，但也是<span style="color: #cf1322; font-weight: 700;">语义最贫瘠的</span>——机器校验介入得越晚，能守住的东西越少。只在工程实现层做校验（ESLint/Stylelint），校验的只是一个已被压缩 90% 的语义残片；真正的语义丢失发生在更早的交接环节，而那里恰恰是机器无法触及的灰色地带。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 Before/After -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s4')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-blue">STEP 4</span>
+          <h2 class="text-h2">Before/After 修复对照</h2>
+        </div>
+        <svg class="chevron" id="chevron-s4" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">同一条限流提示，按断层地图修复前后（左右滑动）</p>
+    </div>
+    <div class="collapsible-content" id="content-s4">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div class="table-scroll" style="margin-bottom: 10px;">
+          <table class="mobile-table">
+            <thead>
+              <tr><th>交付环节</th><th>Before（无断层意识）</th><th>After（按断层地图修复）</th></tr>
+            </thead>
+            <tbody>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">① 意图</td><td style="color: #cf1322;">"限流属可恢复错误"（文档第 47 页，无人引用）</td><td style="color: #52c41a;">error_severity.retryable 注册入典，字典可查</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">② 设计稿</td><td style="color: #cf1322;">设计师选 Error Banner（红），组件库没有"可恢复"分类</td><td style="color: #52c41a;">组件库挂载令牌映射：retryable → 黄色时钟样式</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">③ 工程实现</td><td style="color: #cf1322;">isError: true → type="error" → 红色</td><td style="color: #52c41a;">error_severity: retryable → 按契约渲染黄色 + 倒计时</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">AI 生成</td><td style="color: #cf1322;">读到布尔值 + 红色样式，输出全红错误条</td><td style="color: #52c41a;">注入契约约束，输出黄色弱化提示</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">用户体验</td><td style="color: #cf1322;">以为系统崩溃，刷新丢失内容</td><td style="color: #52c41a;">看到"42 分钟后自动恢复"，等待即可</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="background: rgba(22,119,255,0.06); border: 1px solid rgba(22,119,255,0.25); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">修复核心动作</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">不是让设计师"更仔细"、前端"更规范"，而是<span style="color: #4a9eff; font-weight: 700;">在每一次交接处插入语义契约</span>：①→② 意图翻译为字典令牌（error_severity.retryable）；②→③ 组件样式与令牌建立映射（retryable → 黄色时钟）；③→AI 接口字段承载令牌而非布尔值（error_severity 替代 isError）。断层地图的价值不是"发现问题"，而是<span style="color: var(--text-primary); font-weight: 700;">告诉 Contract 阶段契约该打进哪个桩</span>。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5 验证结论 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s5')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-green">STEP 5</span>
+          <h2 class="text-h2">验证结论与角色总结</h2>
+        </div>
+        <svg class="chevron" id="chevron-s5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">诚实清单 + 角色一句话（左右滑动）</p>
+    </div>
+    <div class="collapsible-content" id="content-s5">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div class="table-scroll" style="margin-bottom: 10px;">
+          <table class="mobile-table" style="min-width: 420px;">
+            <thead>
+              <tr><th>验证项</th><th>状态</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">三栏断裂是否真实存在</td><td style="color: #52c41a;">✓ 已验证</td><td>限流误报、错误分级案例均可沿三栏复现压缩</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">压缩点是否可结构化定位</td><td style="color: #52c41a;">✓ 已验证</td><td>每个压缩点可定位到具体交接与语义维度</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">修复后语义是否存活到第三栏</td><td style="color: #52c41a;">✓ 已验证</td><td>枚举字段替换布尔值后，语义级别可到达渲染层</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">地图绘制成本</td><td style="color: #f5a623;">⚠ 部分验证</td><td>单条约 1-2 小时，全量成本待评估</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">三栏同源的组织落地</td><td style="color: #f5a623;">⚠ 待采集</td><td>演示环境成立，生产版本同步纪律待验证</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #4a9eff; border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">🎨 给设计师</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">"你的意图没有错，是意图到组件库的翻译没有校验。"规范文档（①）与设计稿（②）之间的语义压缩不是设计能力问题，而是翻译环节缺少校验机制——修复是在 ①→② 之间插入语义令牌映射。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
+    <div style="padding: 16px;">
+      <p class="text-h3" style="margin-bottom: 4px; color: #52c41a;">语义断层地图验证完成</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">漂移不是 AI 制造的，是交付链早就断的——断层地图把压缩定位到具体交接，告诉 Contract 阶段契约该打进哪个桩。Guard → Contract → Verify。</p>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- 底部 Tab 导航 -->
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='./semantic_domain.html'">
+    <div class="nav-icon">📐</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='./case_bnd_001.html'">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item active" onclick="window.location.href='./语义断层地图验证(1)mob.html'">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">验证</div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 语义断层地图验证</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .section-title { display: flex; align-items: center; gap: 10px; margin: 20px 0 10px; }
+  .progress-track { height: 6px; background: #2a2a2e; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 语义断层地图 ③</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">语义断层地图验证</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Semantic Fault Map</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">意图、设计稿与工程实现三栏的系统性衰减 · 以 ERR-001 为示例</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 导语 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span class="badge badge-red">ERR-001 · Error</span>
+      </div>
+      <p class="text-body" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">错误状态后果差异未分级</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.7;">多种错误共用红色，用户无法判断后果严重程度。本页展示三栏断裂、模式诊断、编译输出与验证工具集的完整链路。</p>
+    </div>
+  </div>
+
+  <!-- 三栏断层对比 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('map')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-purple">断层</span>
+          <h2 class="text-h2">语义断层地图 · 三栏对比</h2>
+        </div>
+        <svg class="chevron" id="chevron-map" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">设计意图 → 设计稿表现 → 工程实现</p>
+    </div>
+    <div class="collapsible-content" id="content-map">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: rgba(82,196,26,0.06); border: 1px solid rgba(82,196,26,0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">设计意图</p>
+            <span class="badge badge-green" style="font-size: 9px;">语义完整性 100%</span>
+          </div>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">按错误性质分级，用户一眼判断后果：是系统崩溃需立即刷新、网络抖动只需等待、还是限流稍后重试</p>
+        </div>
+        <div style="text-align: center; color: #52c41a; font-size: 11px; font-weight: 700; padding: 2px 0;">↓ 保真传递</div>
+        <div style="background: rgba(82,196,26,0.06); border: 1px solid rgba(82,196,26,0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">设计稿表现</p>
+            <span class="badge badge-green" style="font-size: 9px;">语义保真度 100%</span>
+          </div>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">Fatal 红脉冲 / Transient 灰 / Retryable 黄 / Degraded 蓝——四种级别四种视觉语言</p>
+        </div>
+        <div style="text-align: center; color: #cf1322; font-size: 11px; font-weight: 700; padding: 2px 0;">↓ ⚠ 系统性衰减</div>
+        <div style="background: rgba(207,19,34,0.06); border: 1px solid rgba(207,19,34,0.25); border-radius: var(--radius-sm); padding: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <p class="text-caption" style="color: #cf1322; font-weight: 700;">工程实现（断裂）</p>
+            <span class="badge badge-red" style="font-size: 9px;">语义保真度 25%</span>
+          </div>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">全部红色 "Error"：四种错误被压缩成一种红色 Alert，限流和系统崩溃长得一模一样</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 系统性衰减指标 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <span class="badge badge-red">指标</span>
+        <h2 class="text-h2">系统性衰减指标</h2>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between;"><p class="text-caption" style="color: var(--text-primary); font-weight: 700;">信息丢失度</p><p class="text-caption" style="color: #cf1322; font-weight: 800;">75%</p></div>
+        <div class="progress-track"><div class="progress-fill" style="width: 75%; background: #cf1322;"></div></div>
+        <p class="text-micro" style="color: var(--text-tertiary); margin-top: 4px;">4 种级别被压缩为 1 种</p>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between;"><p class="text-caption" style="color: var(--text-primary); font-weight: 700;">语义扭曲度</p><p class="text-caption" style="color: #cf1322; font-weight: 800;">100%</p></div>
+        <div class="progress-track"><div class="progress-fill" style="width: 100%; background: #cf1322;"></div></div>
+        <p class="text-micro" style="color: var(--text-tertiary); margin-top: 4px;">所有错误被等同为"严重"</p>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between;"><p class="text-caption" style="color: var(--text-primary); font-weight: 700;">行动缺失度</p><p class="text-caption" style="color: #f5a623; font-weight: 800;">60%</p></div>
+        <div class="progress-track"><div class="progress-fill" style="width: 60%; background: #f5a623;"></div></div>
+        <p class="text-micro" style="color: var(--text-tertiary); margin-top: 4px;">用户无法判断该刷新还是等待</p>
+      </div>
+      <div class="divider"></div>
+      <p class="text-micro" style="color: var(--text-secondary);">衰减路径：意图层 <b style="color: #52c41a;">4 级语义</b> → 设计层 <b style="color: #52c41a;">4 级视觉</b> → 工程层 <b style="color: #cf1322;">1 级红色</b></p>
+    </div>
+  </div>
+
+  <!-- 模式诊断 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('diag')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-amber">诊断</span>
+          <h2 class="text-h2">模式诊断 · 为什么会断裂</h2>
+        </div>
+        <svg class="chevron" id="chevron-diag" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">根因：缺少 error_severity 语义令牌</p>
+    </div>
+    <div class="collapsible-content" id="content-diag">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+          <span class="badge badge-gray">组件类型 · Alert / Message</span>
+          <span class="badge badge-red">根因 · 缺少 error_severity</span>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">断裂机制分析</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">系统缺少 error_severity 语义令牌时，AI 与前端的 fallback 逻辑是：<span style="color: #cf1322; font-weight: 700;">"错误 = 红色"</span>。来自两个隐含假设：<br>1 · Prompt 隐含假设：system prompt 写"错误提示使用红色背景"，未区分级别<br>2 · 组件库隐含假设：Alert 默认红色 solid，没有暴露 severity 属性<br>结果：无论 500（fatal）、429（retryable）还是网络超时（transient），都渲染成同一个红色 Alert。</p>
+        </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">产品实例（均存在"多种错误共用红色"断层）</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <span class="badge badge-blue">ChatGPT</span>
+          <span class="badge badge-blue">文心一言</span>
+          <span class="badge badge-blue">通义千问</span>
+          <span class="badge badge-blue">Kimi</span>
+          <span class="badge badge-blue">豆包</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编译输出 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('yaml')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-blue">编译</span>
+          <h2 class="text-h2">编译输出 · 一份 YAML 四种消费格式</h2>
+        </div>
+        <svg class="chevron" id="chevron-yaml" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">YAML → Prompt 前缀 / Checklist / CI 规则</p>
+    </div>
+    <div class="collapsible-content" id="content-yaml">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div class="code-block" style="font-size: 11px;">
+<pre>intent_id: "ERR-001"
+semantic_domain: "observational"
+semantic_tokens:
+  error_severity:
+    fatal:
+      color_token: "status.critical"
+      motion_token: "pulse.red.urgent"
+      icon_token: "alert.octagon"
+      user_action: [refresh, export_history]
+    transient:
+      color_token: "status.neutral"
+      motion_token: "spinner"
+      icon_token: "loader"
+      user_action: [wait, retry]
+    retryable:
+      color_token: "status.warning"
+      motion_token: "none"
+      icon_token: "clock"
+      user_action: [wait_countdown, upgrade]
+    degraded:
+      color_token: "status.info"
+      motion_token: "none"
+      icon_token: "info.circle"
+      user_action: [continue, retry_simplified]
+immutable_boundaries:
+  - boundary_type: "safety"
+    rule: "禁止所有错误状态共用同一种红色"
+    violation_action: "block"
+  - boundary_type: "clarity"
+    rule: "每个错误级别必须提供明确行动指引"
+    violation_action: "warn"</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 验证工具集 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('tests')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-green">验证</span>
+          <h2 class="text-h2">验证工具集 · 用例与通过准则</h2>
+        </div>
+        <svg class="chevron" id="chevron-tests" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">10 单元 + 3 集成 + 5 回归</p>
+    </div>
+    <div class="collapsible-content" id="content-tests">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <div style="flex: 1; background: var(--surface); border: 1px solid rgba(22,119,255,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #4a9eff;">10</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">单元测试<br>4 级视觉映射</p>
+          </div>
+          <div style="flex: 1; background: var(--surface); border: 1px solid rgba(168,85,247,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #a855f7;">3</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">集成测试<br>Prompt↔渲染一致</p>
+          </div>
+          <div style="flex: 1; background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #f5a623;">5</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">回归测试<br>防回退统一红</p>
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 6px;">通过准则</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.9;">• 单元测试 100%：每个 severity 级别有独立视觉映射测试<br>• 集成测试 100%：Prompt 生成组件与前端渲染结果一致<br>• 回归测试 100%：禁止任何两个不同 severity 使用相同红色<br>• 同义词防火墙："严重"必须被替换为 "Critical"<br>• 边界校验：fatal 必须提供刷新/导出路径，retryable 必须提供倒计时/升级路径</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
+    <div style="padding: 16px;">
+      <p class="text-h3" style="margin-bottom: 4px; color: #52c41a;">语义断层地图验证完成</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">断裂被定位（三栏对比 + 衰减指标）、根因被诊断（缺少 error_severity 令牌）、修复被编译（ERR-001.yaml 四种消费格式）、效果被验证（10+3+5 用例与通过准则）。Guard → Contract → Verify。</p>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- 底部 Tab 导航 -->
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='./semantic_domain.html'">
+    <div class="nav-icon">📐</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='./case_bnd_001.html'">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item active" onclick="window.location.href='./语义断层地图验证mob.html'">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">验证</div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 生成中拦截的成本机制</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .card-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+  .card-item:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    transform: translateY(-2px);
+  }
+
+  .layer-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: all 0.3s;
+  }
+
+  .severity-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .severity-fatal { background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; }
+  .severity-transient { background: #1e1e22; border: 1px solid #3a3a3e; color: #a0a0a0; }
+  .severity-retryable { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
+  .severity-degraded { background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-active {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-error {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+  .status-pending {
+    background: rgba(212,136,6,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(212,136,6,0.3);
+  }
+
+  .format-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #16161a;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .format-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .format-btn.primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .format-btn.primary:hover {
+    background: var(--primary-hover);
+  }
+  .format-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+
+  /* Custom Range Slider */
+  input[type=range].cost-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #2a2a2e;
+    border-radius: 100px;
+    outline: none;
+  }
+  input[type=range].cost-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+  input[type=range].cost-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+
+  .cost-number {
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s;
+  }
+
+  .timeline-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .timeline-line {
+    flex: 1;
+    height: 2px;
+    min-width: 20px;
+  }
+
+  .argument-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .argument-card:hover {
+    border-color: #3a3a3e;
+  }
+  .argument-card.expanded {
+    border-color: rgba(22,119,255,0.3);
+  }
+  .argument-detail {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 0;
+  }
+  .argument-card.expanded .argument-detail {
+    max-height: 300px;
+    opacity: 1;
+  }
+
+  @keyframes countUp {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .count-anim {
+    animation: countUp 0.3s ease-out;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(82,196,26,0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(82,196,26,0); }
+  }
+  .pulse-green { animation: pulse-green 2s infinite; }
+
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(207,19,34,0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(207,19,34,0); }
+  }
+  .pulse-red { animation: pulse-red 2s infinite; }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" class="nav-brand">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </a>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: COST MECHANISM ==================== -->
+<div class="cards-section">
+  <!-- Breadcrumb -->
+  <div style="margin-bottom: 24px;">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="color: var(--primary); font-size: 14px; font-weight: 600; text-decoration: none;">
+      ← Schema-As-Code
+    </a>
+    <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+    <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Cost Mechanism</span>
+  </div>
+
+  <div style="margin-bottom: 32px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+      <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+      <span>阶段三 · ⑦ 生成中拦截的成本机制</span>
+    </div>
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">生成中拦截的成本机制 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Cost of Interception</span></h1>
+    <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+      为什么必须分四层？为什么必须在生成时拦截？<br>
+      通过实时成本计算器，验证"越靠右修复，成本指数级增长"的假设。
+    </p>
+  </div>
+
+  <!-- ==================== SECTION 1: 成本对比仪表盘 ==================== -->
+  <div class="layer-card" style="margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">1</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">成本对比仪表盘</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Cost Dashboard · 生成时拦截 vs 发布后修复</p>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+      <!-- 生成时拦截 -->
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: var(--radius); padding: 24px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+          <div style="width: 10px; height: 10px; border-radius: 50%; background: #52c41a;" class="pulse-green"></div>
+          <span style="font-size: 12px; font-weight: 700; color: #52c41a; text-transform: uppercase; letter-spacing: 0.05em;">生成时拦截</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div style="text-align: center;">
+            <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">1.2<span style="font-size: 16px;">s</span></div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">平均拦截耗时</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">0</div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">人工介入</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">0</div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">用户影响</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 发布后修复 -->
+      <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: var(--radius); padding: 24px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+          <div style="width: 10px; height: 10px; border-radius: 50%; background: #cf1322;" class="pulse-red"></div>
+          <span style="font-size: 12px; font-weight: 700; color: #cf1322; text-transform: uppercase; letter-spacing: 0.05em;">发布后修复</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div style="text-align: center;">
+            <div style="font-size: 32px; font-weight: 800; color: #cf1322; margin-bottom: 4px;">14<span style="font-size: 16px;">天</span></div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">平均修复周期</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 32px; font-weight: 800; color: #cf1322; margin-bottom: 4px;">6</div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">涉及团队</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 32px; font-weight: 800; color: #cf1322; margin-bottom: 4px;">全量</div>
+            <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">用户曝光</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">修复成本时间轴</p>
+      <div style="display: flex; align-items: center; gap: 0; overflow-x: auto; padding-bottom: 8px;">
+        <div style="text-align: center; min-width: 80px;">
+          <div class="timeline-dot" style="background: var(--primary); margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">设计意图</span>
+        </div>
+        <div class="timeline-line" style="background: linear-gradient(90deg, var(--primary), #52c41a);"></div>
+        <div style="text-align: center; min-width: 80px;">
+          <div class="timeline-dot" style="background: #52c41a; margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: #52c41a; font-weight: 600;">LLM 生成</span>
+        </div>
+        <div class="timeline-line" style="background: linear-gradient(90deg, #52c41a, #52c41a);"></div>
+        <div style="text-align: center; min-width: 60px;">
+          <div class="timeline-dot" style="background: #52c41a; margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: #52c41a; font-weight: 600;">L1</span>
+        </div>
+        <div class="timeline-line" style="background: linear-gradient(90deg, #52c41a, #52c41a);"></div>
+        <div style="text-align: center; min-width: 60px;">
+          <div class="timeline-dot" style="background: #52c41a; margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: #52c41a; font-weight: 600;">L2</span>
+        </div>
+        <div class="timeline-line" style="background: linear-gradient(90deg, #52c41a, #52c41a);"></div>
+        <div style="text-align: center; min-width: 60px;">
+          <div class="timeline-dot" style="background: #52c41a; margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: #52c41a; font-weight: 600;">L3</span>
+        </div>
+        <div class="timeline-line" style="background: linear-gradient(90deg, #52c41a, #52c41a);"></div>
+        <div style="text-align: center; min-width: 60px;">
+          <div class="timeline-dot" style="background: #52c41a; margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: #52c41a; font-weight: 600;">L4</span>
+        </div>
+        <div class="timeline-line" style="background: linear-gradient(90deg, #52c41a, #f5a623);"></div>
+        <div style="text-align: center; min-width: 80px;">
+          <div class="timeline-dot" style="background: #f5a623; margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: #f5a623; font-weight: 600;">代码合并</span>
+        </div>
+        <div class="timeline-line" style="background: linear-gradient(90deg, #f5a623, #cf1322);"></div>
+        <div style="text-align: center; min-width: 60px;">
+          <div class="timeline-dot" style="background: #cf1322; margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: #cf1322; font-weight: 600;">测试</span>
+        </div>
+        <div class="timeline-line" style="background: #cf1322;"></div>
+        <div style="text-align: center; min-width: 60px;">
+          <div class="timeline-dot" style="background: #cf1322; margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: #cf1322; font-weight: 600;">发布</span>
+        </div>
+        <div class="timeline-line" style="background: #cf1322;"></div>
+        <div style="text-align: center; min-width: 80px;">
+          <div class="timeline-dot" style="background: #cf1322; margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: #cf1322; font-weight: 600;">用户反馈</span>
+        </div>
+        <div class="timeline-line" style="background: #cf1322;"></div>
+        <div style="text-align: center; min-width: 80px;">
+          <div class="timeline-dot" style="background: #cf1322; margin: 0 auto 6px;"></div>
+          <span style="font-size: 11px; color: #cf1322; font-weight: 600;">舆情监控</span>
+        </div>
+      </div>
+      <div style="display: flex; margin-top: 12px;">
+        <div style="flex: 4; background: rgba(82,196,26,0.08); border: 1px dashed rgba(82,196,26,0.3); border-radius: 6px; padding: 8px 12px; text-align: center;">
+          <span style="font-size: 12px; color: #52c41a; font-weight: 700;">Schema-As-Code 拦截窗口（成本趋近于零）</span>
+        </div>
+        <div style="flex: 6; background: rgba(207,19,34,0.08); border: 1px dashed rgba(207,19,34,0.3); border-radius: 6px; padding: 8px 12px; text-align: center; margin-left: 8px;">
+          <span style="font-size: 12px; color: #cf1322; font-weight: 700;">传统修复路径（成本指数级增长）</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 2: 四层拦截成本分解 ==================== -->
+  <div class="layer-card" style="margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">2</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">四层拦截成本分解</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Four-Layer Cost Breakdown · 每层拦截的技术开销与跳过代价</p>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;" id="layerCostCards">
+      <!-- L1 -->
+      <div class="card-item" style="cursor: pointer;" onmouseenter="showLayerDetail('l1')" onmouseleave="hideLayerDetail()">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <div style="width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 800;">L1</div>
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">模板合规</span>
+        </div>
+        <div style="text-align: center; margin-bottom: 12px;">
+          <div style="font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 2px;">~50<span style="font-size: 14px;">ms</span></div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">拦截耗时</div>
+        </div>
+        <div style="background: #16161a; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">技术开销</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">CPU 内存结构检查</p>
+        </div>
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 6px; padding: 10px;">
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">跳过代价</p>
+          <p style="font-size: 13px; color: #cf1322; font-weight: 500;">测试阶段发现 → <strong>2 人日</strong></p>
+        </div>
+      </div>
+
+      <!-- L2 -->
+      <div class="card-item" style="cursor: pointer;" onmouseenter="showLayerDetail('l2')" onmouseleave="hideLayerDetail()">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <div style="width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 800;">L2</div>
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">语义令牌</span>
+        </div>
+        <div style="text-align: center; margin-bottom: 12px;">
+          <div style="font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 2px;">~100<span style="font-size: 14px;">ms</span></div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">拦截耗时</div>
+        </div>
+        <div style="background: #16161a; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">技术开销</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">哈希比对 + 契约引用</p>
+        </div>
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 6px; padding: 10px;">
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">跳过代价</p>
+          <p style="font-size: 13px; color: #cf1322; font-weight: 500;">生产语义混淆 → <strong>14 天回滚</strong></p>
+        </div>
+      </div>
+
+      <!-- L3 -->
+      <div class="card-item" style="cursor: pointer;" onmouseenter="showLayerDetail('l3')" onmouseleave="hideLayerDetail()">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <div style="width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 800;">L3</div>
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">边界检查</span>
+        </div>
+        <div style="text-align: center; margin-bottom: 12px;">
+          <div style="font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 2px;">~200<span style="font-size: 14px;">ms</span></div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">拦截耗时</div>
+        </div>
+        <div style="background: #16161a; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">技术开销</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">不可变边界交叉验证</p>
+        </div>
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 6px; padding: 10px;">
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">跳过代价</p>
+          <p style="font-size: 13px; color: #cf1322; font-weight: 500;">审计安全突破 → <strong>合规风险</strong></p>
+        </div>
+      </div>
+
+      <!-- L4 -->
+      <div class="card-item" style="cursor: pointer;" onmouseenter="showLayerDetail('l4')" onmouseleave="hideLayerDetail()">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <div style="width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 800;">L4</div>
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">归档确认</span>
+        </div>
+        <div style="text-align: center; margin-bottom: 12px;">
+          <div style="font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 2px;">~300<span style="font-size: 14px;">ms</span></div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">拦截耗时</div>
+        </div>
+        <div style="background: #16161a; border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">技术开销</p>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">语义哈希生成 + 签名</p>
+        </div>
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 6px; padding: 10px;">
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">跳过代价</p>
+          <p style="font-size: 13px; color: #cf1322; font-weight: 500;">技术债务累积 → <strong>无法追溯</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hover Detail Panel -->
+    <div id="layerDetailPanel" style="display: none; background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 12px;">
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;" id="layerDetailText"></p>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 3: 实时成本计算器 ==================== -->
+  <div class="layer-card" style="margin-bottom: 24px; border-color: rgba(22,119,255,0.3);">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">3</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">实时成本计算器</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Real-Time Cost Calculator · 拖动滑块，验证不同拦截层级的成本差异</p>
+      </div>
+    </div>
+
+    <!-- Scene Selector -->
+    <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
+      <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600; align-self: center;">选择场景：</span>
+      <button class="format-btn active" onclick="selectScene('err001', this)" id="btn-err001">ERR-001 · 错误状态未分级</button>
+      <button class="format-btn" onclick="selectScene('act001', this)" id="btn-act001">ACT-001 · 高危操作无二次确认</button>
+      <button class="format-btn" onclick="selectScene('pro001', this)" id="btn-pro001">PRO-001 · 过程状态认知未显化</button>
+    </div>
+
+    <!-- Slider -->
+    <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">拦截层级</span>
+        <span id="sliderLabel" style="font-size: 14px; font-weight: 800; color: #52c41a;">L4 · 四层全拦截</span>
+      </div>
+      <input type="range" class="cost-slider" id="costSlider" min="0" max="4" value="3" step="1" oninput="updateCostCalc()">
+      <div style="display: flex; justify-content: space-between; margin-top: 12px;">
+        <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">L1</span>
+        <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">L2</span>
+        <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">L3</span>
+        <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">L4</span>
+        <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">无拦截</span>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px; text-align: center;">
+        <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">修复时间</p>
+        <div style="font-size: 32px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;" id="metricTime" class="cost-number">0.3<span style="font-size: 16px;">s</span></div>
+        <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;" id="metricTimeSub">即时拦截</p>
+      </div>
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px; text-align: center;">
+        <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">涉及团队</p>
+        <div style="font-size: 32px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;" id="metricTeams" class="cost-number">0</div>
+        <div style="display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-top: 6px;" id="metricTeamIcons"></div>
+      </div>
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px; text-align: center;">
+        <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">用户影响面</p>
+        <div style="font-size: 32px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;" id="metricUsers" class="cost-number">0</div>
+        <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;" id="metricUsersSub">零用户曝光</p>
+      </div>
+    </div>
+
+    <!-- Cumulative Cost -->
+    <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 24px; text-align: center;">
+      <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">累计成本估算</p>
+      <div style="font-size: 48px; font-weight: 800; color: #52c41a; margin-bottom: 8px;" id="metricCost" class="cost-number">￥0</div>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;" id="metricCostDesc">四层全拦截，成本趋近于零</p>
+      <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: center;">
+        <span class="status-pill status-active" id="costPill">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+          成本可控
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SECTION 4: 为什么必须在生成时拦截 ==================== -->
+  <div class="layer-card" style="margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">4</div>
+      <div>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">为什么必须在生成时拦截</h3>
+        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Three Arguments · 点击卡片展开论证详情</p>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+      <!-- Argument 1 -->
+      <div class="argument-card" onclick="toggleArgument(this)">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(22,119,255,0.15); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 16px; font-weight: 800;">1</div>
+          <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary);">LLM 的不可预测性</h4>
+        </div>
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">AI 生成内容没有编译期检查</p>
+        <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 4px;">点击展开 →</div>
+        <div class="argument-detail">
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+            传统代码错误会抛 SyntaxError，但 AI 生成的"所有错误都用红色"在语法上完全正确，语义上却是灾难。Schema-As-Code 在生成瞬间注入契约检查，相当于给 LLM 输出加了"语义编译器"。<br><br>
+            如果没有生成时拦截，这些"语法正确、语义错误"的内容会一路绿灯通过代码审查、测试用例、CI 流水线，直到用户视网膜上才被发现。
+          </p>
+        </div>
+      </div>
+
+      <!-- Argument 2 -->
+      <div class="argument-card" onclick="toggleArgument(this)">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(207,19,34,0.15); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 16px; font-weight: 800;">2</div>
+          <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary);">视觉层无法回退</h4>
+        </div>
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">一旦用户看到，信任损失不可逆</p>
+        <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 4px;">点击展开 →</div>
+        <div class="argument-detail">
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+            红色错误提示被用户截图传播后，即使 5 分钟后热修复，品牌印象损失已发生。生成时拦截确保"错误的视觉表达永远不会到达用户视网膜"。<br><br>
+            在社交媒体时代，一个语义混乱的告警截图可能在修复完成前就已经获得数万次转发。视觉层的错误没有"撤销"按钮。
+          </p>
+        </div>
+      </div>
+
+      <!-- Argument 3 -->
+      <div class="argument-card" onclick="toggleArgument(this)">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(82,196,26,0.15); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 16px; font-weight: 800;">3</div>
+          <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary);">契约的时效性</h4>
+        </div>
+        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">语义令牌在生成瞬间最有效</p>
+        <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 4px;">点击展开 →</div>
+        <div class="argument-detail">
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+            事后补写 error_severity 契约无法修复已经生成的 10,000 条错误提示。只有在生成管道中实时消费契约，才能确保每一条输出都经过语义审查。<br><br>
+            契约的价值不在于文档本身，而在于它被消费的时机。生成时拦截是契约从"静态文档"转化为"动态防线"的唯一机会窗口。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom CTA -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">成本论证完成，进入验证实验室？</p>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</p>
+    </div>
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+      返回 Schema-As-Code →
+    </a>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+<script>
+// ===== Scene Data =====
+const sceneData = {
+  err001: {
+    name: 'ERR-001 · 错误状态未分级',
+    base: { time: 14, timeUnit: '天', teams: 6, users: 100000, cost: 480000 },
+    l1: { time: 0.7, timeUnit: '天', teams: 2, users: 5000, cost: 24000 },
+    l2: { time: 1.8, timeUnit: '天', teams: 3, users: 20000, cost: 62000 },
+    l3: { time: 5.6, timeUnit: '天', teams: 4, users: 50000, cost: 190000 },
+    l4: { time: 0.3, timeUnit: 's', teams: 0, users: 0, cost: 0 },
+    teamIcons: ['🎨','💻','🧪','🔧','⚖️','📞']
+  },
+  act001: {
+    name: 'ACT-001 · 高危操作无二次确认',
+    base: { time: 21, timeUnit: '天', teams: 7, users: 999999, cost: 1200000 },
+    l1: { time: 1.2, timeUnit: '天', teams: 2, users: 50000, cost: 96000 },
+    l2: { time: 3.2, timeUnit: '天', teams: 3, users: 200000, cost: 180000 },
+    l3: { time: 9.5, timeUnit: '天', teams: 5, users: 600000, cost: 540000 },
+    l4: { time: 0.3, timeUnit: 's', teams: 0, users: 0, cost: 0 },
+    teamIcons: ['🎨','💻','🧪','🔧','⚖️','📞','📋']
+  },
+  pro001: {
+    name: 'PRO-001 · 过程状态认知未显化',
+    base: { time: 7, timeUnit: '天', teams: 4, users: 30000, cost: 150000 },
+    l1: { time: 0.5, timeUnit: '天', teams: 2, users: 3000, cost: 12000 },
+    l2: { time: 1.2, timeUnit: '天', teams: 2, users: 8000, cost: 35000 },
+    l3: { time: 3.8, timeUnit: '天', teams: 3, users: 15000, cost: 82000 },
+    l4: { time: 0.3, timeUnit: 's', teams: 0, users: 0, cost: 0 },
+    teamIcons: ['🎨','💻','🧪','📋']
+  }
+};
+
+const layerLabels = ['L1 · 模板合规拦截', 'L2 · 语义令牌拦截', 'L3 · 边界检查拦截', 'L4 · 四层全拦截', '无拦截 · 发布后修复'];
+const layerColors = ['#1677ff', '#1677ff', '#1677ff', '#52c41a', '#cf1322'];
+
+let currentScene = 'err001';
+
+// ===== Scene Selection =====
+function selectScene(scene, btn) {
+  currentScene = scene;
+  document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateCostCalc();
+}
+
+// ===== Cost Calculator =====
+function updateCostCalc() {
+  const slider = document.getElementById('costSlider');
+  const val = parseInt(slider.value);
+  const data = sceneData[currentScene];
+  const base = data.base;
+
+  let result;
+  if (val === 0) result = data.l1;
+  else if (val === 1) result = data.l2;
+  else if (val === 2) result = data.l3;
+  else if (val === 3) result = data.l4;
+  else result = base;
+
+  // Label
+  const labelEl = document.getElementById('sliderLabel');
+  labelEl.textContent = layerLabels[val];
+  labelEl.style.color = layerColors[val];
+
+  // Time
+  const timeEl = document.getElementById('metricTime');
+  const timeSub = document.getElementById('metricTimeSub');
+  if (result.time < 1 && result.timeUnit === 's') {
+    timeEl.innerHTML = result.time + '<span style="font-size:16px;">' + result.timeUnit + '</span>';
+    timeSub.textContent = '即时拦截';
+    timeEl.style.color = '#52c41a';
+  } else {
+    timeEl.innerHTML = result.time + '<span style="font-size:16px;">' + result.timeUnit + '</span>';
+    timeSub.textContent = val === 4 ? '发布后修复周期' : '预估修复周期';
+    timeEl.style.color = val === 4 ? '#cf1322' : '#f5a623';
+  }
+  timeEl.classList.add('count-anim');
+  setTimeout(() => timeEl.classList.remove('count-anim'), 300);
+
+  // Teams
+  const teamsEl = document.getElementById('metricTeams');
+  teamsEl.textContent = result.teams;
+  teamsEl.style.color = result.teams === 0 ? '#52c41a' : (result.teams > 4 ? '#cf1322' : '#f5a623');
+  teamsEl.classList.add('count-anim');
+  setTimeout(() => teamsEl.classList.remove('count-anim'), 300);
+
+  // Team icons
+  const iconsEl = document.getElementById('metricTeamIcons');
+  if (val === 4) {
+    iconsEl.innerHTML = data.teamIcons.map(i => '<span style="font-size:16px;">' + i + '</span>').join('');
+  } else if (val === 3) {
+    iconsEl.innerHTML = '<span style="font-size:12px; color:#52c41a; font-weight:600;">✓ 零团队介入</span>';
+  } else {
+    const activeTeams = data.teamIcons.slice(0, result.teams);
+    iconsEl.innerHTML = activeTeams.map(i => '<span style="font-size:16px; opacity:0.6;">' + i + '</span>').join('');
+  }
+
+  // Users
+  const usersEl = document.getElementById('metricUsers');
+  const usersSub = document.getElementById('metricUsersSub');
+  if (result.users === 0) {
+    usersEl.textContent = '0';
+    usersSub.textContent = '零用户曝光';
+    usersEl.style.color = '#52c41a';
+  } else if (result.users >= 999999) {
+    usersEl.textContent = '全量';
+    usersSub.textContent = '所有用户受影响';
+    usersEl.style.color = '#cf1322';
+  } else {
+    usersEl.textContent = (result.users / 10000).toFixed(0) + '万';
+    usersSub.textContent = '预估受影响用户';
+    usersEl.style.color = '#f5a623';
+  }
+  usersEl.classList.add('count-anim');
+  setTimeout(() => usersEl.classList.remove('count-anim'), 300);
+
+  // Cost
+  const costEl = document.getElementById('metricCost');
+  const costDesc = document.getElementById('metricCostDesc');
+  const costPill = document.getElementById('costPill');
+
+  if (result.cost === 0) {
+    costEl.textContent = '￥0';
+    costEl.style.color = '#52c41a';
+    costDesc.textContent = '四层全拦截，成本趋近于零';
+    costPill.className = 'status-pill status-active';
+    costPill.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#52c41a;"></span>成本可控';
+  } else if (val === 4) {
+    costEl.textContent = '￥' + result.cost.toLocaleString();
+    costEl.style.color = '#cf1322';
+    costDesc.textContent = '无拦截流入生产，损失指数级增长';
+    costPill.className = 'status-pill status-error';
+    costPill.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#cf1322;"></span>成本失控';
+  } else {
+    costEl.textContent = '￥' + result.cost.toLocaleString();
+    costEl.style.color = '#f5a623';
+    const saved = Math.round((1 - result.cost / base.cost) * 100);
+    costDesc.textContent = '已拦截 ' + saved + '% 成本，但仍有 ' + (100 - saved) + '% 风险';
+    costPill.className = 'status-pill status-pending';
+    costPill.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#f5a623;"></span>部分可控';
+  }
+  costEl.classList.add('count-anim');
+  setTimeout(() => costEl.classList.remove('count-anim'), 300);
+}
+
+// ===== Layer Detail Hover =====
+function showLayerDetail(layer) {
+  const panel = document.getElementById('layerDetailPanel');
+  const text = document.getElementById('layerDetailText');
+  const texts = {
+    l1: '如果在 L1 拦截 ERR-001 的结构缺失：节省成本 = 1 个前端人日 + 0 用户投诉。跳过后，错误的 JSON 结构会流入测试阶段，导致自动化测试失败，返工成本约 2 人日。',
+    l2: '如果在 L2 拦截 ERR-001 的语义降级：节省成本 = 1 个前端人日 + 0 用户投诉。跳过后，"所有错误都用红色"会进入生产环境，ChatGPT/文心一言/通义千问 等 6 个产品实例需同步热修复，平均 14 天。',
+    l3: '如果在 L3 拦截 ERR-001 的边界冲突：节省成本 = 3 个团队 × 5 天 + 避免合规审计。跳过后，安全边界被突破可能触发法务审查，成本无法估量。',
+    l4: '如果在 L4 拦截并归档：成本趋近于零（0.3 秒），但获得完整的语义追溯链。这是成本最优的拦截点，所有前置验证已确保快照符合规范。'
+  };
+  text.textContent = texts[layer];
+  panel.style.display = 'block';
+}
+
+function hideLayerDetail() {
+  document.getElementById('layerDetailPanel').style.display = 'none';
+}
+
+// ===== Argument Toggle =====
+function toggleArgument(card) {
+  const isExpanded = card.classList.contains('expanded');
+  document.querySelectorAll('.argument-card').forEach(c => c.classList.remove('expanded'));
+  if (!isExpanded) {
+    card.classList.add('expanded');
+  }
+}
+
+// ===== Init =====
+updateCostCalc();
+</script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 语义合规 A/B 对比</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .section-title { display: flex; align-items: center; gap: 10px; margin: 20px 0 10px; }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 阶段三 ⑦</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">语义合规 A/B 对比</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">A/B Comparison</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">同一输入，有无契约约束的输出差异 · 差异是契约逐行生效的指纹</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 导语 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        验证约束显化的效果：控制模型、温度、输入一致，<span style="color: var(--text-primary); font-weight: 700;">唯一变量是 A 组注入契约</span>。差异不是噪声，是契约逐行生效的指纹。
+      </p>
+    </div>
+  </div>
+
+  <!-- 实验设置 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('setup')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-blue">设置</span>
+          <h2 class="text-h2">实验案例与控制变量</h2>
+        </div>
+        <svg class="chevron" id="chevron-setup" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">4 个实验案例 · 唯一变量 = 契约注入</p>
+    </div>
+    <div class="collapsible-content" id="content-setup">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">实验案例</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <span class="badge badge-red">ACT-001 · 删除账户确认</span>
+          <span class="badge badge-amber">ERR-001 · 限流提示</span>
+          <span class="badge badge-blue">PRO-001 · 过程状态认知</span>
+          <span class="badge badge-purple">BND-001 · 边界动作</span>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">控制变量</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">模型一致 ｜ 温度一致 ｜ 输入一致<br><span style="color: #4a9eff; font-weight: 700;">唯一变量：A 组注入契约</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B 组 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #cf1322;">
+    <div style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span class="badge badge-red">B 组 · 无契约约束</span>
+        <span class="badge badge-red" style="font-size: 9px;">语义漂移</span>
+      </div>
+      <p class="text-h3" style="margin-bottom: 4px;">Baseline · 概率默认输出</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.7;">字段级输出为<span style="color: #cf1322; font-weight: 700;">视觉惯性输出</span>——与线上漂移现场一致</p>
+    </div>
+  </div>
+
+  <!-- A 组 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
+    <div style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span class="badge badge-green">A 组 · 注入契约后</span>
+        <span class="badge badge-green" style="font-size: 9px;">语义合规</span>
+      </div>
+      <p class="text-h3" style="margin-bottom: 4px;">Treatment · 语义合规输出</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.7; margin-bottom: 8px;">注入契约编译的 Prompt 前缀后，字段级输出<span style="color: #52c41a; font-weight: 700;">语义合规</span>——每个字段可映射回契约条款</p>
+      <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+        <p class="text-micro" style="color: var(--text-secondary);">字段差异映射：<b style="color: #52c41a;">全部差异可映射回契约具体行</b>（YAML 行号 + 语义令牌）</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 实验结论 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('result')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-green">结论</span>
+          <h2 class="text-h2">实验结论 · 因果链闭合</h2>
+        </div>
+        <svg class="chevron" id="chevron-result" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Honest Checklist · 3 项已验证 + 3 项待验证</p>
+    </div>
+    <div class="collapsible-content" id="content-result">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-label" style="color: #52c41a; margin-bottom: 6px;">已验证项</p>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">✓ 同一输入有无契约的输出差异显著</p>
+            <p class="text-micro" style="color: var(--text-secondary);">B 组与 A 组在视觉、文案、交互三个维度均出现可观测差异</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">✓ 差异与契约条款字段级可映射</p>
+            <p class="text-micro" style="color: var(--text-secondary);">每个差异字段均可追溯至契约 YAML 的具体行号与语义令牌</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">✓ 差异的因果归属明确</p>
+            <p class="text-micro" style="color: var(--text-secondary);">唯一变量 = Prompt 前缀中的契约约束，排除模型随机性干扰</p>
+          </div>
+        </div>
+        <p class="text-label" style="color: #f5a623; margin-bottom: 6px;">待验证项</p>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+          <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">⚠ 跨案例可重复性</p>
+            <p class="text-micro" style="color: var(--text-secondary);">当前 4/6 模式已验证，剩余 2 个模式待补充 A/B 证据</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">⚠ 跨模型稳定性</p>
+            <p class="text-micro" style="color: var(--text-secondary);">需逐模型（GPT-4 / Claude / 文心等）校准契约遵从度</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">⚠ 生产环境长期有效性</p>
+            <p class="text-micro" style="color: var(--text-secondary);">需纳入回归机制，防止模型版本更新导致契约失效</p>
+          </div>
+        </div>
+        <div style="background: rgba(22,119,255,0.06); border: 1px solid rgba(22,119,255,0.25); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8; font-style: italic;">"B 组输出与线上漂移现场一致，A 组输出与修复目标态一致。<span style="color: #4a9eff; font-weight: 700; font-style: normal;">差异不是噪声，是契约逐行生效的指纹。</span>"</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
+    <div style="padding: 16px;">
+      <p class="text-h3" style="margin-bottom: 4px; color: #52c41a;">A/B 对比完成</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">验证约束显化确实改变了 AI 行为，下一步评估拦截成本。Guard → Contract → Verify。</p>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- 底部 Tab 导航 -->
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='./snapshot.html'">
+    <div class="nav-icon">📐</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='./case_diagnosis.html'">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item active" onclick="window.location.href='./语义合规A-B对比mob.html'">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">验证</div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 6 字段结构化记录法验证</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .section-title { display: flex; align-items: center; gap: 10px; margin: 20px 0 10px; }
+  .mobile-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+  .mobile-table th { background: #222226; color: var(--text-secondary); font-weight: 600; padding: 10px 8px; text-align: left; white-space: nowrap; font-size: 11px; border-bottom: 1px solid var(--border); }
+  .mobile-table td { padding: 10px 8px; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-weight: 500; line-height: 1.5; vertical-align: top; }
+  .mobile-table tr:last-child td { border-bottom: none; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px; }
+  .table-scroll .mobile-table { min-width: 480px; }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 6 字段结构化记录法 ⑥</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">6 字段结构化记录法验证</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">6-Field Recording</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">为什么语义漂移不能被"截图 + 感受"捕获 · 6 字段是最小完备集</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 导语 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        验证"记录方式"本身：以红色 Alert"请求过于频繁，请稍后再试"为例，走完<span style="color: var(--text-primary); font-weight: 700;">记录 → 消费 → 验证</span>的全链路，证明 6 字段是支撑三层判定模型的最小完备集。
+      </p>
+    </div>
+  </div>
+
+  <!-- STEP 1 自然语言记录法的失效 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s1')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-red">STEP 1</span>
+          <h2 class="text-h2">自然语言记录法的失效</h2>
+        </div>
+        <svg class="chevron" id="chevron-s1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">截图 + 三屏文字，三个月后无法还原判断依据</p>
+    </div>
+    <div class="collapsible-content" id="content-s1">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div class="code-block" style="font-size: 11px; margin-bottom: 10px;">
+<pre>【截图】红色 Alert，文案"请求过于频繁"
+走查记录：
+- "这里红了"
+- "文案不对，应该是'请稍后再试'"
+- "感觉不太对，用户可能会困惑"
+- "建议改成黄色"
+记录者：设计师 A · 2026-06-01
+---
+三个月后回看：
+- 能判断颜色错了 ✓
+- 能判断文案不够精确 ✓
+- 无法还原"这个场景应表达什么语义" ✗
+- 无法判断这是限流还是系统崩溃 ✗
+- 无法复现用户困惑的前置路径 ✗</pre>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">❌ 场景上下文缺失</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 2px;">用户在什么前置操作后看到错误？连发 10 条消息，还是刚打开页面就报错？</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">❌ 用户实际困惑缺失</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 2px;">记录写"可能会困惑"，但没记用户实际做了什么——刷新？关闭？重发？</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">❌ 触发路径缺失</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 2px;">可复现还是偶发？特定操作序列触发还是全局出现？</p>
+          </div>
+        </div>
+        <div style="background: rgba(207,19,34,0.06); border: 1px solid rgba(207,19,34,0.25); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">失效结论</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">自然语言记录法在<span style="color: #cf1322; font-weight: 700;">语义层系统性失效</span>：能捕获"颜色不对""文案不好"等表层问题，但无法回答核心问题——"这个界面在这个场景下，应该向用户传达什么语义？"三个月后只剩"感觉不太对"，无法支撑任何诊断。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 路径依赖 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s2')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-purple">STEP 2</span>
+          <h2 class="text-h2">路径依赖：同像素，异语义</h2>
+        </div>
+        <svg class="chevron" id="chevron-s2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">完全相同的红色截图，语义可能完全相反</p>
+    </div>
+    <div class="collapsible-content" id="content-s2">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: rgba(207,19,34,0.06); border: 1px solid rgba(207,19,34,0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            <span class="badge badge-red">场景 A · Fatal</span>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">系统崩溃</p>
+          </div>
+          <p class="text-caption" style="color: var(--text-primary);">🔴 请求过于频繁，请稍后再试</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8; margin-top: 4px;">前置路径：连续发送 20 条长消息，服务端内存溢出，对话上下文丢失<br>用户实际行为：点了"刷新页面"，但对话历史已清空，以为数据被删除<br>正确语义：系统级故障，应显示红色脉冲 + "导出历史"按钮<br><span style="color: #cf1322; font-weight: 700;">语义判断：用户应抢救上下文</span></p>
+        </div>
+        <div style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            <span class="badge badge-amber">场景 B · Retryable</span>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">限流提示</p>
+          </div>
+          <p class="text-caption" style="color: var(--text-primary);">🔴 请求过于频繁，请稍后再试</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8; margin-top: 4px;">前置路径：1 分钟内发送 10 条消息，触发频率限制策略<br>用户实际行为：反复点击"重试"按钮，没有任何反馈，不知道等多久<br>正确语义：限流，应显示黄色 + 倒计时 + "设置提醒"按钮<br><span style="color: #f5a623; font-weight: 700;">语义判断：用户只需等 30 秒</span></p>
+        </div>
+        <div style="background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.25); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">路径依赖结论</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">两张截图<span style="color: var(--text-primary); font-weight: 700;">像素完全相同，语义完全相反</span>。判断差异依赖截图之外的三样东西：<span style="color: #a855f7; font-weight: 700;">场景上下文、用户实际困惑、触发路径</span>。自然语言记录法只捕获了像素，因此在语义层系统性失效。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 6 字段定义 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s3')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-blue">STEP 3</span>
+          <h2 class="text-h2">6 字段定义与填写</h2>
+        </div>
+        <svg class="chevron" id="chevron-s3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">冻结字段，每个字段有明确的比对轴和消费环节（左右滑动查看）</p>
+    </div>
+    <div class="collapsible-content" id="content-s3">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <span class="badge badge-blue">① snapshot_id</span>
+          <span class="badge badge-blue">② product</span>
+          <span class="badge badge-blue">③ component_type</span>
+          <span class="badge badge-blue">④ visual_record</span>
+          <span class="badge badge-blue">⑤ user_confusion</span>
+          <span class="badge badge-blue">⑥ context</span>
+        </div>
+        <div class="table-scroll" style="margin-bottom: 10px;">
+          <table class="mobile-table">
+            <thead>
+              <tr><th>字段</th><th>比对轴</th><th>被谁消费</th><th>填写示例</th></tr>
+            </thead>
+            <tbody>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">snapshot_id</td><td>时间轴</td><td>归档与归纳</td><td>SN-2026-0712-001</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">product</td><td>产品轴</td><td>归档与归纳</td><td>ChatGPT</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">component_type</td><td>类型轴</td><td>Layer 1 组件识别</td><td>Alert</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">visual_record</td><td>表达轴</td><td>Layer 3 视觉校验</td><td>红色 solid + warning icon</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">user_confusion</td><td>意图轴</td><td>Layer 2 语义缺失</td><td>用户点了刷新但对话已丢失</td></tr>
+              <tr><td style="color: var(--text-primary); font-weight: 600;">context</td><td>路径轴</td><td>Layer 1 组件识别</td><td>连续发送10条消息后触发</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="code-block" style="font-size: 11px;">
+<pre>snapshot_id: "SN-2026-0712-001"
+# 格式：SN-YYYY-MMDD-序号
+# 作用：同一模式在不同产品/时间被多次
+# 记录时，可聚类为同一漂移模式</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 三层判定模型消费 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s4')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-amber">STEP 4</span>
+          <h2 class="text-h2">三层判定模型如何消费 6 字段</h2>
+        </div>
+        <svg class="chevron" id="chevron-s4" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">无冗余无遗漏</p>
+    </div>
+    <div class="collapsible-content" id="content-s4">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #4a9eff; border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Layer 1 · 组件类型识别</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 2px;">消费 <code style="color: #4a9eff;">component_type</code>（Alert / Button / Modal）+ <code style="color: #4a9eff;">context</code>（系统推送 / 用户主动触发）</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Layer 2 · 语义缺失判定</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 2px;">消费 <code style="color: #f5a623;">user_confusion</code>：提取语义关键词，匹配缺失模式</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #a855f7; border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Layer 3 · 视觉表达校验</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 2px;">消费 <code style="color: #a855f7;">visual_record</code>：记录与语义级别不匹配的视觉映射</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">归档与归纳（跨时间/产品聚类）</p>
+            <p class="text-micro" style="color: var(--text-secondary); margin-top: 2px;">消费 <code style="color: #52c41a;">snapshot_id</code>（时间轴）+ <code style="color: #52c41a;">product</code>（产品轴）：不同时间、产品、记录者的 snapshot 聚类为同一漂移模式 ERR-001</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5 最小完备集验证 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s5')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-red">STEP 5</span>
+          <h2 class="text-h2">最小完备集验证</h2>
+        </div>
+        <svg class="chevron" id="chevron-s5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">少于 6 断链，多于 6 崩塌</p>
+    </div>
+    <div class="collapsible-content" id="content-s5">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-label" style="color: #cf1322; margin-bottom: 6px;">移除字段 → 判定链断链</p>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">❌ 移除 context</p>
+            <p class="text-micro" style="color: var(--text-secondary);">Layer 1 无法判断交互路径，无法区分系统推送 vs 用户主动触发</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">❌ 移除 user_confusion</p>
+            <p class="text-micro" style="color: var(--text-secondary);">Layer 2 无法提取语义关键词，无法匹配缺失模式</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">❌ 移除 visual_record</p>
+            <p class="text-micro" style="color: var(--text-secondary);">Layer 3 无法校验视觉映射是否与语义级别匹配</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">❌ 移除 component_type</p>
+            <p class="text-micro" style="color: var(--text-secondary);">Layer 1 无法确定组件类型，无法进入对应模式库</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">❌ 移除 snapshot_id / product</p>
+            <p class="text-micro" style="color: var(--text-secondary);">归档环节无法聚类，同一模式被记录为多个孤立事件</p>
+          </div>
+          <div style="background: rgba(82,196,26,0.06); border: 1px solid rgba(82,196,26,0.25); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: #52c41a; font-weight: 700;">✓ 6 字段齐全</p>
+            <p class="text-micro" style="color: var(--text-secondary);">判定链完整：Layer 1 → Layer 2 → Layer 3 → 归档聚类</p>
+          </div>
+        </div>
+        <p class="text-label" style="color: #f5a623; margin-bottom: 6px;">新增字段 → 无消费则冗余</p>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">⚠ 新增 designer_name</p>
+            <p class="text-micro" style="color: var(--text-secondary);">三层判定不消费此字段，归档也不依赖记录者身份聚类 → 冗余，增加记录成本，无判定收益</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">⚠ 新增 screenshot_url</p>
+            <p class="text-micro" style="color: var(--text-secondary);">visual_record 已包含截图 + 语义标注，单独 URL 无额外语义信息 → 冗余，信息重复</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">⚠ 新增 severity_guess</p>
+            <p class="text-micro" style="color: var(--text-secondary);">判定模型独立判定 severity，不需要记录者猜测 → 冗余，可能引入主观偏见</p>
+          </div>
+        </div>
+        <div style="background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.25); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">最小完备集结论</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;"><b style="color: #cf1322;">少于 6 字段</b>：判定链必然断链，移除任一字段至少一个环节失去输入。<b style="color: #f5a623;">多于 6 字段</b>：无新增消费环节则冗余，甚至引入主观偏见。6 字段是三层判定模型反推出的<span style="color: #a855f7; font-weight: 700;">最小完备集</span>。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6 验证结论 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s6')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-green">STEP 6</span>
+          <h2 class="text-h2">验证结论 · 三个命题全部通过</h2>
+        </div>
+        <svg class="chevron" id="chevron-s6" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">像素不包含语义</p>
+    </div>
+    <div class="collapsible-content" id="content-s6">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">命题 1 · 自然语言记录法语义层系统性失效</p>
+              <span class="badge badge-green" style="font-size: 9px;">✓ 已验证</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">仅凭截图+文字无法区分限流 vs 崩溃</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">命题 2 · 6 字段是最小完备集</p>
+              <span class="badge badge-green" style="font-size: 9px;">✓ 已验证</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">移除任一断链，新增无消费则冗余</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">命题 3 · 结构化记录可跨时空比对</p>
+              <span class="badge badge-green" style="font-size: 9px;">✓ 已验证</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">不同时间/产品/记录者的快照可聚类为同一模式</p>
+          </div>
+        </div>
+        <div style="background: rgba(82,196,26,0.06); border: 1px solid rgba(82,196,26,0.25); border-radius: var(--radius-sm); padding: 12px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">核心结论</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">语义漂移不能被"截图 + 感受"捕获，因为<span style="color: #cf1322; font-weight: 700;">像素不包含语义</span>。判断差异依赖截图之外的场景上下文、用户实际困惑、触发路径。6 字段（snapshot_id / product / component_type / visual_record / user_confusion / context）是支撑三层判定模型的最小完备集——语义诊断的第一步不是"发现问题"，而是"不失真地记录问题"。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
+    <div style="padding: 16px;">
+      <p class="text-h3" style="margin-bottom: 4px; color: #52c41a;">6 字段结构化记录法验证完成</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">6 字段法是诊断可信度的根基。Guard → Contract → Verify。</p>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- 底部 Tab 导航 -->
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='./semantic_domain.html'">
+    <div class="nav-icon">📐</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='./case_bnd_001.html'">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item active" onclick="window.location.href='./6字段结构化记录法验证(1)mob.html'">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">验证</div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 约束显化验证</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .scroll-hint { display: flex; justify-content: center; gap: 4px; margin-top: 10px; }
+  .scroll-hint-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); transition: background 0.3s ease, transform 0.3s ease; }
+  .scroll-hint-dot.active { background: var(--primary); transform: scale(1.3); }
+  .h-scroll { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 2px 4px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
+  .h-scroll::-webkit-scrollbar { display: none; }
+  .h-scroll > * { flex-shrink: 0; }
+  .h-card { width: 230px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .h-card:active { transform: scale(0.97); }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .section-title { display: flex; align-items: center; gap: 10px; margin: 20px 0 10px; }
+  .progress-track { height: 6px; background: #2a2a2e; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 3px; background: #52c41a; }
+  .step-num { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 约束显化 ③</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">约束显化验证</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Constraint Explicitation</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">以 ERR-001 走完约束显化全链路：隐含假设 → 显式规则 → 验证有效 → 规则消费</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 导语 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        从 Semantic Pipeline <span style="color: var(--text-primary); font-weight: 700;">发现隐含假设</span> → 在 Contract Library <span style="color: var(--text-primary); font-weight: 700;">写成显式 YAML 规则</span> → 在 Validation Toolkit <span style="color: var(--text-primary); font-weight: 700;">证明规则有效</span> → 在 Observability Layer <span style="color: var(--text-primary); font-weight: 700;">确认规则被消费</span>。
+      </p>
+    </div>
+  </div>
+
+  <!-- 四步概览（横向滑动） -->
+  <div style="margin: 16px 0;">
+    <div class="h-scroll" id="step-scroll">
+      <div class="h-card" style="border-left: 3px solid #cf1322;">
+        <div class="step-num" style="background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; margin-bottom: 10px;">1</div>
+        <h3 class="text-h3" style="margin-bottom: 4px;">发现隐含假设</h3>
+        <p class="text-micro" style="color: var(--text-tertiary); margin-bottom: 6px;">Semantic Pipeline · 已诊断</p>
+        <p class="text-caption" style="color: var(--text-secondary);">"所有错误状态都应该用红色表达"——从未被写成规则的隐含假设</p>
+      </div>
+      <div class="h-card" style="border-left: 3px solid #a855f7;">
+        <div class="step-num" style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #a855f7; margin-bottom: 10px;">2</div>
+        <h3 class="text-h3" style="margin-bottom: 4px;">生成显式规则</h3>
+        <p class="text-micro" style="color: var(--text-tertiary); margin-bottom: 6px;">Contract Library · 已编译</p>
+        <p class="text-caption" style="color: var(--text-secondary);">ERR-001.yaml：4 个 severity 级别 + 2 条不可变边界</p>
+      </div>
+      <div class="h-card" style="border-left: 3px solid #4a9eff;">
+        <div class="step-num" style="background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; margin-bottom: 10px;">3</div>
+        <h3 class="text-h3" style="margin-bottom: 4px;">证明规则有效</h3>
+        <p class="text-micro" style="color: var(--text-tertiary); margin-bottom: 6px;">Validation Toolkit · 已验证</p>
+        <p class="text-caption" style="color: var(--text-secondary);">同一文案显化前后输出完全不同，分级器 PASS</p>
+      </div>
+      <div class="h-card" style="border-left: 3px solid #52c41a;">
+        <div class="step-num" style="background: rgba(82,196,26,0.15); border: 1px solid rgba(82,196,26,0.3); color: #52c41a; margin-bottom: 10px;">4</div>
+        <h3 class="text-h3" style="margin-bottom: 4px;">确认规则被消费</h3>
+        <p class="text-micro" style="color: var(--text-tertiary); margin-bottom: 6px;">Observability Layer · 已追踪</p>
+        <p class="text-caption" style="color: var(--text-secondary);">3 个消费者引用契约，tokens 消费率 100%</p>
+      </div>
+    </div>
+    <div class="scroll-hint" id="step-hint">
+      <div class="scroll-hint-dot active"></div>
+      <div class="scroll-hint-dot"></div>
+      <div class="scroll-hint-dot"></div>
+      <div class="scroll-hint-dot"></div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s1')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-red">STEP 1 · 已诊断</span>
+          <h2 class="text-h2">发现隐含假设</h2>
+        </div>
+        <svg class="chevron" id="chevron-s1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Semantic Pipeline · 三层诊断模型定位语义漂移</p>
+    </div>
+    <div class="collapsible-content" id="content-s1">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 4px;">用户输入</p>
+          <p class="text-caption" style="color: var(--text-primary);">"请求过于频繁，请稍后再试"</p>
+          <div class="divider" style="margin: 10px 0;"></div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="badge badge-red">ERR-001</span>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">错误状态后果差异未分级</p>
+          </div>
+          <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">多种错误共用红色，用户无法判断后果严重程度</p>
+        </div>
+        <div style="background: rgba(207,19,34,0.06); border: 1px solid rgba(207,19,34,0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">隐含假设暴露</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">当前 AI 工具的隐含假设是：<span style="color: #cf1322; font-weight: 700;">"所有错误状态都应该用红色表达"</span>。这个假设从未被写成规则，但深深嵌在 Prompt 和组件库中。结果是：限流（retryable）和系统崩溃（fatal）长得一模一样，用户不知道是该刷新还是该等待。</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-tertiary);">Layer 1 · 组件类型</p>
+            <p class="text-caption" style="color: var(--text-primary);">错误提示（Alert / Message）</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-tertiary);">Layer 2 · 语义缺失</p>
+            <p class="text-caption" style="color: var(--text-primary);">后果差异未分级 · 恢复路径不明确</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-tertiary);">Layer 3 · 视觉校验</p>
+            <p class="text-caption" style="color: var(--text-primary);">颜色映射不匹配 · 所有错误共用红色</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s2')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-purple">STEP 2 · 已编译</span>
+          <h2 class="text-h2">生成显式规则</h2>
+        </div>
+        <svg class="chevron" id="chevron-s2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Contract Library · 把隐含假设写成机器可读的 YAML 契约</p>
+    </div>
+    <div class="collapsible-content" id="content-s2">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-label" style="color: #cf1322; margin-bottom: 6px;">✕ 约束显化前（隐含）</p>
+        <div class="code-block" style="font-size: 11px; margin-bottom: 10px;">
+<pre># 没有规则文件
+# 设计师心里知道："严重错误用红色"
+# 前端心里知道："Alert 组件默认红色"
+# LLM Prompt 里写："错误提示用红色背景"
+# 结果：所有错误都是红色
+# 用户无法区分 fatal / transient / retryable</pre>
+        </div>
+        <p class="text-label" style="color: #52c41a; margin-bottom: 6px;">✓ 约束显化后（显式）</p>
+        <div class="code-block" style="font-size: 11px; margin-bottom: 10px;">
+<pre>intent_id: "ERR-001"
+semantic_tokens:
+  error_severity:
+    fatal:     { color_token: "status.critical",
+                 motion_token: "pulse.red.urgent",
+                 icon_token: "alert.octagon" }
+    transient: { color_token: "status.neutral",
+                 motion_token: "spinner",
+                 icon_token: "loader" }
+    retryable: { color_token: "status.warning",
+                 motion_token: "none",
+                 icon_token: "clock" }
+    degraded:  { color_token: "status.info",
+                 motion_token: "none",
+                 icon_token: "info.circle" }
+immutable_boundaries:
+  - boundary_type: "safety"
+    rule: "禁止所有错误状态共用同一种红色视觉表达"
+    violation_action: "block"</pre>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 8px;">
+            <p class="text-micro" style="color: #cf1322; font-weight: 800;">FATAL</p>
+            <p class="text-micro" style="color: var(--text-secondary);">status.critical · pulse.red.urgent</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #8c8c8c; border-radius: var(--radius-sm); padding: 8px;">
+            <p class="text-micro" style="color: #a0a0a0; font-weight: 800;">TRANSIENT</p>
+            <p class="text-micro" style="color: var(--text-secondary);">status.neutral · spinner</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 8px;">
+            <p class="text-micro" style="color: #f5a623; font-weight: 800;">RETRYABLE</p>
+            <p class="text-micro" style="color: var(--text-secondary);">status.warning · clock</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #4a9eff; border-radius: var(--radius-sm); padding: 8px;">
+            <p class="text-micro" style="color: #4a9eff; font-weight: 800;">DEGRADED</p>
+            <p class="text-micro" style="color: var(--text-secondary);">status.info · info.circle</p>
+          </div>
+        </div>
+        <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">核心动作：把散落在设计师脑子、产品文档、前端组件默认值里的<span style="color: var(--text-primary); font-weight: 700;">隐含语义假设</span>，提取成一份机器可读的 YAML 契约——semantic_tokens 定义 4 个级别，immutable_boundaries 用 safety 边界禁止"所有错误都用红色"。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s3')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-blue">STEP 3 · 已验证</span>
+          <h2 class="text-h2">证明规则有效</h2>
+        </div>
+        <svg class="chevron" id="chevron-s3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Validation Toolkit · 语义分级器验证显化前后对比</p>
+    </div>
+    <div class="collapsible-content" id="content-s3">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="background: rgba(207,19,34,0.06); border: 1px solid rgba(207,19,34,0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <p class="text-label" style="color: #cf1322; margin-bottom: 6px;">✕ 显化前 · 隐含假设支配</p>
+          <p class="text-caption" style="color: var(--text-primary);">🔴 请求过于频繁，请稍后再试</p>
+          <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px; line-height: 1.8;">❌ 红色 Alert，用户不知道是刷新就好还是对话已丢<br>color: #cf1322（硬编码）· background: solid red（组件默认值）· action: 无指引</p>
+        </div>
+        <div style="background: rgba(82,196,26,0.06); border: 1px solid rgba(82,196,26,0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <p class="text-label" style="color: #52c41a; margin-bottom: 6px;">✓ 显化后 · 显式规则支配</p>
+          <p class="text-caption" style="color: var(--text-primary);">⏱️ 请求频率已达上限 · 请在 42 分钟后重试，或升级 Plus</p>
+          <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px; line-height: 1.8;">✓ 黄色提示 + 时钟图标 + 明确行动指引（等待/升级）<br>color_token: status.warning · icon_token: clock · action: wait_countdown / upgrade（均来自 YAML）</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <span class="badge badge-amber">RETRYABLE</span>
+          <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">限流/流控，用户可自助恢复</p>
+        </div>
+        <div class="code-block" style="font-size: 11px;">
+<pre># 语义分级器输出
+input: "请求过于频繁，请稍后再试"
+matched_severity: "retryable"
+confidence: 0.95
+applied_rules:              # ← 全部来自 ERR-001.yaml
+  - color_token: "status.warning"
+  - icon_token: "clock"
+  - actions: ["wait_countdown", "upgrade"]
+validation: "PASS"
+  - immutable_boundary.safety: 未触发（未使用红色）
+  - immutable_boundary.clarity: 通过（提供明确行动）</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s4')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-green">STEP 4 · 已追踪</span>
+          <h2 class="text-h2">确认规则被消费</h2>
+        </div>
+        <svg class="chevron" id="chevron-s4" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Observability Layer · 契约消费追踪</p>
+    </div>
+    <div class="collapsible-content" id="content-s4">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Error-State-Generator Prompt</p>
+              <span class="badge badge-green" style="font-size: 9px;">✓ 3/3 tokens</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">引用 error_severity.retryable 的 color_token / icon_token / actions</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Alert-Validator 组件校验</p>
+              <span class="badge badge-green" style="font-size: 9px;">✓ safety</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">校验 Alert 的 color_token 与 motion_token 是否与契约匹配</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">CI Stylelint 规则</p>
+              <span class="badge badge-green" style="font-size: 9px;">✓ 2/2 boundaries</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">禁止所有 [data-severity] 使用统一红色 #cf1322</p>
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+          <div style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between;"><p class="text-micro" style="color: var(--text-secondary);">Semantic Tokens 消费率</p><p class="text-micro" style="color: #52c41a; font-weight: 700;">100%</p></div>
+            <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between;"><p class="text-micro" style="color: var(--text-secondary);">Immutable Boundaries 执行率</p><p class="text-micro" style="color: #52c41a; font-weight: 700;">100%</p></div>
+            <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between;"><p class="text-micro" style="color: var(--text-secondary);">Prompt 前缀覆盖率</p><p class="text-micro" style="color: #52c41a; font-weight: 700;">100%</p></div>
+            <div class="progress-track"><div class="progress-fill" style="width: 100%;"></div></div>
+          </div>
+          <p class="text-micro" style="color: var(--text-tertiary); margin-top: 8px;">4/4 tokens 被至少一个消费者引用 · 2/2 boundaries 被执行 · 1/1 生成器已引用 ERR-001 契约</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 闭环证明 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('loop')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-green">闭环</span>
+          <h2 class="text-h2">约束显化闭环证明</h2>
+        </div>
+        <svg class="chevron" id="chevron-loop" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">四步证据链</p>
+    </div>
+    <div class="collapsible-content" id="content-loop">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="position: relative; padding-left: 24px;">
+          <div style="position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: var(--border);"></div>
+          <div style="position: relative; margin-bottom: 14px;">
+            <div style="position: absolute; left: -21px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #cf1322;"></div>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">1 · 隐含假设被发现</p>
+            <p class="text-micro" style="color: var(--text-secondary);">Semantic Pipeline 诊断出"所有错误都用红色"是未声明假设</p>
+          </div>
+          <div style="position: relative; margin-bottom: 14px;">
+            <div style="position: absolute; left: -21px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #a855f7;"></div>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">2 · 显式规则被编写</p>
+            <p class="text-micro" style="color: var(--text-secondary);">ERR-001.yaml 定义 4 个 severity 级别和 2 条不可变边界</p>
+          </div>
+          <div style="position: relative; margin-bottom: 14px;">
+            <div style="position: absolute; left: -21px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #4a9eff;"></div>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">3 · 规则被验证有效</p>
+            <p class="text-micro" style="color: var(--text-secondary);">同一文案在显化前后输出完全不同的视觉表达，分级器 PASS</p>
+          </div>
+          <div style="position: relative;">
+            <div style="position: absolute; left: -21px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #52c41a;"></div>
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">4 · 规则被系统消费</p>
+            <p class="text-micro" style="color: var(--text-secondary);">3 个消费者引用该契约，tokens 消费率 100%，boundaries 执行率 100%</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
+    <div style="padding: 16px;">
+      <p class="text-h3" style="margin-bottom: 4px; color: #52c41a;">约束显化验证完成</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">隐含的语义假设已变成显式规则，并且被证明有效、被系统消费。Schema-As-Code 三阶段流水线：Guard → Contract → Verify。</p>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- 底部 Tab 导航 -->
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='./explicitation.html'">
+    <div class="nav-icon">📐</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='./case_contract_diff.html'">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item active" onclick="window.location.href='./约束显化验证mob.html'">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">验证</div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+function setupScrollIndicator(scrollId, hintId) {
+  const scroll = document.getElementById(scrollId); const hint = document.getElementById(hintId);
+  if (!scroll || !hint) return;
+  const dots = hint.querySelectorAll('.scroll-hint-dot'); const cards = scroll.children;
+  if (dots.length === 0 || cards.length === 0) return;
+  scroll.addEventListener('scroll', () => {
+    const scrollLeft = scroll.scrollLeft; const maxScroll = scroll.scrollWidth - scroll.clientWidth;
+    const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
+    const activeIndex = Math.min(Math.floor(progress * cards.length), dots.length - 1);
+    dots.forEach((dot, i) => { dot.classList.toggle('active', i === activeIndex); });
+  }, { passive: true });
+}
+document.addEventListener('DOMContentLoaded', () => { setupScrollIndicator('step-scroll', 'step-hint'); });
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

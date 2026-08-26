@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 语义合规 A/B 对比</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+
+  .card-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+  }
+  .card-item:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    transform: translateY(-2px);
+  }
+
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+
+  .format-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #16161a;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .format-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .format-btn.primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .format-btn.primary:hover {
+    background: var(--primary-hover);
+  }
+  .format-btn.active {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .format-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-active {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-error {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+  .status-pending {
+    background: rgba(212,136,6,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(212,136,6,0.3);
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+    .ab-grid { grid-template-columns: 1fr !important; }
+  }
+
+  /* A/B Panel Styles */
+  .ab-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: all 0.5s ease;
+  }
+  .ab-panel.dimmed {
+    opacity: 0.5;
+    filter: grayscale(0.6);
+  }
+  .ab-panel.highlight {
+    border-color: rgba(82,196,26,0.3);
+    box-shadow: 0 0 0 1px rgba(82,196,26,0.1);
+  }
+
+  /* Diff Row */
+  .diff-row {
+    display: grid;
+    grid-template-columns: 120px 1fr 1fr 40px;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .diff-row:hover {
+    border-color: rgba(22,119,255,0.3);
+    background: rgba(22,119,255,0.03);
+  }
+  .diff-field {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    font-family: 'SF Mono', monospace;
+  }
+  .diff-b {
+    font-size: 13px;
+    color: #cf1322;
+    font-weight: 500;
+    text-decoration: line-through;
+    text-decoration-color: rgba(207,19,34,0.5);
+  }
+  .diff-a {
+    font-size: 13px;
+    color: #52c41a;
+    font-weight: 600;
+  }
+  .diff-source {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: rgba(22,119,255,0.1);
+    border: 1px solid rgba(22,119,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: help;
+    position: relative;
+  }
+
+  /* Tooltip */
+  .diff-tooltip {
+    position: absolute;
+    bottom: 32px;
+    right: 0;
+    width: 280px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    font-weight: 500;
+  }
+  .diff-source:hover .diff-tooltip {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Inject Button Animation */
+  @keyframes injectPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22,119,255,0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(22,119,255,0); }
+  }
+  .inject-pulse {
+    animation: injectPulse 1.5s infinite;
+  }
+
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .slide-in {
+    animation: slideInRight 0.5s ease-out forwards;
+  }
+
+  /* Preview Component Styles */
+  .preview-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid;
+    transition: all 0.2s;
+  }
+  .preview-btn-primary {
+    background: #1677ff;
+    color: #fff;
+    border-color: #1677ff;
+  }
+  .preview-btn-danger-outline {
+    background: transparent;
+    color: #ff4d4f;
+    border-color: #ff4d4f;
+  }
+  .preview-alert {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .preview-alert-red {
+    background: rgba(207,19,34,0.15);
+    border: 1px solid rgba(207,19,34,0.3);
+    color: #cf1322;
+  }
+  .preview-alert-yellow {
+    background: rgba(212,136,6,0.15);
+    border: 1px solid rgba(212,136,6,0.3);
+    color: #f5a623;
+  }
+  .preview-alert-blue {
+    background: rgba(22,119,255,0.15);
+    border: 1px solid rgba(22,119,255,0.3);
+    color: #4a9eff;
+  }
+  .preview-modal {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  /* Progress Bar for Inject */
+  .inject-progress {
+    width: 100%;
+    height: 4px;
+    background: #2a2a2e;
+    border-radius: 100px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .inject-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #1677ff, #36cfc9);
+    border-radius: 100px;
+    transition: width 0.3s ease;
+  }
+
+  /* Checklist */
+  .check-item {
+    display: flex;
+    align-items: start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .check-item:last-child {
+    border-bottom: none;
+  }
+  .check-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .check-icon.ok {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .check-icon.warn {
+    background: rgba(212,136,6,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(212,136,6,0.3);
+  }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" class="nav-brand">
+      <div class="nav-brand-icon">S</div>
+      <span>Schema-As-Code</span>
+    </a>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        API
+      </a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: A/B COMPARISON ==================== -->
+<div class="cards-section">
+  <!-- Breadcrumb -->
+  <div style="margin-bottom: 24px;">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="color: var(--primary); font-size: 14px; font-weight: 600; text-decoration: none;">
+      ← Schema-As-Code
+    </a>
+    <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+    <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">A/B Comparison</span>
+  </div>
+
+  <div style="margin-bottom: 32px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+      <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+      <span>阶段三 · ⑦ 语义合规 A/B 对比</span>
+    </div>
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">语义合规 A/B 对比 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">A/B Comparison</span></h1>
+    <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+      同一输入，有无契约约束的输出差异。验证约束显化的效果——差异不是噪声，是契约逐行生效的指纹。
+    </p>
+  </div>
+
+  <!-- Control Panel -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 24px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">实验案例：</span>
+        <button class="format-btn active" onclick="selectCase('act001', this)" id="btn-act001">ACT-001 · 删除账户确认</button>
+        <button class="format-btn" onclick="selectCase('err001', this)" id="btn-err001">ERR-001 · 限流提示</button>
+        <button class="format-btn" onclick="selectCase('pro001', this)" id="btn-pro001">PRO-001 · 过程状态认知</button>
+        <button class="format-btn" onclick="selectCase('bnd001', this)" id="btn-bnd001">BND-001 · 边界动作</button>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center; background: #16161a; border-radius: 8px; padding: 10px 16px;">
+        <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">控制变量：</span>
+        <span style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">模型一致</span>
+        <span style="color: var(--border);">|</span>
+        <span style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">温度一致</span>
+        <span style="color: var(--border);">|</span>
+        <span style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">输入一致</span>
+        <span style="color: var(--border);">|</span>
+        <span style="font-size: 12px; color: var(--primary); font-weight: 700;">唯一变量：A 组注入契约</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- A/B Grid -->
+  <div class="ab-grid" style="display: grid; grid-template-columns: 1fr 280px 1fr; gap: 16px; margin-bottom: 24px;">
+
+    <!-- B Panel (No Contract) -->
+    <div class="ab-panel" id="bPanel">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 6px; background: #2a2a2e; display: flex; align-items: center; justify-content: center; color: #666; font-size: 12px; font-weight: 800;">B</div>
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary);">无契约约束</h3>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">Baseline · 概率默认输出</p>
+          </div>
+        </div>
+        <span class="status-pill status-error" id="bStatus">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #cf1322;"></span>
+          语义漂移
+        </span>
+      </div>
+
+      <!-- B Preview -->
+      <div id="bPreview" style="margin-bottom: 16px;"></div>
+
+      <!-- B JSON Output -->
+      <div style="margin-bottom: 12px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">字段级输出</p>
+        <div class="yaml-block" id="bJson" style="font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+      </div>
+
+      <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 6px; padding: 10px 12px;">
+        <p style="font-size: 12px; color: #cf1322; font-weight: 600;" id="bTag">视觉惯性输出 — 与线上漂移现场一致</p>
+      </div>
+    </div>
+
+    <!-- Center: Inject + Diff -->
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <!-- Inject Button -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: center;">
+        <button class="format-btn primary inject-pulse" id="injectBtn" onclick="injectContract()" style="width: 100%; padding: 12px;">
+          注入契约
+        </button>
+        <div class="inject-progress" id="injectProgress" style="display: none;">
+          <div class="inject-progress-fill" id="injectProgressFill" style="width: 0%;"></div>
+        </div>
+        <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 500; margin-top: 8px;" id="injectStatus">点击注入契约编译的 Prompt 前缀</p>
+      </div>
+
+      <!-- Contract Snippet -->
+      <div id="contractSnippet" style="display: none;">
+        <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: var(--radius); padding: 16px;">
+          <p style="font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">已注入契约片段</p>
+          <div class="yaml-block" id="contractYaml" style="font-size: 11px; padding: 10px;"></div>
+        </div>
+      </div>
+
+      <!-- Diff Mapping -->
+      <div id="diffPanel" style="display: none; flex: 1;">
+        <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;">
+          <p style="font-size: 11px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">字段差异映射</p>
+          <div id="diffRows"></div>
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">
+              <span style="color: #52c41a; font-weight: 700;" id="diffCount">0</span> 处差异，全部可映射回契约具体行
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A Panel (With Contract) -->
+    <div class="ab-panel dimmed" id="aPanel">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, #52c41a, #45a049); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 800;">A</div>
+          <div>
+            <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary);">注入契约后</h3>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">Treatment · 语义合规输出</p>
+          </div>
+        </div>
+        <span class="status-pill status-active" id="aStatus" style="opacity: 0;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+          语义合规
+        </span>
+      </div>
+
+      <!-- A Preview -->
+      <div id="aPreview" style="margin-bottom: 16px; opacity: 0;"></div>
+
+      <!-- A JSON Output -->
+      <div style="margin-bottom: 12px; opacity: 0;" id="aJsonWrap">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">字段级输出</p>
+        <div class="yaml-block" id="aJson" style="font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+      </div>
+
+      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.15); border-radius: 6px; padding: 10px 12px; opacity: 0;" id="aTagWrap">
+        <p style="font-size: 12px; color: #52c41a; font-weight: 600;" id="aTag">语义合规 — 每个字段可映射回契约条款</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Honest Checklist -->
+  <div id="honestChecklist" style="display: none;">
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">✓</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">实验结论</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Honest Checklist · 验证因果链闭合</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">已验证项</p>
+        <div class="check-item">
+          <div class="check-icon ok">✓</div>
+          <div>
+            <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">同一输入有无契约的输出差异显著</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">B 组与 A 组在视觉、文案、交互三个维度均出现可观测差异</p>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon ok">✓</div>
+          <div>
+            <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">差异与契约条款字段级可映射</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">每个差异字段均可追溯至契约 YAML 的具体行号与语义令牌</p>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon ok">✓</div>
+          <div>
+            <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">差异的因果归属明确</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">唯一变量 = Prompt 前缀中的契约约束，排除模型随机性干扰</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">待验证项</p>
+        <div class="check-item">
+          <div class="check-icon warn">⚠</div>
+          <div>
+            <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">跨案例可重复性</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">当前 4/6 模式已验证，剩余 2 个模式待补充 A/B 证据</p>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">⚠</div>
+          <div>
+            <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">跨模型稳定性</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">需逐模型（GPT-4 / Claude / 文心等）校准契约遵从度</p>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">⚠</div>
+          <div>
+            <p style="font-size: 14px; font-weight: 600; color: var(--text-primary);">生产环境长期有效性</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">需纳入回归机制，防止模型版本更新导致契约失效</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; line-height: 1.6;">
+          "B 组输出与线上漂移现场一致，A 组输出与修复目标态一致。差异不是噪声，是契约逐行生效的指纹。"
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom CTA -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">A/B 对比完成，查看成本论证？</p>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">验证约束显化确实改变了 AI 行为，下一步评估拦截成本</p>
+    </div>
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
+      查看成本机制 →
+    </a>
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">
+    Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
+  </div>
+</div>
+
+<script>
+// ===== Case Data =====
+const caseData = {
+  act001: {
+    name: 'ACT-001 · 删除账户确认',
+    b: {
+      preview: `
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; width: 100%;">
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">账户设置</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 16px;">删除账户将清除所有数据</p>
+            <button class="preview-btn preview-btn-primary">确认</button>
+          </div>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">⚠️ 无二次确认 · 单击即执行</p>
+        </div>
+      `,
+      json: `{
+  "button": {
+    "variant": "primary",
+    "color": "#1677ff",
+    "label": "确认"
+  },
+  "confirmation": null,
+  "copy": "确认删除？",
+  "semantic_slot": "unclassified"
+}`,
+      tag: '视觉惯性输出 — 与线上漂移现场一致'
+    },
+    a: {
+      preview: `
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; width: 100%;">
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">账户设置</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 16px;">删除账户将清除所有数据</p>
+            <button class="preview-btn preview-btn-danger-outline">删除账户</button>
+          </div>
+          <div class="preview-modal" style="width: 100%; margin-top: 8px;">
+            <p style="font-size: 13px; font-weight: 700; color: #cf1322; margin-bottom: 6px;">⚠️ 此操作不可恢复</p>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 10px;">账户数据将永久删除。请输入账户名确认。</p>
+            <input type="text" placeholder="输入账户名" style="width: 100%; padding: 6px 10px; background: #0d0d0d; border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); font-size: 13px; margin-bottom: 10px;" disabled>
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+              <button class="format-btn" style="padding: 4px 10px; font-size: 12px;">取消</button>
+              <button class="format-btn" style="padding: 4px 10px; font-size: 12px; border-color: #ff4d4f; color: #ff4d4f;">确认删除</button>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 二次确认 · 输入账户名验证 · 红色危险样式</p>
+        </div>
+      `,
+      json: `{
+  "button": {
+    "variant": "destructive-outline",
+    "color_token": "action.destructive",
+    "label": "删除账户"
+  },
+  "confirmation": {
+    "require_confirm": true,
+    "type_to_confirm": "account_name"
+  },
+  "copy": "此操作不可恢复，账户数据将永久删除",
+  "semantic_slot": "action.destructive"
+}`,
+      tag: '语义合规 — 每个字段可映射回契约条款'
+    },
+    diffs: [
+      { field: 'button.variant', b: '"primary"（蓝色实心）', a: '"destructive-outline"（红色空心）', source: 'visual_mapping.variant' },
+      { field: 'button.color', b: '"#1677ff"', a: '"action.destructive"', source: 'color_token' },
+      { field: 'button.label', b: '"确认"', a: '"删除账户"', source: 'llm_constraints[0]' },
+      { field: 'confirmation', b: 'null（单击执行）', a: 'require_confirm: true', source: 'immutable_boundaries[0]' },
+      { field: 'copy', b: '"确认删除？"', a: '"此操作不可恢复..."', source: 'llm_constraints[1]' },
+      { field: 'semantic_slot', b: '"unclassified"', a: '"action.destructive"', source: 'semantic_tokens' }
+    ],
+    contract: `action:
+  destructive:
+    visual_mapping:
+      variant: "destructive-outline"
+      color_token: "action.destructive"
+    llm_constraints:
+      - "文案必须包含'不可恢复'"
+    immutable_boundaries:
+      - boundary_type: "safety"
+        rule: "禁止直接执行删除操作"
+        require_confirm: true`
+  },
+
+  err001: {
+    name: 'ERR-001 · 限流提示',
+    b: {
+      preview: `
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+          <div class="preview-alert preview-alert-red" style="width: 100%;">
+            <span>⚠️</span>
+            <span>请求过于频繁，请稍后再试</span>
+          </div>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">❌ 红色告警 · 无行动指引 · 用户不知道等多久</p>
+        </div>
+      `,
+      json: `{
+  "severity": "unclassified",
+  "visual": {
+    "color_token": "status.critical",
+    "icon": "alert-circle"
+  },
+  "copy": "请求过于频繁，请稍后再试",
+  "actions": []
+}`,
+      tag: '语义真空 — AI 按训练语料统计惯性填充'
+    },
+    a: {
+      preview: `
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+          <div class="preview-alert preview-alert-yellow" style="width: 100%;">
+            <span>⏱️</span>
+            <span>请求频率已达上限</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">请在 <strong>42 分钟</strong>后重试，或升级至 Plus 获得更高限额。</p>
+          <div style="display: flex; gap: 8px;">
+            <span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: #f59e0b; color: #1e1e1e; font-weight: 600;">升级 Plus</span>
+            <span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(245,158,11,0.3); color: #f5a623; font-weight: 600;">设置提醒</span>
+          </div>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 黄色警告 · 倒计时明确 · 提供升级路径</p>
+        </div>
+      `,
+      json: `{
+  "severity": "retryable",
+  "visual": {
+    "color_token": "status.warning",
+    "icon": "clock"
+  },
+  "copy": "请求频率已达上限，请在 42 分钟后重试",
+  "actions": ["wait_countdown", "upgrade"]
+}`,
+      tag: '语义合规 — 颜色/图标/文案/行动全部对齐契约'
+    },
+    diffs: [
+      { field: 'severity', b: '"unclassified"', a: '"retryable"', source: 'error_severity.retryable' },
+      { field: 'visual.color', b: '"status.critical"（红色）', a: '"status.warning"（黄色）', source: 'error_severity.retryable.visual_mapping' },
+      { field: 'visual.icon', b: '"alert-circle"（感叹号）', a: '"clock"（时钟）', source: 'error_severity.retryable.icon_token' },
+      { field: 'copy', b: '"请稍后再试"（模糊）', a: '"请在 42 分钟后重试"（精确）', source: 'copy_constraints[0]' },
+      { field: 'actions', b: '[]（无行动）', a: '[countdown, upgrade]', source: 'user_action' }
+    ],
+    contract: `error_severity:
+  retryable:
+    visual_mapping:
+      color_token: "status.warning"
+      icon_token: "clock"
+    user_action:
+      - label: "等待倒计时"
+        action: "wait_countdown"
+      - label: "升级套餐"
+        action: "upgrade"`
+  },
+
+  pro001: {
+    name: 'PRO-001 · 过程状态认知',
+    b: {
+      preview: `
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+          <div style="width: 100%; padding: 12px; background: #16161a; border: 1px solid var(--border); border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <div style="width: 14px; height: 14px; border: 2px solid #888; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+              <span style="font-size: 14px; color: var(--text-secondary); font-weight: 600;">Searching...</span>
+            </div>
+            <div style="height: 3px; background: #2a2a2e; border-radius: 100px; overflow: hidden;">
+              <div style="height: 100%; width: 45%; background: #888; border-radius: 100px;"></div>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">❌ "Searching" 模糊标签 · 用户不知道在查资料还是编答案</p>
+        </div>
+      `,
+      json: `{
+  "phase_label": "Searching",
+  "cognitive_stage": "unclassified",
+  "source_count": null,
+  "consensus_indicator": null
+}`,
+      tag: '认知阶段未显化 — 用户无法判断可信度'
+    },
+    a: {
+      preview: `
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+          <div style="width: 100%; padding: 12px; background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 14px;">🔍</span>
+                <span style="font-size: 14px; color: var(--primary); font-weight: 600;">检索中</span>
+              </div>
+              <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">已找到 12 个来源</span>
+            </div>
+            <div style="height: 3px; background: #2a2a2e; border-radius: 100px; overflow: hidden;">
+              <div style="height: 100%; width: 45%; background: linear-gradient(90deg, #1677ff, #36cfc9); border-radius: 100px;"></div>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 认知阶段显化 · 来源数量可见 · 用户知道在查资料</p>
+        </div>
+      `,
+      json: `{
+  "phase_label": "retrieval",
+  "cognitive_stage": "external_source_acquisition",
+  "source_count": 12,
+  "consensus_indicator": null
+}`,
+      tag: '语义合规 — 认知阶段与可信度指标全部显化'
+    },
+    diffs: [
+      { field: 'phase_label', b: '"Searching"（模糊）', a: '"retrieval"（精确）', source: 'process_phase.retrieval' },
+      { field: 'cognitive_stage', b: '"unclassified"', a: '"external_source_acquisition"', source: 'semantic_tokens.process_phase' },
+      { field: 'source_count', b: 'null（隐藏）', a: '12（显化）', source: 'llm_constraints[0]' },
+      { field: 'consensus_indicator', b: 'null', a: 'null（下一阶段显化）', source: 'process_phase.synthesis' }
+    ],
+    contract: `process_phase:
+  retrieval:
+    description: "从外部来源获取原始信息"
+    llm_constraints:
+      - "必须显示已检索到的来源数量"
+    visual:
+      color: "phase.research"
+      icon: "search"`
+  },
+
+  bnd001: {
+    name: 'BND-001 · 边界动作',
+    b: {
+      preview: `
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+          <div class="preview-modal" style="width: 100%;">
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">对话已结束</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 12px;">此对话已被终止。</p>
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+              <button class="format-btn" style="padding: 4px 10px; font-size: 12px;">开启新对话</button>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">❌ "对话已结束" — 用户不知道权利还在不在 · 无申诉入口</p>
+        </div>
+      `,
+      json: `{
+  "boundary_type": "unclassified",
+  "session_state": "unknown",
+  "history_retention": "unknown",
+  "appeal_path": null
+}`,
+      tag: '边界模糊 — 拒绝与终止混为一谈'
+    },
+    a: {
+      preview: `
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+          <div class="preview-modal" style="width: 100%; border-color: rgba(245,158,11,0.3);">
+            <p style="font-size: 14px; font-weight: 700; color: #f5a623; margin-bottom: 6px;">请求被拒绝</p>
+            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">基于安全策略，该请求无法处理。您可以继续其他话题。</p>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-bottom: 12px;">会话上下文已保留 · 数据保留政策</p>
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+              <button class="format-btn" style="padding: 4px 10px; font-size: 12px;">继续对话</button>
+              <button class="format-btn" style="padding: 4px 10px; font-size: 12px; border-color: #f5a623; color: #f5a623;">申诉</button>
+            </div>
+          </div>
+          <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 拒绝保留上下文 · 提供申诉入口 · 数据政策透明</p>
+        </div>
+      `,
+      json: `{
+  "boundary_type": "refusal",
+  "session_state": "active",
+  "history_retention": "full",
+  "appeal_path": "/appeal"
+}`,
+      tag: '语义合规 — 权利差异明确区分'
+    },
+    diffs: [
+      { field: 'boundary_type', b: '"unclassified"', a: '"refusal"', source: 'boundary_action.refusal' },
+      { field: 'session_state', b: '"unknown"', a: '"active"', source: 'user_impact.session_state' },
+      { field: 'history_retention', b: '"unknown"', a: '"full"', source: 'user_impact.history_retention' },
+      { field: 'appeal_path', b: 'null（无入口）', a: '"/appeal"', source: 'immutable_boundaries[1]' }
+    ],
+    contract: `boundary_action:
+  refusal:
+    visual: { color: "boundary.soft", icon: "hand" }
+    user_impact:
+      session_state: "active"
+      history_retention: "full"
+  immutable_boundaries:
+    - type: "rights"
+      rule: "终止会话必须提供申诉入口"`
+  }
+};
+
+let currentCase = 'act001';
+let injected = false;
+
+// ===== Case Selection =====
+function selectCase(caseId, btn) {
+  currentCase = caseId;
+  injected = false;
+
+  // Reset buttons
+  document.querySelectorAll('.format-btn').forEach(b => {
+    if (b.id && b.id.startsWith('btn-')) b.classList.remove('active');
+  });
+  btn.classList.add('active');
+
+  // Reset panels
+  document.getElementById('aPanel').classList.add('dimmed');
+  document.getElementById('aPanel').classList.remove('highlight');
+  document.getElementById('bPanel').classList.remove('dimmed');
+
+  // Reset A content visibility
+  document.getElementById('aPreview').style.opacity = '0';
+  document.getElementById('aJsonWrap').style.opacity = '0';
+  document.getElementById('aTagWrap').style.opacity = '0';
+  document.getElementById('aStatus').style.opacity = '0';
+
+  // Reset inject button
+  const injectBtn = document.getElementById('injectBtn');
+  injectBtn.disabled = false;
+  injectBtn.textContent = '注入契约';
+  injectBtn.classList.add('inject-pulse');
+  document.getElementById('injectProgress').style.display = 'none';
+  document.getElementById('injectStatus').textContent = '点击注入契约编译的 Prompt 前缀';
+
+  // Hide diff and contract
+  document.getElementById('contractSnippet').style.display = 'none';
+  document.getElementById('diffPanel').style.display = 'none';
+  document.getElementById('honestChecklist').style.display = 'none';
+
+  renderCase();
+}
+
+// ===== Render Case =====
+function renderCase() {
+  const data = caseData[currentCase];
+
+  // B Panel
+  document.getElementById('bPreview').innerHTML = data.b.preview;
+  document.getElementById('bJson').textContent = data.b.json;
+  document.getElementById('bTag').textContent = data.b.tag;
+
+  // A Panel (hidden until inject)
+  document.getElementById('aPreview').innerHTML = data.a.preview;
+  document.getElementById('aJson').textContent = data.a.json;
+  document.getElementById('aTag').textContent = data.a.tag;
+}
+
+// ===== Inject Contract =====
+async function injectContract() {
+  if (injected) return;
+  injected = true;
+
+  const btn = document.getElementById('injectBtn');
+  const progress = document.getElementById('injectProgress');
+  const fill = document.getElementById('injectProgressFill');
+  const status = document.getElementById('injectStatus');
+
+  btn.disabled = true;
+  btn.classList.remove('inject-pulse');
+  btn.textContent = '编译中...';
+  progress.style.display = 'block';
+  status.textContent = 'YAML → Prompt 前缀 → 注入上下文';
+
+  // Progress animation
+  fill.style.width = '0%';
+  await delay(200);
+  fill.style.width = '30%';
+  await delay(300);
+  fill.style.width = '60%';
+  await delay(300);
+  fill.style.width = '100%';
+  await delay(200);
+
+  btn.textContent = '已注入';
+  btn.style.background = '#52c41a';
+  btn.style.borderColor = '#52c41a';
+  status.textContent = '契约已生效 · 查看 A 组输出差异';
+  progress.style.display = 'none';
+
+  // Show contract snippet
+  const data = caseData[currentCase];
+  document.getElementById('contractYaml').textContent = data.contract;
+  document.getElementById('contractSnippet').style.display = 'block';
+  document.getElementById('contractSnippet').classList.add('slide-in');
+
+  // Dim B panel, highlight A panel
+  document.getElementById('bPanel').classList.add('dimmed');
+  const aPanel = document.getElementById('aPanel');
+  aPanel.classList.remove('dimmed');
+  aPanel.classList.add('highlight');
+
+  // Reveal A content with stagger
+  await delay(200);
+  document.getElementById('aStatus').style.opacity = '1';
+  document.getElementById('aPreview').style.opacity = '1';
+  document.getElementById('aPreview').classList.add('slide-in');
+
+  await delay(200);
+  document.getElementById('aJsonWrap').style.opacity = '1';
+  document.getElementById('aJsonWrap').classList.add('slide-in');
+
+  await delay(200);
+  document.getElementById('aTagWrap').style.opacity = '1';
+  document.getElementById('aTagWrap').classList.add('slide-in');
+
+  // Show diff panel
+  await delay(300);
+  renderDiffs();
+  document.getElementById('diffPanel').style.display = 'block';
+  document.getElementById('diffPanel').classList.add('slide-in');
+
+  // Show honest checklist
+  await delay(400);
+  document.getElementById('honestChecklist').style.display = 'block';
+  document.getElementById('honestChecklist').classList.add('slide-in');
+}
+
+function renderDiffs() {
+  const data = caseData[currentCase];
+  const container = document.getElementById('diffRows');
+
+  let html = '';
+  for (const diff of data.diffs) {
+    html += `
+      <div class="diff-row">
+        <div class="diff-field">${diff.field}</div>
+        <div class="diff-b">${diff.b}</div>
+        <div class="diff-a">${diff.a}</div>
+        <div class="diff-source">
+          <span>→</span>
+          <div class="diff-tooltip">
+            <p style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">契约溯源</p>
+            <p style="color: var(--text-secondary);">${diff.source}</p>
+            <p style="color: var(--text-tertiary); margin-top: 6px; font-size: 11px;">点击差异行查看字段映射</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+  document.getElementById('diffCount').textContent = data.diffs.length;
+}
+
+function delay(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// ===== Init =====
+renderCase();
+</script>
+<style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+</body>
+</html>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schema-As-Code · 三类典型断裂验证</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12;
+    --card-bg: #1a1a1e; --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65); --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e; --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text-primary); line-height: 1.6; font-size: 14px; -webkit-font-smoothing: antialiased; }
+  .top-nav { background: rgba(15,15,18,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; height: 64px; }
+  .top-nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 100%; }
+  .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--text-primary); text-decoration: none; }
+  .nav-brand-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #1677ff, #36cfc9); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800; }
+  .nav-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 0; }
+  .nav-center a { padding: 0 16px; height: 64px; display: flex; align-items: center; color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 600; transition: color 0.3s; position: relative; white-space: nowrap; }
+  .nav-center a:hover { color: var(--primary); }
+  .nav-center a.active { color: var(--primary); font-weight: 700; }
+  .nav-center a.active::after { content: ''; position: absolute; bottom: 0; left: 16px; right: 16px; height: 2px; background: var(--primary); border-radius: 2px 2px 0 0; }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav-github { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.3s; }
+  .nav-github:hover { border-color: var(--primary); color: var(--primary); }
+  .cards-section { max-width: 1200px; margin: 0 auto; padding: 100px 24px 60px; }
+  .yaml-block { background: #0d0d0d; border-radius: 8px; padding: 16px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; }
+  .footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; background: var(--bg); }
+  .footer-links { display: flex; gap: 28px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .footer-links a { color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.3s; font-weight: 600; }
+  .footer-links a:hover { color: var(--primary); }
+  .footer-copy { font-size: 14px; color: var(--text-tertiary); font-weight: 500; }
+  .format-btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-secondary); transition: all 0.2s; }
+  .format-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .format-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .step-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .step-num { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800; }
+  .layer-badge { font-size: 10px; padding: 2px 8px; border-radius: 100px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+  .status-pass { background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); }
+  .status-warn { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .role-tab { padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+  .role-tab:hover { color: var(--primary); }
+  .role-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  @media (max-width: 1024px) { .nav-center { display: none; } }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<div class="top-nav">
+  <div class="top-nav-inner">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" class="nav-brand"><div class="nav-brand-icon">S</div><span>Schema-As-Code</span></a>
+    <div class="nav-center">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline" class="active">Semantic Pipeline</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
+    </div>
+    <div class="nav-right">
+      <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>API</a>
+      <a href="https://github.com/2436041978-ops/semantic-pipeline" class="nav-github" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>GitHub</a>
+    </div>
+  </div>
+</div>
+
+<div class="page active" id="page-threebreaks">
+  <div class="cards-section">
+    <div style="margin-bottom: 24px;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;"><span>←</span> Semantic Pipeline</a>
+      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Three Typical Breaks</span>
+    </div>
+
+    <div style="margin-bottom: 32px;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+        <span>⑥ 语义漂移的三类典型断裂：从错误状态、过程状态到边界动作</span>
+      </div>
+      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">三类典型断裂验证 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Three Typical Breaks</span></h1>
+      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; margin-bottom: 28px; font-weight: 500;">
+        验证三个孤立事故是否共享同一个根因结构。ERR-001 / PRO-001 / BND-001 不是三篇独立事故报告，<br>
+        而是同一个系统性缺陷在三种组件类型上的三次全链路复现。
+      </p>
+    </div>
+
+    <!-- Step 1 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">三个"感觉不对"，是三个孤立事故吗？</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">来自不同产品、不同场景的真实用户反馈</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 10px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; background: rgba(207,19,34,0.15); color: #cf1322; font-weight: 700; border: 1px solid rgba(207,19,34,0.3);">ERR-001</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">错误状态</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500; margin-bottom: 12px;">
+            "看到红色就刷新，结果只是限流。红色让我以为系统崩了。"
+          </p>
+          <div style="padding: 10px; background: rgba(207,19,34,0.08); border-radius: 6px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">表面问题</p>
+            <p style="font-size: 13px; color: #cf1322; font-weight: 600;">颜色</p>
+          </div>
+        </div>
+
+        <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.15); border-radius: 10px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; background: rgba(245,158,11,0.15); color: #f5a623; font-weight: 700; border: 1px solid rgba(245,158,11,0.3);">PRO-001</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">过程状态</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500; margin-bottom: 12px;">
+            "AI 是在查出来的还是猜出来的？我不知道该不该信这个结果。"
+          </p>
+          <div style="padding: 10px; background: rgba(245,158,11,0.08); border-radius: 6px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">表面问题</p>
+            <p style="font-size: 13px; color: #f5a623; font-weight: 600;">进度</p>
+          </div>
+        </div>
+
+        <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.15); border-radius: 10px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; background: rgba(22,119,255,0.15); color: #4a9eff; font-weight: 700; border: 1px solid rgba(22,119,255,0.3);">BND-001</span>
+            <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">边界动作</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500; margin-bottom: 12px;">
+            "对话历史还在吗？还能继续聊吗？为什么突然结束了？"
+          </p>
+          <div style="padding: 10px; background: rgba(22,119,255,0.08); border-radius: 6px;">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">表面问题</p>
+            <p style="font-size: 13px; color: #4a9eff; font-weight: 600;">文案</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 8px;">核心命题</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          表面看是三个不相干的问题——颜色不对、进度模糊、文案混乱。但沿三层判定模型走完一遍，归档结果呈现惊人一致的骨架：<br>
+          <span style="color: var(--text-primary); font-weight: 600;">布尔值/裸字符串压缩了语义维度 → AI 按视觉惯性生成 → 用户按猜测行动。</span><br>
+          三个案例，同一骨架。骨架的一致性本身就是"系统性缺陷"的直接证据。
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">三类断裂各自的证据链</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">每个模式的完整链路：缺失令牌 → 压缩信号 → 被压掉的维度 → 用户错误行动</p>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+        <button class="format-btn active" onclick="showBreak('err001', this)">ERR-001 · 错误状态</button>
+        <button class="format-btn" onclick="showBreak('pro001', this)">PRO-001 · 过程状态</button>
+        <button class="format-btn" onclick="showBreak('bnd001', this)">BND-001 · 边界动作</button>
+      </div>
+
+      <div id="break-detail">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+          <div>
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">缺失令牌</p>
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+              <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;" id="break-token">error_severity</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">语义令牌未在字典中注册，导致 AI/前端无法获取分级信息</p>
+            </div>
+
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">压缩后的接口信号</p>
+            <div class="yaml-block" style="font-size: 12px; margin-bottom: 12px;">
+              <pre style="white-space: pre-wrap; margin: 0;" id="break-signal">isError: true  # 布尔值，丢失了"有多严重"</pre>
+            </div>
+
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">被压掉的语义维度</p>
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+              <p style="font-size: 14px; color: #cf1322; font-weight: 600;" id="break-dimension">有多严重（fatal / transient / retryable / degraded）</p>
+            </div>
+          </div>
+
+          <div>
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">用户的错误行动</p>
+            <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+              <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 4px;" id="break-action">刷新丢失内容</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">用户把限流（retryable）误判为系统崩溃（fatal），执行了错误的恢复动作</p>
+            </div>
+
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">跨产品证据</p>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;" id="break-products">
+              <span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(16,163,127,0.15); color: #10a37f; font-weight: 600; border: 1px solid rgba(16,163,127,0.3);">ChatGPT</span>
+              <span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(22,119,255,0.15); color: #1677ff; font-weight: 600; border: 1px solid rgba(22,119,255,0.3);">文心一言</span>
+              <span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(255,106,0,0.15); color: #ff6a00; font-weight: 600; border: 1px solid rgba(255,106,0,0.3);">通义千问</span>
+            </div>
+
+            <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">Before → After</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 6px; padding: 10px;">
+                <p style="font-size: 11px; color: #cf1322; font-weight: 600; margin-bottom: 4px;">Before</p>
+                <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;" id="break-before">四种错误共用同一种红色</p>
+              </div>
+              <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px; padding: 10px;">
+                <p style="font-size: 11px; color: #52c41a; font-weight: 600; margin-bottom: 4px;">After</p>
+                <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;" id="break-after">error_severity 四级令牌入典，每级绑定唯一视觉映射</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">三案并排：同一骨架的三次显形</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">三个模式共用同一根因结构</p>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto; margin-bottom: 20px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <th style="text-align: left; padding: 12px 16px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">维度</th>
+              <th style="text-align: left; padding: 12px 16px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">ERR-001</th>
+              <th style="text-align: left; padding: 12px 16px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">PRO-001</th>
+              <th style="text-align: left; padding: 12px 16px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">BND-001</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">组件类型</td>
+              <td style="padding: 12px 16px; color: #cf1322; font-weight: 500;">错误状态</td>
+              <td style="padding: 12px 16px; color: #f5a623; font-weight: 500;">过程状态</td>
+              <td style="padding: 12px 16px; color: #4a9eff; font-weight: 500;">边界动作</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">缺失令牌</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500; font-family: monospace;">error_severity</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500; font-family: monospace;">process_phase</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500; font-family: monospace;">boundary_action</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">压缩后的接口信号</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500; font-family: monospace;">isError: true</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500; font-family: monospace;">status: "searching"</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500; font-family: monospace;">blocked: true</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">被压掉的语义维度</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">有多严重</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">在干什么、可信度多少</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">权利还在不在</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">用户的错误行动</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">刷新丢失内容</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">盲信或弃用结果</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">白费力气或放弃会话</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">Before 共性</td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;" colspan="3">视觉走查合规，语义错误</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">After 共性</td>
+              <td style="padding: 12px 16px; color: #52c41a; font-weight: 500;" colspan="3">令牌入典 + 契约注入 + 机器校验</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">同一骨架结论</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          三个案例，同一骨架——<span style="color: var(--text-primary); font-weight: 600;">布尔值/裸字符串压缩了语义维度 → AI 按视觉惯性生成 → 用户按猜测行动</span>。<br><br>
+          这不是三个 bug，是一个系统性缺陷的三次显形。补令牌、立契约、机器校验，一次投入，全品类生效。
+        </p>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">诚实清单</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">验证项与当前状态</p>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <th style="text-align: left; padding: 12px 16px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">验证项</th>
+              <th style="text-align: left; padding: 12px 16px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">状态</th>
+              <th style="text-align: left; padding: 12px 16px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;">说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">三个模式是否真实发生</td>
+              <td style="padding: 12px 16px;"><span class="status-pill status-pass"><span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>已验证</span></td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">跨产品一致性证据齐备（每模式 3+ 产品实例）</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">根因是否可定位到令牌缺失</td>
+              <td style="padding: 12px 16px;"><span class="status-pill status-pass"><span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>已验证</span></td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">三层判定逐层输出，布尔值压缩语义的结构分析可复现</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">令牌修复是否有效</td>
+              <td style="padding: 12px 16px;"><span class="status-pill status-pass"><span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>已验证</span></td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">A/B 对比：注入契约约束后 AI 输出语义分级</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">跨产品证据的采样偏差</td>
+              <td style="padding: 12px 16px;"><span class="status-pill status-warn"><span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>部分验证</span></td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">样本集中于主流 AI 对话/搜索/编程产品</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">三个模式是否穷尽漂移类型</td>
+              <td style="padding: 12px 16px;"><span class="status-pill status-warn"><span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>持续观察</span></td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">模式库当前注册 6 个模式，新快照可能触发新模式</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 16px; color: var(--text-primary); font-weight: 600;">修复后用户行为改善数据</td>
+              <td style="padding: 12px 16px;"><span class="status-pill status-warn"><span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>推演</span></td>
+              <td style="padding: 12px 16px; color: var(--text-secondary); font-weight: 500;">待生产埋点验证</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">一句话总结</h3>
+          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">五个角色对三类典型断裂的认知</p>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
+        <button class="role-tab active" onclick="showRole(0, this)">设计师</button>
+        <button class="role-tab" onclick="showRole(1, this)">前端/AI 工程师</button>
+        <button class="role-tab" onclick="showRole(2, this)">DesignOps</button>
+        <button class="role-tab" onclick="showRole(3, this)">体验架构师</button>
+        <button class="role-tab" onclick="showRole(4, this)">管理层</button>
+      </div>
+
+      <div id="role-summary">
+        <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 10px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: #4a9eff; font-size: 12px; font-weight: 800;">D</div>
+            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">设计师</p>
+          </div>
+          <p style="font-size: 15px; color: var(--text-primary); font-weight: 600; margin-bottom: 8px;" id="role-quote">"红色用错、进度模糊、拒绝混同，都不是你画得不好——是组件库里没有语义级别的挂载点。"</p>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;" id="role-detail">三个模式共享同一个根因：设计稿（②）到组件库的语义压缩。修复不是让设计师"画得更规范"，而是在组件库中挂载语义令牌映射（error_severity / process_phase / boundary_action）。</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">三类典型断裂验证完成</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</p>
+      </div>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block;">返回 Schema-As-Code →</a>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="footer-links">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/">Overview</a>
+    <a href="https://github.com/2436041978-ops/semantic-pipeline" target="_blank">GitHub</a>
+  </div>
+  <div class="footer-copy">Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束</div>
+</div>
+
+<script>
+const breakData = {
+  err001: {
+    token: 'error_severity',
+    tokenDesc: '语义令牌未在字典中注册，导致 AI/前端无法获取分级信息',
+    signal: 'isError: true  # 布尔值，丢失了"有多严重"',
+    dimension: '有多严重（fatal / transient / retryable / degraded）',
+    action: '刷新丢失内容',
+    actionDesc: '用户把限流（retryable）误判为系统崩溃（fatal），执行了错误的恢复动作',
+    products: '<span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(16,163,127,0.15); color: #10a37f; font-weight: 600; border: 1px solid rgba(16,163,127,0.3);">ChatGPT</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(22,119,255,0.15); color: #1677ff; font-weight: 600; border: 1px solid rgba(22,119,255,0.3);">文心一言</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(255,106,0,0.15); color: #ff6a00; font-weight: 600; border: 1px solid rgba(255,106,0,0.3);">通义千问</span>',
+    before: '四种错误共用同一种红色',
+    after: 'error_severity 四级令牌入典，每级绑定唯一视觉映射'
+  },
+  pro001: {
+    token: 'process_phase',
+    tokenDesc: '语义令牌未在字典中注册，导致 AI/前端无法获取认知阶段信息',
+    signal: 'status: "searching"  # 裸字符串，丢失了"在干什么、可信度多少"',
+    dimension: '在干什么、可信度多少（retrieval / synthesis / verification / generation）',
+    action: '盲信或弃用结果',
+    actionDesc: '用户不知道 AI 是在检索还是猜测，无法判断结果可信度',
+    products: '<span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(26,26,26,0.3); color: #888; font-weight: 600; border: 1px solid #3a3a3e;">Perplexity</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(22,119,255,0.15); color: #1677ff; font-weight: 600; border: 1px solid rgba(22,119,255,0.3);">秘塔搜索</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(82,196,26,0.15); color: #52c41a; font-weight: 600; border: 1px solid rgba(82,196,26,0.3);">AI 编程助手</span>',
+    before: '"Searching..." "Reading..." "Wrapping up..." 动作标签',
+    after: 'process_phase 四阶段令牌入典，每阶段绑定可信度指示'
+  },
+  bnd001: {
+    token: 'boundary_action',
+    tokenDesc: '语义令牌未在字典中注册，导致 AI/前端无法获取权利状态信息',
+    signal: 'blocked: true  # 布尔值，丢失了"权利还在不在"',
+    dimension: '权利还在不在（refusal / termination / escalation）',
+    action: '白费力气或放弃会话',
+    actionDesc: '用户不知道对话是被拒绝（可继续）还是终止（已清空），采取错误行动',
+    products: '<span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(212,165,116,0.15); color: #d4a574; font-weight: 600; border: 1px solid rgba(212,165,116,0.3);">Claude</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(16,163,127,0.15); color: #10a37f; font-weight: 600; border: 1px solid rgba(16,163,127,0.3);">ChatGPT</span><span style="font-size: 12px; padding: 4px 10px; border-radius: 4px; background: rgba(0,185,107,0.15); color: #00b96b; font-weight: 600; border: 1px solid rgba(0,185,107,0.3);">Kimi</span>',
+    before: '拒绝和终止在界面上都是"AI 不干了"',
+    after: 'boundary_action 三令牌入典，绑定权利状态说明'
+  }
+};
+
+const roleData = [
+  { icon: 'D', color: '#4a9eff', name: '设计师', quote: '"红色用错、进度模糊、拒绝混同，都不是你画得不好——是组件库里没有语义级别的挂载点。"', detail: '三个模式共享同一个根因：设计稿（②）到组件库的语义压缩。修复不是让设计师"画得更规范"，而是在组件库中挂载语义令牌映射（error_severity / process_phase / boundary_action）。' },
+  { icon: 'E', color: '#f5a623', name: '前端/AI 工程师', quote: '"isError、searching、blocked 不是你表达力不够，是接口契约层就没定义语义。"', detail: '三个模式共享同一个根因：上游接口只提供布尔值/裸字符串，没有语义级别的字段。修复不是让工程师"多写几个 if"，而是要求上游提供语义枚举字段（error_severity / process_phase / boundary_action）。' },
+  { icon: 'O', color: '#52c41a', name: 'DesignOps', quote: '"三个产品线犯三种错的时代结束了。三个模式共用一套令牌体系，字典改一次，四处同步。"', detail: '三个模式共享同一个修复路径：语义字典统一注册令牌，契约一次编写、四处消费。DesignOps 不再需要为每个产品单独维护走查清单，而是维护一套跨产品的语义规范体系。' },
+  { icon: 'A', color: '#a855f7', name: '体验架构师', quote: '"三个模式是你的方法论的三次全链路复现：同一套快照、同一套判定、同一套契约修复。"', detail: '三个模式验证了 Schema-As-Code 方法论的通用性：6 字段快照 → 三层判定 → 语义断层地图 → 契约编写 → 机器校验。同一套流程适用于错误状态、过程状态、边界动作三种组件类型。' },
+  { icon: 'M', color: '#cf1322', name: '管理层', quote: '"这不是三个 bug，是一个系统性缺陷的三次显形。补令牌、立契约、机器校验，一次投入，全品类生效。"', detail: '三个模式共享同一个资源投入逻辑：不是为每个模式单独投入修复资源，而是在交付链的交接处（①→②→③）统一插入语义契约。一次字典建设，覆盖所有组件类型的语义漂移防控。' }
+];
+
+function showBreak(id, el) {
+  document.querySelectorAll('.format-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'var(--card-bg)';
+    b.style.color = 'var(--text-secondary)';
+    b.style.borderColor = 'var(--border)';
+  });
+  el.classList.add('active');
+  el.style.background = 'var(--primary)';
+  el.style.color = '#fff';
+  el.style.borderColor = 'var(--primary)';
+
+  const d = breakData[id];
+  if (!d) return;
+
+  document.getElementById('break-token').textContent = d.token;
+  document.getElementById('break-token').nextElementSibling.textContent = d.tokenDesc;
+  document.getElementById('break-signal').textContent = d.signal;
+  document.getElementById('break-dimension').textContent = d.dimension;
+  document.getElementById('break-action').textContent = d.action;
+  document.getElementById('break-action').nextElementSibling.textContent = d.actionDesc;
+  document.getElementById('break-products').innerHTML = d.products;
+  document.getElementById('break-before').textContent = d.before;
+  document.getElementById('break-after').textContent = d.after;
+}
+
+function showRole(idx, el) {
+  document.querySelectorAll('.role-tab').forEach(b => {
+    b.classList.remove('active');
+    b.style.color = 'var(--text-secondary)';
+    b.style.borderBottomColor = 'transparent';
+  });
+  el.classList.add('active');
+  el.style.color = 'var(--primary)';
+  el.style.borderBottomColor = 'var(--primary)';
+
+  const r = roleData[idx];
+  if (!r) return;
+
+  document.getElementById('role-summary').innerHTML =
+    '<div style="background: ' + r.color + '0D; border: 1px solid ' + r.color + '33; border-radius: 10px; padding: 20px;">' +
+      '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">' +
+        '<div style="width: 32px; height: 32px; border-radius: 8px; background: ' + r.color + '26; border: 1px solid ' + r.color + '80; display: flex; align-items: center; justify-content: center; color: ' + r.color + '; font-size: 12px; font-weight: 800;">' + r.icon + '</div>' +
+        '<p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">' + r.name + '</p>' +
+      '</div>' +
+      '<p style="font-size: 15px; color: var(--text-primary); font-weight: 600; margin-bottom: 8px;">' + r.quote + '</p>' +
+      '<p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">' + r.detail + '</p>' +
+    '</div>';
+}
+</script>
+</body>
+</html>

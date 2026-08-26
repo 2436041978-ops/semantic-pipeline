@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Schema-As-Code · 生成中拦截的成本机制</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root {
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
+    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
+  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
+  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .text-h3 { font-size: 15px; font-weight: 700; line-height: 1.4; }
+  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
+  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
+  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
+  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
+  .card:active { transform: scale(0.98); }
+  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
+  .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chevron.rotated { transform: rotate(180deg); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; transition: all 0.2s ease; color: var(--text-tertiary); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .nav-item:active { background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--primary); }
+  .nav-item .nav-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; transition: transform 0.2s ease; }
+  .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .nav-item .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
+  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block pre { white-space: pre-wrap; margin: 0; }
+  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .section-title { display: flex; align-items: center; gap: 10px; margin: 20px 0 10px; }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- 粘性头部 -->
+<div class="sticky-header">
+  <div style="padding: 12px 16px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 阶段三 ⑦</span>
+    </div>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">生成中拦截的成本机制</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Cost of Interception</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">为什么必须分四层？为什么必须在生成时拦截？</p>
+  </div>
+</div>
+
+<div style="padding: 0 16px;">
+
+  <!-- 导语 -->
+  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
+    <div style="padding: 16px;">
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        验证一个假设：<span style="color: var(--text-primary); font-weight: 700;">越靠右修复，成本指数级增长</span>。生成时拦截 1.2 秒、零人工、零用户影响；发布后修复 14 天、6 个团队、全量用户曝光。
+      </p>
+    </div>
+  </div>
+
+  <!-- STEP 1 成本对比仪表盘 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s1')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-blue">STEP 1</span>
+          <h2 class="text-h2">成本对比仪表盘</h2>
+        </div>
+        <svg class="chevron" id="chevron-s1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">生成时拦截 vs 发布后修复</p>
+    </div>
+    <div class="collapsible-content" id="content-s1">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <div style="flex: 1; background: rgba(82,196,26,0.06); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+            <p class="text-micro" style="color: #52c41a; font-weight: 800; margin-bottom: 6px;">✓ 生成时拦截</p>
+            <p class="text-h1" style="color: #52c41a;">1.2<span class="text-caption">s</span></p>
+            <p class="text-micro" style="color: var(--text-tertiary);">平均拦截耗时</p>
+            <div class="divider" style="margin: 8px 0;"></div>
+            <p class="text-micro" style="color: var(--text-secondary);">人工介入 <b style="color: #52c41a;">0</b><br>用户影响 <b style="color: #52c41a;">0</b></p>
+          </div>
+          <div style="flex: 1; background: rgba(207,19,34,0.06); border: 1px solid rgba(207,19,34,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+            <p class="text-micro" style="color: #cf1322; font-weight: 800; margin-bottom: 6px;">✕ 发布后修复</p>
+            <p class="text-h1" style="color: #cf1322;">14<span class="text-caption">天</span></p>
+            <p class="text-micro" style="color: var(--text-tertiary);">平均修复周期</p>
+            <div class="divider" style="margin: 8px 0;"></div>
+            <p class="text-micro" style="color: var(--text-secondary);">涉及团队 <b style="color: #cf1322;">6</b><br>用户曝光 <b style="color: #cf1322;">全量</b></p>
+          </div>
+        </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">修复成本时间轴</p>
+        <div class="code-block" style="font-size: 11px;">
+<pre>设计意图 → LLM 生成 [L1 L2 L3 L4]
+           └─ Schema-As-Code 拦截窗口（成本趋近于零）
+→ 代码合并 → 测试 → 发布 → 用户反馈 → 舆情监控
+           └─ 传统修复路径（成本指数级增长）</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 四层成本分解 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s2')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-purple">STEP 2</span>
+          <h2 class="text-h2">四层拦截成本分解</h2>
+        </div>
+        <svg class="chevron" id="chevron-s2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">每层拦截的技术开销与跳过代价</p>
+    </div>
+    <div class="collapsible-content" id="content-s2">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L1 · 模板合规</p>
+              <span class="badge badge-green" style="font-size: 9px;">~50ms</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">技术开销：CPU 内存结构检查<br>跳过代价：测试阶段发现 → <b style="color: #f5a623;">2 人日</b></p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #4a9eff; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L2 · 语义令牌</p>
+              <span class="badge badge-blue" style="font-size: 9px;">~100ms</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">技术开销：哈希比对 + 契约引用<br>跳过代价：生产语义混淆 → <b style="color: #cf1322;">14 天回滚</b></p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L3 · 边界检查</p>
+              <span class="badge badge-amber" style="font-size: 9px;">~200ms</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">技术开销：不可变边界交叉验证<br>跳过代价：审计安全突破 → <b style="color: #cf1322;">合规风险</b></p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #a855f7; border-radius: var(--radius-sm); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L4 · 归档确认</p>
+              <span class="badge badge-purple" style="font-size: 9px;">~300ms</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary);">技术开销：语义哈希生成 + 签名<br>跳过代价：技术债务累积 → <b style="color: #cf1322;">无法追溯</b></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 实时成本计算器 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s3')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-amber">STEP 3</span>
+          <h2 class="text-h2">实时成本计算器</h2>
+        </div>
+        <svg class="chevron" id="chevron-s3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">不同拦截层级的成本差异（示例：L4 四层全拦截）</p>
+    </div>
+    <div class="collapsible-content" id="content-s3">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">选择场景</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <span class="badge badge-red">ERR-001 · 错误状态未分级</span>
+          <span class="badge badge-amber">ACT-001 · 高危操作无二次确认</span>
+          <span class="badge badge-blue">PRO-001 · 过程状态认知未显化</span>
+        </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">拦截层级</p>
+        <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+          <span class="badge badge-green">L1</span>
+          <span class="badge badge-green">L2</span>
+          <span class="badge badge-green">L3</span>
+          <span class="badge badge-green">L4 · 四层全拦截</span>
+          <span class="badge badge-gray">无拦截</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #52c41a;">0.3<span class="text-caption">s</span></p>
+            <p class="text-micro" style="color: var(--text-tertiary);">修复时间 · 即时拦截</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #52c41a;">0</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">涉及团队</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #52c41a;">0</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">用户影响面 · 零曝光</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h1" style="color: #52c41a;">¥0</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">累计成本估算</p>
+          </div>
+        </div>
+        <p class="text-micro" style="color: #52c41a; font-weight: 700;">四层全拦截，成本趋近于零 · 成本可控 ✓</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 为什么必须在生成时拦截 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('s4')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-red">STEP 4</span>
+          <h2 class="text-h2">为什么必须在生成时拦截</h2>
+        </div>
+        <svg class="chevron" id="chevron-s4" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">三个论证</p>
+    </div>
+    <div class="collapsible-content" id="content-s4">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #4a9eff; border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">1 · LLM 的不可预测性 —— AI 生成内容没有编译期检查</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">传统代码错误会抛 SyntaxError，但 AI 生成的"所有错误都用红色"语法完全正确、语义却是灾难。生成瞬间注入契约检查，相当于给 LLM 输出加了"语义编译器"。没有生成时拦截，这些"语法正确、语义错误"的内容会一路绿灯通过代码审查、测试、CI，直到用户视网膜上才被发现。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">2 · 视觉层无法回退 —— 一旦用户看到，信任损失不可逆</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">红色错误提示被截图传播后，即使 5 分钟后热修复，品牌印象损失已发生。社交媒体时代，一个语义混乱的告警截图可能在修复完成前已获数万次转发——<span style="color: #f5a623; font-weight: 700;">视觉层的错误没有"撤销"按钮</span>。生成时拦截确保错误的视觉表达永远不到达用户视网膜。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #a855f7; border-radius: var(--radius-sm); padding: 12px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">3 · 契约的时效性 —— 语义令牌在生成瞬间最有效</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">事后补写 error_severity 契约无法修复已生成的 10,000 条错误提示。契约的价值不在文档本身，而在<span style="color: #a855f7; font-weight: 700;">被消费的时机</span>——生成时拦截是契约从"静态文档"转化为"动态防线"的唯一机会窗口。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
+    <div style="padding: 16px;">
+      <p class="text-h3" style="margin-bottom: 4px; color: #52c41a;">成本论证完成</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">越靠右修复，成本指数级增长：毫秒级机器拦截 vs 14 天六团队全量曝光。生成时拦截是契约成为动态防线的唯一窗口。Guard → Contract → Verify。</p>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- 底部 Tab 导航 -->
+<div class="bottom-nav">
+  <div class="nav-item" onclick="window.location.href='./snapshot.html'">
+    <div class="nav-icon">📐</div>
+    <div class="nav-label">主题</div>
+  </div>
+  <div class="nav-item" onclick="window.location.href='./case_diagnosis.html'">
+    <div class="nav-icon">🧩</div>
+    <div class="nav-label">案例</div>
+  </div>
+  <div class="nav-item active" onclick="window.location.href='./生成中拦截的成本机制mob.html'">
+    <div class="nav-icon">🧪</div>
+    <div class="nav-label">验证</div>
+  </div>
+</div>
+
+<script>
+function toggleCollapse(id) {
+  const content = document.getElementById('content-' + id);
+  const chevron = document.getElementById('chevron-' + id);
+  const isOpen = content.classList.contains('open');
+  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
+  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+}
+document.addEventListener('touchstart', () => {}, { passive: true });
+</script>
+
+</body>
+</html>

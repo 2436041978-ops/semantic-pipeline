@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Schema-As-Code · 约束显化验证</title>
+<title>Schema-As-Code · 约束显化</title>
+<script src="https://cdn.tailwindcss.com"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -20,10 +21,10 @@
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--bg);
-    color: var(--text-primary);
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
     line-height: 1.6;
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
@@ -54,6 +55,7 @@
     font-weight: 700;
     font-size: 18px;
     color: var(--text-primary);
+    cursor: pointer;
     text-decoration: none;
   }
   .nav-brand-icon {
@@ -85,6 +87,7 @@
     font-weight: 600;
     transition: color 0.3s;
     position: relative;
+    cursor: pointer;
     white-space: nowrap;
   }
   .nav-center a:hover { color: var(--primary); }
@@ -135,9 +138,14 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 0;
+    transition: all 0.3s;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+  .card-item:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    transform: translateY(-2px);
   }
   .card-header {
     padding: 16px 16px 10px;
@@ -175,15 +183,6 @@
     line-height: 1.6;
     font-weight: 500;
   }
-  .card-preview {
-    padding: 16px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-    justify-content: flex-end;
-  }
 
   .yaml-block {
     background: #0d0d0d;
@@ -194,6 +193,35 @@
     line-height: 1.6;
     color: #e5e5e5;
     overflow-x: auto;
+  }
+
+  .contract-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+  .contract-card:hover {
+    border-color: #3a3a3e;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+  .contract-card.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(22,119,255,0.15);
+  }
+  .contract-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .contract-card-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    font-weight: 500;
   }
 
   .severity-badge {
@@ -226,6 +254,19 @@
     background: rgba(212,136,6,0.15);
     color: #f5a623;
     border: 1px solid rgba(212,136,6,0.3);
+  }
+  .status-inactive {
+    background: #1e1e22;
+    color: #666;
+    border: 1px solid #2a2a2e;
+  }
+
+  .pipeline-search-area {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
   }
 
   .trace-row {
@@ -287,6 +328,7 @@
     text-decoration: none;
     font-size: 14px;
     transition: color 0.3s;
+    cursor: pointer;
     font-weight: 600;
   }
   .footer-links a:hover { color: var(--primary); }
@@ -296,66 +338,64 @@
     font-weight: 500;
   }
 
-  .pipeline-search-area {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    margin-bottom: 24px;
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+  @media (max-width: 768px) {
+    .cards-section { padding: 80px 16px 40px; }
   }
 
-  .contract-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
+  /* Interactive elements */
+  .expandable-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out, opacity 0.3s ease-out;
+    opacity: 0;
   }
-  .contract-card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 4px;
+  .expandable-content.open {
+    max-height: 2000px;
+    opacity: 1;
   }
-  .contract-card-desc {
-    font-size: 14px;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-    font-weight: 500;
-  }
-  .contract-card-meta {
-    font-size: 13px;
-    color: var(--text-tertiary);
-    margin-bottom: 12px;
-    font-weight: 500;
-  }
-  .format-buttons {
+
+  .role-btn {
     display: flex;
+    align-items: center;
     gap: 6px;
-    flex-wrap: wrap;
-  }
-  .format-btn {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
     border: 1px solid var(--border);
-    background: #16161a;
+    background: var(--card-bg);
     color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
     transition: all 0.2s;
   }
-  .format-btn.primary {
+  .role-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .role-btn.active {
     background: var(--primary);
     color: #fff;
     border-color: var(--primary);
   }
 
-  .step-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
+  .compare-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.3s;
   }
-  .step-num {
+  .compare-card.before {
+    border-left: 3px solid #ef4444;
+  }
+  .compare-card.after {
+    border-left: 3px solid #52c41a;
+  }
+
+  .step-badge {
     width: 32px;
     height: 32px;
     border-radius: 8px;
@@ -366,27 +406,95 @@
     color: white;
     font-size: 14px;
     font-weight: 800;
+    flex-shrink: 0;
   }
 
-  .arrow-flow {
+  .toggle-arrow {
+    transition: transform 0.3s;
+    color: var(--text-tertiary);
+  }
+  .toggle-arrow.open {
+    transform: rotate(180deg);
+  }
+
+  .evidence-chip {
+    flex: 1;
+    height: 40px;
+    border-radius: 6px;
+    border: 1px dashed var(--border);
+    background: #16161a;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 16px;
+    font-size: 14px;
     color: var(--text-tertiary);
-    font-size: 13px;
+    position: relative;
+    overflow: hidden;
     font-weight: 600;
   }
+  .evidence-chip::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .chip-chatgpt::before { background: #10a37f; }
+  .chip-wenxin::before { background: #1677ff; }
+  .chip-tongyi::before { background: #ff6a00; }
+  .chip-kimi::before { background: #00b96b; }
+  .chip-doubao::before { background: #ff4d4f; }
+  .chip-claude::before { background: #d4a574; }
+  .chip-perplexity::before { background: #1a1a1a; }
 
-  .arrow-flow span {
+  .quote-block {
+    background: rgba(22,119,255,0.05);
+    border-left: 3px solid var(--primary);
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 12px 0;
+    font-style: italic;
+    color: var(--text-secondary);
+  }
+
+  .format-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #16161a;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .format-btn:hover {
+    border-color: var(--primary);
     color: var(--primary);
-    font-size: 18px;
+  }
+  .format-btn.primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
   }
 
-  @media (max-width: 1024px) {
-    .nav-center { display: none; }
+  .tab-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
   }
+  .tab-btn:hover { color: var(--primary); }
+  .tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
 </style>
 <base target="_blank">
 </head>
@@ -403,7 +511,7 @@
       <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
       <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
       <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
-      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
     </div>
     <div class="nav-right">
       <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
@@ -418,407 +526,517 @@
   </div>
 </div>
 
-<!-- ==================== PAGE: CONSTRAINT EXPLICITATION ==================== -->
+<!-- ==================== PAGE: CONSTRAINT EXTERNALIZATION ==================== -->
 <div class="page active" id="page-constraint">
   <div class="cards-section">
     <!-- Breadcrumb -->
     <div style="margin-bottom: 24px;">
-      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
         <span>←</span> Schema-As-Code
       </a>
       <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
-      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Constraint Explicitation</span>
+      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">Constraint Externalization</span>
     </div>
 
-    <div style="margin-bottom: 32px;">
+    <!-- Hero -->
+    <div style="margin-bottom: 40px;">
       <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
         <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
-        <span>③ 约束显化：把隐含的语义假设变成显式规则</span>
+        <span>主题 ⑧ · 约束显化</span>
       </div>
-      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">约束显化验证 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Constraint Explicitation</span></h1>
-      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; margin-bottom: 28px; font-weight: 500;">
-        验证完整流程：从 Semantic Pipeline 发现隐含假设 → 在 Contract Library 写成显式 YAML 规则 → 在 Validation Toolkit 证明规则有效 → 在 Observability Layer 确认规则被消费。<br>
-        以 ERR-001（错误状态后果差异未分级）为示例，走完约束显化的全链路。
+      <h1 style="font-size: 36px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; letter-spacing: -0.02em;">
+        约束显化
+      </h1>
+      <p style="font-size: 18px; color: var(--text-secondary); max-width: 800px; line-height: 1.8; margin-bottom: 16px; font-weight: 500;">
+        把隐含的语义假设变成显式规则
+      </p>
+      <p style="font-size: 14px; color: var(--text-tertiary); max-width: 900px; line-height: 1.8; font-weight: 500;">
+        设计师脑子里的"这个要危险一点"——评审会上说了三年，AI 一个字都没读到。<br>
+        约束显化把它从空气里搬出来，写成机器可读的 YAML 契约，再编译为 Prompt 前缀、JSON Schema、Checklist、CI 规则。<br>
+        说一次，永久生效。
       </p>
     </div>
 
-    <!-- Flow Overview -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 32px;">
-      <div class="arrow-flow">
-        <span style="color: #cf1322; font-weight: 700;">隐含假设</span>
-        <span>→</span>
-        <span style="color: var(--primary); font-weight: 700;">显式规则</span>
-        <span>→</span>
-        <span style="color: #f5a623; font-weight: 700;">规则消费</span>
-        <span>→</span>
-        <span style="color: #52c41a; font-weight: 700;">验证有效</span>
+    <!-- Problem Statement -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+      <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">问题：一个循环往复的困境</h3>
+      <div class="quote-block">
+        "同一个'危险'，我在评审会上说了三年。每换一个工程师、每开一条新产品线，就要重新说一遍。"
       </div>
-      <div style="display: flex; justify-content: space-between; padding: 0 40px; font-size: 12px; color: var(--text-tertiary); font-weight: 600;">
-        <span>Semantic Pipeline</span>
-        <span>Contract Library</span>
-        <span>Validation Toolkit</span>
-        <span>Observability</span>
-      </div>
+      <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+        设计师在评审会上说："这个删除按钮太危险了，不能做得和普通按钮一样。"工程师点头，改了。三个月后，另一个团队用同样的 AI 工具生成后台管理界面，删除用户按钮又是蓝色实心。<br><br>
+        问题不是"工程师没记住"，也不是"设计师没说清"——而是<strong style="color: var(--text-primary);">"危险"这个判断从未离开过设计师的脑子</strong>。它存在于评审会的空气里、存在于 Figma 注释里、存在于某篇 Wiki 的角落里，但从来没有存在于机器能读到的地方。
+      </p>
     </div>
 
-    <!-- Step 1: Implicit Assumption Discovery -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
-      <div class="step-header">
-        <div class="step-num">1</div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">发现隐含假设</h3>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Semantic Pipeline · 三层诊断模型定位语义漂移</p>
-        </div>
-        <div style="margin-left: auto;">
-          <span class="status-pill status-active">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
-            已诊断
-          </span>
-        </div>
-      </div>
+    <!-- Why Implicit Knowledge Fails -->
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 32px;">
+      <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 20px;">为什么隐性知识守不住：AI 没有上下文补偿能力</h3>
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">用户输入</p>
-          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px;">
-            <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">"请求过于频繁，请稍后再试"</p>
-          </div>
+        <div class="compare-card before">
+          <p style="font-size: 13px; font-weight: 700; color: #ef4444; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">传统时代 · 隐性知识勉强够用</p>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+            人画界面时，设计师和工程师坐在一起，口头传递语义判断："这个要做得危险一点。"工程师凭经验理解"危险"意味着红色、加确认框。
+          </p>
+          <p style="font-size: 13px; color: var(--text-tertiary); margin-top: 8px; font-weight: 500;">
+            本质：人在替格式缺口打补丁。补丁打得了一时，打不了规模。
+          </p>
         </div>
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">诊断结果</p>
-          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">ERR-001</span>
-              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">错误状态后果差异未分级</span>
-            </div>
-            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">多种错误共用红色，用户无法判断后果严重程度</p>
-          </div>
+        <div class="compare-card after">
+          <p style="font-size: 13px; font-weight: 700; color: #52c41a; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">AI 生成时代 · 隐性知识彻底断链</p>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+            AI 没有上下文补偿能力。它只消费显式输入：Prompt 里的文字、组件库的参数。当设计师说"这个按钮要危险一点"时，AI 听不到——因为这句话不在任何它消费的输入里。
+          </p>
+          <p style="font-size: 13px; color: var(--text-tertiary); margin-top: 8px; font-weight: 500;">
+            AI 按概率生成最"常见"的按钮：蓝色实心主按钮。
+          </p>
         </div>
       </div>
 
-      <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-        <p style="font-size: 14px; font-weight: 700; color: #cf1322; margin-bottom: 8px;">隐含假设暴露</p>
-        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
-          当前 AI 工具的隐含假设是：<span style="color: var(--text-primary); font-weight: 600;">"所有错误状态都应该用红色表达"</span>。<br>
-          这个假设从未被写成规则，但深深嵌在 Prompt 和组件库中。结果是：限流（retryable）和系统崩溃（fatal）长得一模一样，用户不知道是该刷新还是该等待。
+      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 16px;">
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">关键判断</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+          语义漂移不是 AI"做错了"，而是<strong style="color: var(--primary);">约束从未被显式传递，AI 根本没有收到信号</strong>。把漂移归因为"AI 理解力不够"，会让人去等更强的模型；把漂移归因为"约束不在输入里"，才会让人去修约束的形态。前者是等待，后者是工程。
         </p>
       </div>
-
-      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">三层诊断判定</p>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-          <div style="padding: 12px; background: rgba(74,222,128,0.05); border: 1px solid rgba(74,222,128,0.15); border-radius: 8px;">
-            <p style="font-size: 12px; color: #4ade80; font-weight: 700; margin-bottom: 4px;">Layer 1 · 组件类型</p>
-            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">错误提示（Alert / Message）</p>
-          </div>
-          <div style="padding: 12px; background: rgba(251,191,36,0.05); border: 1px solid rgba(251,191,36,0.15); border-radius: 8px;">
-            <p style="font-size: 12px; color: #fbbf24; font-weight: 700; margin-bottom: 4px;">Layer 2 · 语义缺失</p>
-            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">后果差异未分级 · 恢复路径不明确</p>
-          </div>
-          <div style="padding: 12px; background: rgba(96,165,250,0.05); border: 1px solid rgba(96,165,250,0.15); border-radius: 8px;">
-            <p style="font-size: 12px; color: #60a5fa; font-weight: 700; margin-bottom: 4px;">Layer 3 · 视觉校验</p>
-            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">颜色映射不匹配 · 所有错误共用红色</p>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <!-- Step 2: Explicit Rule Generation -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
-      <div class="step-header">
-        <div class="step-num">2</div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">生成显式规则</h3>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Contract Library · 把隐含假设写成机器可读的 YAML 契约</p>
-        </div>
-        <div style="margin-left: auto;">
-          <span class="status-pill status-active">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
-            已编译
-          </span>
-        </div>
-      </div>
+    <!-- Four Capabilities -->
+    <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">四项能力</h2>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; font-weight: 500;">约束显化不是"把规范写成代码格式"，而是通过转换获得四项传统形态在原理上就不可能提供的能力。</p>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">约束显化前（隐含）</p>
-          <div class="yaml-block" style="font-size: 12px; max-height: 200px;">
-<pre style="white-space: pre-wrap; margin: 0; color: #888;"># 没有规则文件
-# 设计师心里知道："严重错误用红色"
-# 前端心里知道："Alert 组件默认红色"
-# LLM Prompt 里写："错误提示用红色背景"
-
-# 结果：所有错误都是红色
-# 用户无法区分 fatal / transient / retryable</pre>
+    <!-- Capability 1 -->
+    <div class="contract-card" style="margin-bottom: 16px;" onclick="toggleExpand('cap1')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="step-badge">1</div>
+          <div>
+            <p class="contract-card-title">规则必须带"违约动作"——从"建议"变成"阻断"</p>
+            <p class="contract-card-desc">不是"建议不要用"，而是"如果用了，就阻断"</p>
           </div>
         </div>
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">约束显化后（显式）</p>
-          <div class="yaml-block" style="font-size: 12px; max-height: 200px;">
-<pre style="white-space: pre-wrap; margin: 0;">intent_id: "ERR-001"
-semantic_domain: "observational"
-
-semantic_tokens:
-  error_severity:
-    fatal:
-      description: "系统级故障，对话上下文可能丢失"
-      visual_mapping:
-        color_token: "status.critical"
-        motion_token: "pulse.red.urgent"
-        icon_token: "alert.octagon"
-    transient:
-      description: "网络抖动，系统可自动恢复"
-      visual_mapping:
-        color_token: "status.neutral"
-        motion_token: "spinner"
-        icon_token: "loader"
-    retryable:
-      description: "请求频率已达上限"
-      visual_mapping:
-        color_token: "status.warning"
-        motion_token: "none"
-        icon_token: "clock"
-    degraded:
-      description: "部分功能可用，可继续生成"
-      visual_mapping:
-        color_token: "status.info"
-        motion_token: "none"
-        icon_token: "info.circle"
-
-immutable_boundaries:
+        <svg id="arrow-cap1" class="toggle-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div id="cap1" class="expandable-content">
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+          <div class="quote-block">
+            规范文档里写了"限流提示不要用红色"，但这是一句"建议"。工程师忙起来可以忽略，AI 读不到更是直接无视。
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500; margin-bottom: 16px;">
+            规则文件里每一条"不能做什么"，都必须附带"违反了怎么办"。
+          </p>
+          <div class="yaml-block" style="margin-bottom: 16px;">
+<pre style="white-space: pre-wrap; margin: 0;">immutable_boundaries:
   - boundary_type: "safety"
     rule: "禁止所有错误状态共用同一种红色视觉表达"
-    violation_action: "block"</pre>
+    violation_action: "block"      # ← 不是 suggest，是 block
+  - boundary_type: "clarity"
+    rule: "每个错误级别必须提供明确的用户行动指引"
+    violation_action: "warn"       # ← 不是 note，是 warn</pre>
           </div>
-        </div>
-      </div>
-
-      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-        <p style="font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 8px;">约束显化的核心动作</p>
-        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
-          把原本散落在设计师脑子、产品文档、前端组件默认值里的<span style="color: var(--text-primary); font-weight: 600;">隐含语义假设</span>，<br>
-          提取成一份<span style="color: var(--primary); font-weight: 600;">机器可读的 YAML 契约</span>：<br><br>
-          • <code style="color: var(--primary); font-family: monospace;">semantic_tokens</code>：定义了 4 个 error_severity 级别，每个级别有明确的 color_token、motion_token、icon_token<br>
-          • <code style="color: var(--primary); font-family: monospace;">immutable_boundaries</code>：用 safety 边界强制禁止"所有错误都用红色"这一隐含假设继续生效
-        </p>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-        <div style="background: rgba(207,19,34,0.08); border: 1px solid rgba(207,19,34,0.25); border-radius: 10px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span class="severity-badge severity-fatal">FATAL</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: #ef4444; font-weight: 700; margin-bottom: 4px;">走查阶段</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">人眼看到红色，圈出来让前端改 → 改完再测，来回三轮</p>
+            </div>
+            <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: #52c41a; font-weight: 700; margin-bottom: 4px;">阻断阶段</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">AI 生成时用了红色 → 机器直接拦截，错误不出现</p>
+            </div>
           </div>
-          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">color_token</p>
-          <p style="font-size: 13px; color: #cf1322; font-weight: 700; margin-bottom: 8px;">status.critical</p>
-          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">motion_token</p>
-          <p style="font-size: 13px; color: #cf1322; font-weight: 700;">pulse.red.urgent</p>
-        </div>
-        <div style="background: #1e1e22; border: 1px solid #3a3a3e; border-radius: 10px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span class="severity-badge severity-transient">TRANSIENT</span>
-          </div>
-          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">color_token</p>
-          <p style="font-size: 13px; color: #a0a0a0; font-weight: 700; margin-bottom: 8px;">status.neutral</p>
-          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">motion_token</p>
-          <p style="font-size: 13px; color: #a0a0a0; font-weight: 700;">spinner</p>
-        </div>
-        <div style="background: rgba(212,136,6,0.08); border: 1px solid rgba(212,136,6,0.25); border-radius: 10px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span class="severity-badge severity-retryable">RETRYABLE</span>
-          </div>
-          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">color_token</p>
-          <p style="font-size: 13px; color: #f5a623; font-weight: 700; margin-bottom: 8px;">status.warning</p>
-          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">motion_token</p>
-          <p style="font-size: 13px; color: #f5a623; font-weight: 700;">none</p>
-        </div>
-        <div style="background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.25); border-radius: 10px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span class="severity-badge severity-degraded">DEGRADED</span>
-          </div>
-          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">color_token</p>
-          <p style="font-size: 13px; color: #4a9eff; font-weight: 700; margin-bottom: 8px;">status.info</p>
-          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">motion_token</p>
-          <p style="font-size: 13px; color: #4a9eff; font-weight: 700;">none</p>
         </div>
       </div>
     </div>
 
-    <!-- Step 3: Rule Validation -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
-      <div class="step-header">
-        <div class="step-num">3</div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">证明规则有效</h3>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Validation Toolkit · 语义分级器验证约束显化前后对比</p>
-        </div>
-        <div style="margin-left: auto;">
-          <span class="status-pill status-active">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
-            已验证
-          </span>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-        <div style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 16px;">
-          <p style="font-size: 14px; color: #ef4444; font-weight: 700; margin-bottom: 12px;">约束显化前（隐含假设支配）</p>
-          <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.3); border-radius: 6px; padding: 10px; margin-bottom: 8px;">
-            <p style="font-size: 14px; color: #cf1322; font-weight: 700;">请求过于频繁，请稍后再试</p>
-          </div>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500; margin-bottom: 8px;">❌ 红色 Alert，用户不知道这是刷新一下就好，还是对话已经丢了</p>
-          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">
-            <div style="margin-bottom: 4px;">color: #cf1322（硬编码）</div>
-            <div style="margin-bottom: 4px;">background: solid red（组件默认值）</div>
-            <div>action: 无指引（隐含假设：用户知道该怎么做）</div>
-          </div>
-        </div>
-        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
-          <p style="font-size: 14px; color: #52c41a; font-weight: 700; margin-bottom: 12px;">约束显化后（显式规则支配）</p>
-          <div style="background: rgba(212,136,6,0.1); border: 1px solid rgba(212,136,6,0.3); border-radius: 6px; padding: 10px; margin-bottom: 8px;">
-            <p style="font-size: 14px; color: #f5a623; font-weight: 700;">请求频率已达上限</p>
-            <p style="font-size: 13px; color: #f5a623; font-weight: 500; margin-top: 4px;">请在 42 分钟后重试，或升级至 Plus 获得更高限额。</p>
-          </div>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500; margin-bottom: 8px;">✓ 黄色提示 + 时钟图标 + 明确行动指引（等待/升级）</p>
-          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">
-            <div style="margin-bottom: 4px;">color_token: status.warning（YAML 定义）</div>
-            <div style="margin-bottom: 4px;">icon_token: clock（YAML 定义）</div>
-            <div>action: wait_countdown / upgrade（YAML 定义）</div>
-          </div>
-        </div>
-      </div>
-
-      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">语义分级器判定结果</p>
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-          <span class="severity-badge severity-retryable">RETRYABLE</span>
+    <!-- Capability 2 -->
+    <div class="contract-card" style="margin-bottom: 16px;" onclick="toggleExpand('cap2')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="step-badge">2</div>
           <div>
-            <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">限流/流控，用户可自助恢复</p>
-            <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">匹配规则：error_severity.retryable（YAML 契约）</p>
+            <p class="contract-card-title">规则只能有一个"真身"——从"五份规范"变成"一份源头"</p>
+            <p class="contract-card-desc">YAML 是真身，Prompt / Checklist / CI 规则全是自动编译产物</p>
           </div>
         </div>
-        <div class="yaml-block" style="font-size: 12px;">
-<pre style="white-space: pre-wrap; margin: 0;"># 语义分级器输出
-input: "请求过于频繁，请稍后再试"
-matched_severity: "retryable"
-confidence: 0.95
-applied_rules:
-  - color_token: "status.warning"      # ← 来自 ERR-001.yaml
-  - icon_token: "clock"                # ← 来自 ERR-001.yaml
-  - actions: ["wait_countdown", "upgrade"]  # ← 来自 ERR-001.yaml
-validation: "PASS"
-  - immutable_boundary.safety: 未触发（未使用红色）
-  - immutable_boundary.clarity: 通过（提供了明确行动）</pre>
+        <svg id="arrow-cap2" class="toggle-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div id="cap2" class="expandable-content">
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+          <div class="quote-block">
+            同一条规则写了五份——语雀一份、组件注释一份、AI 指令模板一份、测试用例一份、流水线配置一份。三个月后，语雀改了，注释没改，AI 模板还是旧版。
+          </div>
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500; margin-bottom: 16px;">
+            只保留一份"真身"，其他四种格式全部由这份真身自动编译产出。禁止手写副本。
+          </p>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px;">
+            <div style="text-align: center; margin-bottom: 16px;">
+              <div style="display: inline-block; background: var(--primary); color: #fff; padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 700;">ERR-001.yaml（真身）</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+              <div style="text-align: center;">
+                <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 12px; color: var(--text-secondary); font-weight: 600;">Prompt 前缀<br><span style="color: var(--text-tertiary);">给 AI</span></div>
+                <div style="color: var(--text-tertiary); font-size: 11px; margin-top: 4px;">自动编译</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 12px; color: var(--text-secondary); font-weight: 600;">JSON Schema<br><span style="color: var(--text-tertiary);">给前端</span></div>
+                <div style="color: var(--text-tertiary); font-size: 11px; margin-top: 4px;">自动编译</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 12px; color: var(--text-secondary); font-weight: 600;">Checklist<br><span style="color: var(--text-tertiary);">给设计师</span></div>
+                <div style="color: var(--text-tertiary); font-size: 11px; margin-top: 4px;">自动编译</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 12px; color: var(--text-secondary); font-weight: 600;">CI 规则<br><span style="color: var(--text-tertiary);">给流水线</span></div>
+                <div style="color: var(--text-tertiary); font-size: 11px; margin-top: 4px;">自动编译</div>
+              </div>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: #ef4444; font-weight: 700; margin-bottom: 4px;">改前</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">改一处规则，要手动追四处 → 漏一处就是版本分裂</p>
+            </div>
+            <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: #52c41a; font-weight: 700; margin-bottom: 4px;">改后</p>
+              <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">改 YAML 真身一处，四处编译产物自动同步 → 零遗漏</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Step 4: Consumption Proof -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
-      <div class="step-header">
-        <div class="step-num">4</div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">确认规则被消费</h3>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Observability Layer · 契约消费追踪证明规则不只是写出来了，而是真的被系统消费了</p>
+    <!-- Capability 3 -->
+    <div class="contract-card" style="margin-bottom: 16px;" onclick="toggleExpand('cap3')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="step-badge">3</div>
+          <div>
+            <p class="contract-card-title">规则要放在生成之前——从"事后检查"变成"前置拦截"</p>
+            <p class="contract-card-desc">防线从"检查成品"前移到"约束生成"，错误在出生前就被拦住</p>
+          </div>
         </div>
-        <div style="margin-left: auto;">
-          <span class="status-pill status-active">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
-            已追踪
-          </span>
-        </div>
+        <svg id="arrow-cap3" class="toggle-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
       </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">契约消费者追踪</p>
-
-          <div class="trace-row">
-            <div class="trace-dot consumed"></div>
-            <div>
-              <p class="trace-label">Error-State-Generator Prompt</p>
-              <p class="trace-desc">引用了 error_severity.retryable 的 color_token / icon_token / actions</p>
-              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 已消费 · 3/3 tokens</p>
+      <div id="cap3" class="expandable-content">
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500; margin-bottom: 16px;">
+            同一条"限流提示用黄色"的规则，放在不同环节，成本天差地别：
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div style="background: rgba(207,19,34,0.08); border: 1px solid rgba(207,19,34,0.25); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: #ef4444; font-weight: 700; margin-bottom: 4px;">上线后发现</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">用户已投诉</p>
+              <p style="font-size: 11px; color: #ef4444; font-weight: 600; margin-top: 4px;">成本：最高</p>
+            </div>
+            <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: #f5a623; font-weight: 700; margin-bottom: 4px;">走查时发现</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">代码已写完</p>
+              <p style="font-size: 11px; color: #f5a623; font-weight: 600; margin-top: 4px;">成本：高</p>
+            </div>
+            <div style="background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.25); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: #4a9eff; font-weight: 700; margin-bottom: 4px;">提交时拦截</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">代码未合并</p>
+              <p style="font-size: 11px; color: #4a9eff; font-weight: 600; margin-top: 4px;">成本：中</p>
+            </div>
+            <div style="background: rgba(82,196,26,0.08); border: 1px solid rgba(82,196,26,0.25); border-radius: 8px; padding: 12px;">
+              <p style="font-size: 12px; color: #52c41a; font-weight: 700; margin-bottom: 4px;">生成前注入</p>
+              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">错误不出现</p>
+              <p style="font-size: 11px; color: #52c41a; font-weight: 600; margin-top: 4px;">成本：零</p>
             </div>
           </div>
-          <div class="trace-connector"></div>
+          <div class="yaml-block">
+<pre style="white-space: pre-wrap; margin: 0;"># 同一条规则，在四个时刻接力
 
-          <div class="trace-row">
-            <div class="trace-dot consumed"></div>
-            <div>
-              <p class="trace-label">Alert-Validator 组件校验</p>
-              <p class="trace-desc">校验 Alert 组件的 color_token 与 motion_token 是否与契约匹配</p>
-              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 已消费 · immutable_boundary.safety</p>
-            </div>
-          </div>
-          <div class="trace-connector"></div>
+# 1. 生成前：Prompt 前缀前置注入
+llm_constraints:
+  - "限流提示必须使用 status.warning（黄色）"
+  - "禁止在 retryable 级别使用 status.critical（红色）"
 
-          <div class="trace-row">
-            <div class="trace-dot consumed"></div>
-            <div>
-              <p class="trace-label">CI Stylelint 规则</p>
-              <p class="trace-desc">禁止所有 [data-severity] 使用统一红色 #cf1322</p>
-              <p style="font-size: 12px; color: #52c41a; font-weight: 600; margin-top: 4px;">✓ 已消费 · 2/2 boundaries</p>
-            </div>
-          </div>
-        </div>
+# 2. 编码时：JSON Schema 校验
+properties:
+  color_token:
+    enum: ["status.neutral", "status.warning", "status.info"]
+    not: { const: "status.critical" }
 
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">覆盖率统计</p>
+# 3. 提交时：CI 规则拦截
+rules:
+  error-severity-color:
+    forbidden: { color: "#cf1322" for: "retryable" }
+    action: "block"
 
-          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Semantic Tokens 消费率</span>
-              <span style="font-size: 14px; font-weight: 700; color: #52c41a;">100%</span>
-            </div>
-            <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
-              <div style="width: 100%; height: 100%; background: #52c41a; border-radius: 100px;"></div>
-            </div>
-            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 6px;">4/4 tokens 被至少一个消费者引用</p>
-          </div>
-
-          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Immutable Boundaries 执行率</span>
-              <span style="font-size: 14px; font-weight: 700; color: #52c41a;">100%</span>
-            </div>
-            <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
-              <div style="width: 100%; height: 100%; background: #52c41a; border-radius: 100px;"></div>
-            </div>
-            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 6px;">2/2 boundaries 被至少一个校验器执行</p>
-          </div>
-
-          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Prompt 前缀覆盖率</span>
-              <span style="font-size: 14px; font-weight: 700; color: #52c41a;">100%</span>
-            </div>
-            <div style="width: 100%; background: #2a2a2e; border-radius: 100px; height: 6px; overflow: hidden;">
-              <div style="width: 100%; height: 100%; background: #52c41a; border-radius: 100px;"></div>
-            </div>
-            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 6px;">1/1 相关生成器已引用 ERR-001 契约</p>
+# 4. 走查时：Checklist 人工复查
+- [ ] 限流提示是否为黄色？
+- [ ] 是否未使用红色？</pre>
           </div>
         </div>
       </div>
+    </div>
 
-      <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px;">
-        <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">约束显化闭环证明</p>
-        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
-          1. <span style="color: var(--text-primary); font-weight: 600;">隐含假设被发现</span>：Semantic Pipeline 诊断出"所有错误都用红色"是一个未声明的假设。<br>
-          2. <span style="color: var(--text-primary); font-weight: 600;">显式规则被编写</span>：Contract Library 生成 ERR-001.yaml，定义了 4 个 severity 级别和 2 条不可变边界。<br>
-          3. <span style="color: var(--text-primary); font-weight: 600;">规则被验证有效</span>：Validation Toolkit 语义分级器证明，同一文案在约束显化前后输出完全不同的视觉表达。<br>
-          4. <span style="color: var(--text-primary); font-weight: 600;">规则被系统消费</span>：Observability Layer 显示 3 个消费者正在引用该契约，tokens 消费率 100%，boundaries 执行率 100%。<br><br>
-          <span style="color: #52c41a; font-weight: 700;">约束显化完成：隐含的语义假设已变成显式规则，并且被证明有效、被系统消费。</span>
+    <!-- Capability 4 -->
+    <div class="contract-card" style="margin-bottom: 32px;" onclick="toggleExpand('cap4')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="step-badge">4</div>
+          <div>
+            <p class="contract-card-title">只显化有证据的——从"拍脑袋"变成"有凭据"</p>
+            <p class="contract-card-desc">规则入典必须有门槛：不是"我觉得"，而是"我测到了"</p>
+          </div>
+        </div>
+        <svg id="arrow-cap4" class="toggle-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div id="cap4" class="expandable-content">
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+          <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500; margin-bottom: 16px;">
+            规则库如果变成"我觉得应该这样"的个人偏好集，信用会快速崩塌。v1.0.0 只收录 6 个有充分证据的模式，全部来自对通用型 AI 产品的界面观察：
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div class="card-item" style="cursor: default;">
+              <div class="card-header">
+                <div class="card-id">ERR-001</div>
+                <span class="card-tag tag-red">Error</span>
+              </div>
+              <div class="card-name">后果差异未分级</div>
+              <div class="card-desc">通用 AI 对话产品（流式中断/限流/网络故障场景）</div>
+              <div class="product-evidence" style="padding: 12px 16px;">
+                <div class="evidence-label">证据来源</div>
+                <div class="evidence-row">
+                  <div class="evidence-chip chip-chatgpt">ChatGPT</div>
+                  <div class="evidence-chip chip-wenxin">文心</div>
+                  <div class="evidence-chip chip-tongyi">通义</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-item" style="cursor: default;">
+              <div class="card-header">
+                <div class="card-id">PRO-001</div>
+                <span class="card-tag tag-amber">Process</span>
+              </div>
+              <div class="card-name">认知阶段未显化</div>
+              <div class="card-desc">AI 搜索/多步推理产品（过程标签模糊）</div>
+              <div class="product-evidence" style="padding: 12px 16px;">
+                <div class="evidence-label">证据来源</div>
+                <div class="evidence-row">
+                  <div class="evidence-chip chip-perplexity">Perplexity</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-item" style="cursor: default;">
+              <div class="card-header">
+                <div class="card-id">BND-001</div>
+                <span class="card-tag tag-blue">Boundary</span>
+              </div>
+              <div class="card-name">权利差异未区分</div>
+              <div class="card-desc">通用 AI 对话产品（拒绝与终止视觉混淆）</div>
+              <div class="product-evidence" style="padding: 12px 16px;">
+                <div class="evidence-label">证据来源</div>
+                <div class="evidence-row">
+                  <div class="evidence-chip chip-claude">Claude</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-item" style="cursor: default;">
+              <div class="card-header">
+                <div class="card-id">ACT-001</div>
+                <span class="card-tag tag-purple">Destructive</span>
+              </div>
+              <div class="card-name">高危操作未约束</div>
+              <div class="card-desc">AI 生成后台/设置界面（删除按钮样式统一化）</div>
+              <div class="product-evidence" style="padding: 12px 16px;">
+                <div class="evidence-label">证据来源</div>
+                <div class="evidence-row">
+                  <div class="evidence-chip chip-chatgpt">通用</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-item" style="cursor: default;">
+              <div class="card-header">
+                <div class="card-id">ALR-001</div>
+                <span class="card-tag tag-purple">Synonym</span>
+              </div>
+              <div class="card-name">文案语义降级</div>
+              <div class="card-desc">AI 运维/客服系统（关键术语被同义词替换）</div>
+              <div class="product-evidence" style="padding: 12px 16px;">
+                <div class="evidence-label">证据来源</div>
+                <div class="evidence-row">
+                  <div class="evidence-chip chip-chatgpt">通用</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-item" style="cursor: default;">
+              <div class="card-header">
+                <div class="card-id">INF-001</div>
+                <span class="card-tag tag-green">Info</span>
+              </div>
+              <div class="card-name">状态权重未对齐</div>
+              <div class="card-desc">AI 协作/创作工具（通知与警告视觉权重相同）</div>
+              <div class="product-evidence" style="padding: 12px 16px;">
+                <div class="evidence-label">证据来源</div>
+                <div class="evidence-row">
+                  <div class="evidence-chip chip-chatgpt">通用</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.15); border-radius: 8px; padding: 12px 16px; margin-bottom: 8px;">
+            <p style="font-size: 13px; color: #ef4444; font-weight: 600;">✗ 拍脑袋规则："我觉得按钮应该大一点" → 无证据，不入典</p>
+          </div>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.15); border-radius: 8px; padding: 12px 16px;">
+            <p style="font-size: 13px; color: #52c41a; font-weight: 600;">✓ 有凭据规则："我测到 6 类通用 AI 产品的限流提示都用了红色，用户反馈看不懂" → 有证据，入典</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role Perspectives -->
+    <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">角色视角</h2>
+    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; font-weight: 500;">约束显化后，各角色的处境发生了什么变化？</p>
+
+    <!-- Role Selector -->
+    <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
+      <button class="role-btn active" onclick="switchRole('designer', this)">
+        <span>🎨</span> 设计师与产品经理
+      </button>
+      <button class="role-btn" onclick="switchRole('engineer', this)">
+        <span>💻</span> 前端 / AI 工程师
+      </button>
+      <button class="role-btn" onclick="switchRole('designops', this)">
+        <span>📋</span> DesignOps
+      </button>
+      <button class="role-btn" onclick="switchRole('architect', this)">
+        <span>🏗</span> 语义翻译设计师
+      </button>
+      <button class="role-btn" onclick="switchRole('manager', this)">
+        <span>📊</span> 管理层
+      </button>
+    </div>
+
+    <!-- Role Content -->
+    <div id="role-designer" class="tab-content active">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px;">
+        <div class="quote-block">
+          "同一个'危险'，我在评审会上说了三年。每换一个工程师、每开一条新产品线，就要重新说一遍。"
+        </div>
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">解法路径</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500; margin-bottom: 16px;">
+          action.destructive 注册入典，绑定红色空心 + 二次确认 + 不可恢复文案。判断显化一次，全组织永久引用——设计师不再重复说"危险"，改说"查字典"。
         </p>
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">验证方式</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          新团队、新产品线生成删除按钮时，约束自动在场，无需任何人口头传递。
+        </p>
+      </div>
+    </div>
+
+    <div id="role-engineer" class="tab-content">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px;">
+        <div class="quote-block">
+          "规范文档四百页，我不可能每次写代码前重读一遍。AI 更不可能。"
+        </div>
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">解法路径</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500; margin-bottom: 16px;">
+          契约编译为 Prompt 前缀前置注入 AI 上下文，约束从"需要被想起"变成"已经在场"。工程师被迫在每次生成任务里手工复述规范要点——重复、易漏、不可追溯。
+        </p>
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">验证方式</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          AI 输出对约束的命中率不再依赖任何人的记忆。规范不用背了——约束编译成 Prompt 前缀、Schema 和 CI 规则，在你工作之前已经在场。
+        </p>
+      </div>
+    </div>
+
+    <div id="role-designops" class="tab-content">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px;">
+        <div class="quote-block">
+          "规范改了一处，三个月后抽查发现一半团队还在用旧版——没人是故意的，只是没人知道变了。"
+        </div>
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">解法路径</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500; margin-bottom: 16px;">
+          字典变更走 PR，触发全量重编译，四种消费格式同步换版，引用方收到影响面报告。
+        </p>
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">验证方式</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          DesignOps 第一次能回答"这次变更影响了哪些契约、哪些团队"——精确到清单，而非"应该都通知到了"。
+        </p>
+      </div>
+    </div>
+
+    <div id="role-architect" class="tab-content">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px;">
+        <div class="quote-block">
+          "我的经验在公司十年，评审时能一眼看出问题——但我讲不清我是怎么看出来的，更别说让机器看出来。"
+        </div>
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">解法路径</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500; margin-bottom: 16px;">
+          专家的判定逻辑被结构化为关键词表、类型规则、校验项——直觉翻译成规则后，可被复核、可被传授、可被机器执行。
+        </p>
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">验证方式</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          专家休假时，诊断照常运转；专家的"一眼看出"变成组织的"逐层可验"。
+        </p>
+      </div>
+    </div>
+
+    <div id="role-manager" class="tab-content">
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px;">
+        <div class="quote-block">
+          "团队最大的隐性成本是'重复传递同一句判断'。"
+        </div>
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">解法路径</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500; margin-bottom: 16px;">
+          约束显化把它变成一次性投资：判断显化入典后，传播零成本、执行有机器保障、变更有账可查。
+        </p>
+        <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 12px;">验证方式</p>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
+          约束从"口头资产"变成"组织资产"——有版本、有引用方、有折旧、有审计轨迹。
+        </p>
+      </div>
+    </div>
+
+    <!-- Before / After Table -->
+    <h2 style="font-size: 24px; font-weight: 700; color: var(--text-primary); margin-top: 40px; margin-bottom: 24px;">调整前后对照</h2>
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px;">
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <th style="text-align: left; padding: 12px 16px; color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px;">工具 / 环节</th>
+              <th style="text-align: left; padding: 12px 16px; color: #ef4444; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px;">调整前</th>
+              <th style="text-align: left; padding: 12px 16px; color: #52c41a; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px;">调整后</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 16px; color: var(--text-primary); font-weight: 600;">评审会</td>
+              <td style="padding: 16px; color: var(--text-secondary); font-weight: 500;">约束活在空气里，人散会散</td>
+              <td style="padding: 16px; color: var(--text-secondary); font-weight: 500;">评审产出物是契约变更 PR，判断当场显化入典</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 16px; color: var(--text-primary); font-weight: 600;">规范文档</td>
+              <td style="padding: 16px; color: var(--text-secondary); font-weight: 500;">四百页散文，阅读率随厚度反比降</td>
+              <td style="padding: 16px; color: var(--text-secondary); font-weight: 500;">字典即规范：机器可消费，人可查表，篇幅不再影响执行率</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 16px; color: var(--text-primary); font-weight: 600;">AI 生成流程</td>
+              <td style="padding: 16px; color: var(--text-secondary); font-weight: 500;">约束不在输入里，AI 按概率猜</td>
+              <td style="padding: 16px; color: var(--text-secondary); font-weight: 500;">Prompt 前缀前置注入，约束在生成前已在场</td>
+            </tr>
+            <tr>
+              <td style="padding: 16px; color: var(--text-primary); font-weight: 600;">变更管理</td>
+              <td style="padding: 16px; color: var(--text-secondary); font-weight: 500;">公告传播，同步靠记忆</td>
+              <td style="padding: 16px; color: var(--text-secondary); font-weight: 500;">Git Diff + 全量重编译 + 影响面报告，变更精确到引用方</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
     <!-- Bottom CTA -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between; margin-top: 32px;">
       <div>
-        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">约束显化验证完成</p>
-        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</p>
+        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">约束显化完成，下一步？</p>
+        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">去契约库查看已显化的规则，或进入验证实验室证明它们有效</p>
       </div>
-      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block;">
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
         返回 Schema-As-Code →
       </a>
     </div>
@@ -835,6 +1053,33 @@ validation: "PASS"
     Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
   </div>
 </div>
+
+<script>
+function toggleExpand(id) {
+  const content = document.getElementById(id);
+  const arrow = document.getElementById('arrow-' + id);
+  const isOpen = content.classList.contains('open');
+
+  // Close all
+  document.querySelectorAll('.expandable-content').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.toggle-arrow').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.contract-card').forEach(el => el.classList.remove('active'));
+
+  if (!isOpen) {
+    content.classList.add('open');
+    arrow.classList.add('open');
+    arrow.closest('.contract-card').classList.add('active');
+  }
+}
+
+function switchRole(role, el) {
+  document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+  el.classList.add('active');
+
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  document.getElementById('role-' + role).classList.add('active');
+}
+</script>
 
 </body>
 </html>

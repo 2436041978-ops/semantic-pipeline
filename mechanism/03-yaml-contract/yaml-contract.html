@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Schema-As-Code · YAML 契约编译演示</title>
+<title>Schema-As-Code · YAML 契约：设计意图的接口定义</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -133,15 +133,186 @@
     padding: 100px 24px 60px;
   }
 
+  .panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
   .yaml-block {
     background: #0d0d0d;
     border-radius: 8px;
     padding: 16px;
     font-family: 'SF Mono', 'Courier New', monospace;
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 12px;
+    line-height: 1.7;
     color: #e5e5e5;
     overflow-x: auto;
+  }
+
+  .code-editor {
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #e5e5e5;
+  }
+
+  .tab-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--primary); }
+  .tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .pipeline-node {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    text-align: center;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .pipeline-node.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(22,119,255,0.15);
+  }
+  .pipeline-connector {
+    height: 2px;
+    background: var(--border);
+    flex: 1;
+    position: relative;
+  }
+  .pipeline-connector.flowing::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 0%; height: 100%;
+    background: var(--primary);
+    animation: flowLine 0.8s ease forwards;
+  }
+  @keyframes flowLine {
+    to { width: 100%; }
+  }
+
+  .format-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    transition: all 0.3s;
+  }
+  .format-card:hover {
+    border-color: var(--primary);
+  }
+  .format-card.active {
+    border-color: var(--primary);
+    background: rgba(22,119,255,0.05);
+  }
+
+  .severity-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .sev-fatal { background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; }
+  .sev-retryable { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
+  .sev-degraded { background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; }
+  .sev-transient { background: #1e1e22; border: 1px solid #3a3a3e; color: #a0a0a0; }
+
+  .compare-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .compare-card.violation {
+    border-left: 3px solid #cf1322;
+  }
+  .compare-card.compliant {
+    border-left: 3px solid #52c41a;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-green {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-red {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+
+  .btn-primary {
+    padding: 10px 24px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary:hover { background: var(--primary-hover); }
+
+  .btn-outline {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-outline:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .tag-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
+  .tag-amber { background: rgba(212,136,6,0.15); color: #f5a623; border: 1px solid rgba(212,136,6,0.3); }
+  .tag-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
+  .tag-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+
+  .card-tag {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 600;
   }
 
   .footer {
@@ -179,239 +350,66 @@
     .cards-section { padding: 80px 16px 40px; }
   }
 
-  /* === Demo Styles === */
-  .panel {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-  }
-
-  .step-badge {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #1677ff, #36cfc9);
+  .checklist-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 14px;
-    font-weight: 800;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .checklist-box {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-radius: 3px;
     flex-shrink: 0;
   }
+  .checklist-box.checked {
+    background: #52c41a;
+    border-color: #52c41a;
+  }
+
+  .interceptor-log {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    color: #e5e5e5;
+  }
+  .log-line { display: flex; gap: 10px; }
+  .log-time { color: var(--text-tertiary); min-width: 70px; }
+  .log-info { color: var(--text-secondary); }
+  .log-success { color: #52c41a; }
+  .log-error { color: #cf1322; }
+  .log-warn { color: #f5a623; }
 
   .compile-btn {
-    padding: 12px 28px;
-    border-radius: 10px;
+    padding: 10px 28px;
+    border-radius: 8px;
     background: var(--primary);
     color: #fff;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     border: none;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
     display: inline-flex;
     align-items: center;
     gap: 8px;
   }
-  .compile-btn:hover {
-    background: var(--primary-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(22,119,255,0.3);
-  }
-  .compile-btn.compiled {
-    background: #52c41a;
-  }
+  .compile-btn:hover { background: var(--primary-hover); }
+  .compile-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .format-tab {
-    padding: 10px 18px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: #16161a;
-    color: var(--text-secondary);
-    transition: all 0.2s;
-    white-space: nowrap;
+  .pulse-ring {
+    animation: pulseRing 2s ease-in-out infinite;
   }
-  .format-tab:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-  }
-  .format-tab.active {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
-  }
-
-  .format-content {
-    display: none;
-  }
-  .format-content.active {
-    display: block;
-  }
-
-  .consumer-card {
-    background: #16161a;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    transition: all 0.3s;
-    cursor: pointer;
-  }
-  .consumer-card:hover {
-    border-color: #3a3a3e;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  }
-  .consumer-card.active {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(22,119,255,0.15);
-  }
-
-  .pipeline-arrow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-tertiary);
-    font-size: 20px;
-    font-weight: 700;
-  }
-
-  .interceptor-box {
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.3s;
-  }
-  .interceptor-pass {
-    background: rgba(82,196,26,0.08);
-    border: 1px solid rgba(82,196,26,0.2);
-    color: #52c41a;
-  }
-  .interceptor-block {
-    background: rgba(207,19,34,0.08);
-    border: 1px solid rgba(207,19,34,0.2);
-    color: #cf1322;
-  }
-  .interceptor-warn {
-    background: rgba(245,166,35,0.08);
-    border: 1px solid rgba(245,166,35,0.2);
-    color: #f5a623;
-  }
-
-  .ai-generate-btn {
-    padding: 10px 20px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #1677ff, #36cfc9);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .ai-generate-btn:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
-
-  .severity-tag {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-  .tag-fatal { background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); color: #cf1322; }
-  .tag-transient { background: #1e1e22; border: 1px solid #3a3a3e; color: #a0a0a0; }
-  .tag-retryable { background: rgba(212,136,6,0.15); border: 1px solid rgba(212,136,6,0.3); color: #f5a623; }
-  .tag-degraded { background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); color: #4a9eff; }
-
-  .pulse-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #52c41a;
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.2); }
-  }
-
-  .tag-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
-  .tag-amber { background: rgba(212,136,6,0.15); color: #f5a623; border: 1px solid rgba(212,136,6,0.3); }
-  .tag-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
-  .tag-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
-
-  .trace-line {
-    width: 2px;
-    height: 28px;
-    background: var(--border);
-    margin-left: 20px;
-  }
-
-  input, textarea, select {
-    background: #0d0d0d;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 10px;
-    color: var(--text-primary);
-    font-size: 13px;
-    outline: none;
-    width: 100%;
-    font-family: 'Inter', sans-serif;
-  }
-  input:focus, textarea:focus, select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(22,119,255,0.15);
-  }
-
-  .btn-primary {
-    padding: 10px 24px;
-    border-radius: 8px;
-    background: var(--primary);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-decoration: none;
-    display: inline-block;
-  }
-  .btn-primary:hover {
-    background: var(--primary-hover);
-  }
-
-  .status-green {
-    background: rgba(82,196,26,0.08);
-    border: 1px solid rgba(82,196,26,0.2);
-    color: #52c41a;
-  }
-  .status-red {
-    background: rgba(207,19,34,0.08);
-    border: 1px solid rgba(207,19,34,0.2);
-    color: #cf1322;
-  }
-
-  .fade-in {
-    animation: fadeIn 0.5s ease-out;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .flash-border {
-    animation: flashBorder 0.6s ease-out;
-  }
-  @keyframes flashBorder {
-    0% { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(22,119,255,0.2); }
-    100% { border-color: var(--border); box-shadow: none; }
+  @keyframes pulseRing {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22,119,255,0.3); }
+    50% { box-shadow: 0 0 0 8px rgba(22,119,255,0); }
   }
 </style>
 <base target="_blank">
@@ -453,609 +451,436 @@
       <span>←</span> Schema-As-Code
     </a>
     <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
-    <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">YAML Contract Compiler</span>
+    <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">YAML Contract</span>
   </div>
 
   <!-- Hero -->
-  <div style="margin-bottom: 32px;">
+  <div style="margin-bottom: 40px;">
     <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
       <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
-      <span>主题 ④ · YAML 契约编译演示</span>
+      <span>主题 ④ · YAML 契约</span>
     </div>
-    <h1 style="font-size: 36px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; letter-spacing: -0.02em;">
+    <h1 style="font-size: 32px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; letter-spacing: -0.02em;">
       YAML 契约：设计意图的接口定义
     </h1>
-    <p style="font-size: 16px; color: var(--text-secondary); max-width: 800px; line-height: 1.8; margin-bottom: 8px; font-weight: 500;">
-      编译即规则——形式化为代码的规矩，在机器世界里长什么样。
+    <p style="font-size: 18px; color: var(--text-secondary); max-width: 800px; line-height: 1.8; margin-bottom: 16px; font-weight: 500;">
+      编译即规则
     </p>
     <p style="font-size: 14px; color: var(--text-tertiary); max-width: 900px; line-height: 1.8; font-weight: 500;">
-      一份 YAML 真身，经编译管线自动翻译为四种机器消费格式。不是"规范文档的代码版"，而是"设计意图的接口定义"——机器读得懂、能执行、会拦截。
+      形式化为代码的规矩，在机器世界里长什么样？<br>
+      一份 YAML 契约被机器读取、编译、执行时的真实形态——不是设计师看到的 YAML 文本，而是机器消费链路中的 4 种可执行格式。
     </p>
   </div>
 
-  <!-- ===== STEP 1: YAML 真身 ===== -->
-  <div class="panel" style="margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-      <div class="step-badge">1</div>
-      <div>
-        <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary);">契约真身</h3>
-        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">ERR-001.yaml · 设计意图的机器可读接口</p>
-      </div>
-      <div style="margin-left: auto;">
-        <span style="font-size: 12px; padding: 3px 10px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">ERR-001</span>
-      </div>
-    </div>
+  <!-- Section: 唯一事实来源 -->
+  <h2 style="font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">唯一事实来源</h2>
+  <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; font-weight: 500;">设计师写一份 YAML 契约，机器自动编译成四种东西——不用写四遍，改一处，四处同步。</p>
 
-    <div class="yaml-block" style="margin-bottom: 16px;">
-<pre style="white-space: pre-wrap; margin: 0;">intent_id: "ERR-001"
-semantic_domain: "observational"
+  <!-- ERR-001 YAML Source -->
+  <div class="panel" style="margin-bottom: 24px; border: 2px solid var(--primary);">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="card-tag tag-red">ERR-001</span>
+        <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);">错误状态后果差异未分级</span>
+      </div>
+      <span class="status-pill status-green">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+        唯一事实来源
+      </span>
+    </div>
+    <div class="yaml-block">
+<pre style="white-space: pre-wrap; margin: 0;"><span style="color: var(--text-tertiary);"># intent/err-001.yaml</span>
+<span style="color: var(--text-tertiary);"># 语义域：observational（观察型）——用户被动接收系统状态</span>
+
+intent_id: <span style="color: var(--primary);">"ERR-001"</span>
+semantic_domain: <span style="color: var(--primary);">"observational"</span>
+version: <span style="color: var(--primary);">"v1.1.0"</span>
 
 semantic_tokens:
   error_severity:
     fatal:
-      description: "系统级故障，对话上下文可能丢失"
+      description: <span style="color: var(--primary);">"系统级故障，对话上下文可能丢失"</span>
       visual_mapping:
-        color_token: "status.critical"
-        motion_token: "pulse.red.urgent"
-        icon_token: "alert.octagon"
+        color_token: <span style="color: #cf1322;">"status.critical"</span>
+        motion_token: <span style="color: #cf1322;">"pulse.red.urgent"</span>
+        icon_token: <span style="color: #cf1322;">"alert.octagon"</span>
       user_action:
-        - label: "刷新页面"
-          action: "refresh"
-        - label: "导出历史"
-          action: "export_history"
+        - label: <span style="color: var(--primary);">"刷新页面"</span>
+          action: <span style="color: var(--primary);">"refresh"</span>
+        - label: <span style="color: var(--primary);">"导出历史"</span>
+          action: <span style="color: var(--primary);">"export_history"</span>
 
     transient:
-      description: "网络抖动，系统可自动恢复"
+      description: <span style="color: var(--primary);">"网络抖动，系统可自动恢复"</span>
       visual_mapping:
-        color_token: "status.neutral"
-        motion_token: "spinner"
-        icon_token: "loader"
+        color_token: <span style="color: #a0a0a0;">"status.neutral"</span>
+        motion_token: <span style="color: #a0a0a0;">"spinner"</span>
+        icon_token: <span style="color: #a0a0a0;">"loader"</span>
       user_action:
-        - label: "等待自动恢复"
-          action: "wait"
-        - label: "手动重试"
-          action: "retry"
+        - label: <span style="color: var(--primary);">"等待自动恢复"</span>
+          action: <span style="color: var(--primary);">"wait"</span>
 
     retryable:
-      description: "请求频率已达上限"
+      description: <span style="color: var(--primary);">"请求频率已达上限"</span>
       visual_mapping:
-        color_token: "status.warning"
-        motion_token: "none"
-        icon_token: "clock"
+        color_token: <span style="color: #f5a623;">"status.warning"</span>
+        motion_token: <span style="color: #f5a623;">"none"</span>
+        icon_token: <span style="color: #f5a623;">"clock"</span>
       user_action:
-        - label: "等待倒计时"
-          action: "wait_countdown"
-        - label: "升级套餐"
-          action: "upgrade"
+        - label: <span style="color: var(--primary);">"等待倒计时"</span>
+          action: <span style="color: var(--primary);">"wait_countdown"</span>
+        - label: <span style="color: var(--primary);">"升级套餐"</span>
+          action: <span style="color: var(--primary);">"upgrade"</span>
 
     degraded:
-      description: "部分功能可用，可继续生成"
+      description: <span style="color: var(--primary);">"部分功能可用，可继续生成"</span>
       visual_mapping:
-        color_token: "status.info"
-        motion_token: "none"
-        icon_token: "info.circle"
+        color_token: <span style="color: #4a9eff;">"status.info"</span>
+        motion_token: <span style="color: #4a9eff;">"none"</span>
+        icon_token: <span style="color: #4a9eff;">"info.circle"</span>
       user_action:
-        - label: "继续生成"
-          action: "continue"
-        - label: "简化问题重试"
-          action: "retry_simplified"
+        - label: <span style="color: var(--primary);">"继续生成"</span>
+          action: <span style="color: var(--primary);">"continue"</span>
 
 immutable_boundaries:
-  - boundary_type: "safety"
-    rule: "禁止所有错误状态共用同一种红色视觉表达"
-    violation_action: "block"
-  - boundary_type: "clarity"
-    rule: "每个错误级别必须提供明确的用户行动指引"
-    violation_action: "warn"</pre>
-    </div>
-
-    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2);">
-      <span style="font-size: 16px; color: var(--primary);">💡</span>
-      <div>
-        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">关键理解</div>
-        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">这不是"规范文档的代码版"，而是<strong style="color: var(--primary);">设计意图的接口定义</strong>。语义_tokens 定义了"什么意思"，immutable_boundaries 定义了"不能做什么"。</div>
-      </div>
+  - boundary_type: <span style="color: #cf1322;">"safety"</span>
+    rule: <span style="color: var(--primary);">"禁止所有错误状态共用同一种红色视觉表达"</span>
+    violation_action: <span style="color: #cf1322;">"block"</span>
+  - boundary_type: <span style="color: #f5a623;">"clarity"</span>
+    rule: <span style="color: var(--primary);">"每个错误级别必须提供明确的用户行动指引"</span>
+    violation_action: <span style="color: #f5a623;">"warn"</span></pre>
     </div>
   </div>
 
-  <!-- ===== STEP 2: Compile Pipeline ===== -->
-  <div class="panel" style="margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-      <div class="step-badge">2</div>
-      <div>
-        <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary);">编译管线</h3>
-        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">一键编译：YAML 真身 → 四种机器消费格式</p>
-      </div>
-    </div>
-
-    <div style="text-align: center; margin-bottom: 20px;">
+  <!-- Compile Pipeline Visualization -->
+  <div class="panel" style="margin-bottom: 32px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+      <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">编译管线：从唯一事实来源到四种机器形态</h3>
       <button id="compile-btn" class="compile-btn" onclick="runCompile()">
-        <span>⚡</span> 执行编译
+        <span>▶</span> 执行编译
       </button>
     </div>
 
-    <!-- Pipeline Visualization -->
-    <div id="pipeline-viz" style="display: none;">
-      <div style="display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr; gap: 8px; align-items: center; margin-bottom: 20px;">
-        <div style="text-align: center; padding: 16px; border-radius: 10px; border: 2px solid var(--primary); background: rgba(22,119,255,0.05);">
-          <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">SOURCE</div>
-          <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">ERR-001.yaml</div>
-        </div>
-        <div class="pipeline-arrow">→</div>
-        <div class="consumer-card" style="text-align: center;" onclick="showFormat('prompt')">
-          <div style="font-size: 24px; margin-bottom: 4px;">🤖</div>
-          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Prompt 前缀</div>
-          <div style="font-size: 11px; color: var(--text-tertiary);">给 AI</div>
-        </div>
-        <div class="pipeline-arrow">→</div>
-        <div class="consumer-card" style="text-align: center;" onclick="showFormat('schema')">
-          <div style="font-size: 24px; margin-bottom: 4px;">📐</div>
-          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">JSON Schema</div>
-          <div style="font-size: 11px; color: var(--text-tertiary);">给校验器</div>
-        </div>
-        <div class="pipeline-arrow">→</div>
-        <div class="consumer-card" style="text-align: center;" onclick="showFormat('checklist')">
-          <div style="font-size: 24px; margin-bottom: 4px;">📋</div>
-          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Checklist</div>
-          <div style="font-size: 11px; color: var(--text-tertiary);">给设计师</div>
-        </div>
-        <div class="pipeline-arrow">→</div>
-        <div class="consumer-card" style="text-align: center;" onclick="showFormat('ci')">
-          <div style="font-size: 24px; margin-bottom: 4px;">⚙️</div>
-          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">CI 规则</div>
-          <div style="font-size: 11px; color: var(--text-tertiary);">给流水线</div>
-        </div>
+    <!-- Pipeline Flow -->
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 24px;">
+      <div id="node-source" class="pipeline-node" style="min-width: 140px;">
+        <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">唯一事实来源</div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">ERR-001.yaml</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">v1.1.0</div>
       </div>
-
-      <div style="padding: 10px 16px; border-radius: 8px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); display: flex; align-items: center; gap: 10px;">
-        <div class="pulse-dot"></div>
-        <div style="font-size: 13px; color: #52c41a; font-weight: 600;">编译完成 · 4 种格式已生成 · 版本号同步为 v1.1.0</div>
+      <div class="pipeline-connector" id="conn-1"></div>
+      <div id="node-compiler" class="pipeline-node" style="min-width: 120px;">
+        <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">编译管线</div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Compiler</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">查字典 → 编译</div>
       </div>
-    </div>
-  </div>
-
-  <!-- ===== STEP 3: Four Machine Formats ===== -->
-  <div class="panel" style="margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-      <div class="step-badge">3</div>
-      <div>
-        <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary);">四种机器形态</h3>
-        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">点击切换，看同一份契约如何被不同机器消费</p>
+      <div class="pipeline-connector" id="conn-2"></div>
+      <div id="node-outputs" class="pipeline-node" style="min-width: 140px;">
+        <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 4px;">四种机器形态</div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">4 Formats</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">自动同步</div>
       </div>
     </div>
 
-    <!-- Format Tabs -->
-    <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
-      <button class="format-tab active" onclick="switchFormat('prompt', this)">
-        <span>🤖</span> Prompt 前缀
-        <span style="font-size: 10px; color: var(--text-tertiary); margin-left: 4px;">给 AI 编程工具</span>
-      </button>
-      <button class="format-tab" onclick="switchFormat('schema', this)">
-        <span>📐</span> JSON Schema
-        <span style="font-size: 10px; color: var(--text-tertiary); margin-left: 4px;">给结构校验器</span>
-      </button>
-      <button class="format-tab" onclick="switchFormat('checklist', this)">
-        <span>📋</span> Checklist
-        <span style="font-size: 10px; color: var(--text-tertiary); margin-left: 4px;">给设计师走查</span>
-      </button>
-      <button class="format-tab" onclick="switchFormat('ci', this)">
-        <span>⚙️</span> CI 规则
-        <span style="font-size: 10px; color: var(--text-tertiary); margin-left: 4px;">给自动化流水线</span>
-      </button>
+    <!-- Four Format Cards -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;">
+      <div id="fmt-prompt" class="format-card" onclick="switchFormat('prompt')" style="cursor: pointer;">
+        <div style="font-size: 20px; margin-bottom: 6px;">🤖</div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Prompt 前缀</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">给 AI 编程工具</div>
+        <div id="status-prompt" style="margin-top: 8px; font-size: 11px; color: var(--text-tertiary); font-weight: 600;">⏳ 待编译</div>
+      </div>
+      <div id="fmt-schema" class="format-card" onclick="switchFormat('schema')" style="cursor: pointer;">
+        <div style="font-size: 20px; margin-bottom: 6px;">📐</div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">JSON Schema</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">给结构校验器</div>
+        <div id="status-schema" style="margin-top: 8px; font-size: 11px; color: var(--text-tertiary); font-weight: 600;">⏳ 待编译</div>
+      </div>
+      <div id="fmt-checklist" class="format-card" onclick="switchFormat('checklist')" style="cursor: pointer;">
+        <div style="font-size: 20px; margin-bottom: 6px;">📋</div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Checklist</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">给设计师走查</div>
+        <div id="status-checklist" style="margin-top: 8px; font-size: 11px; color: var(--text-tertiary); font-weight: 600;">⏳ 待编译</div>
+      </div>
+      <div id="fmt-ci" class="format-card" onclick="switchFormat('ci')" style="cursor: pointer;">
+        <div style="font-size: 20px; margin-bottom: 6px;">🔧</div>
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">CI 规则</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">给自动化流水线</div>
+        <div id="status-ci" style="margin-top: 8px; font-size: 11px; color: var(--text-tertiary); font-weight: 600;">⏳ 待编译</div>
+      </div>
     </div>
 
-    <!-- Format: Prompt -->
-    <div id="fmt-prompt" class="format-content active">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">编译产物 · Prompt 前缀</p>
-          <div class="yaml-block" style="font-size: 12px; line-height: 1.7;">
-<pre style="white-space: pre-wrap; margin: 0;">【语义约束前缀 · ERR-001】
+    <!-- Format Content Display -->
+    <div id="format-display" style="display: none;">
+      <div style="display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--border);">
+        <button class="tab-btn active" onclick="switchFormat('prompt')" data-fmt="prompt">Prompt 前缀</button>
+        <button class="tab-btn" onclick="switchFormat('schema')" data-fmt="schema">JSON Schema</button>
+        <button class="tab-btn" onclick="switchFormat('checklist')" data-fmt="checklist">Checklist</button>
+        <button class="tab-btn" onclick="switchFormat('ci')" data-fmt="ci">CI 规则</button>
+      </div>
 
-在生成任何错误状态界面时，必须遵守以下语义分级：
+      <!-- Prompt Prefix -->
+      <div id="content-prompt" class="tab-content active">
+        <p style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 10px; font-weight: 600;">机器形态 1：Prompt 前缀（给 AI 编程工具）— 自动注入 Claude Code / Cursor 上下文</p>
+        <div class="code-editor">
+<pre style="white-space: pre-wrap; margin: 0;"><span style="color: var(--text-tertiary);"># 由编译管线从 ERR-001.yaml 自动生成</span>
+<span style="color: var(--text-tertiary);"># 版本: v1.1.0 | 生成时间: 2026-07-12T13:40:00Z</span>
+
+<span style="color: var(--primary);">[SEMANTIC_CONSTRAINTS_START]</span>
+
+你在生成错误状态界面时，必须遵守以下语义分级规则：
 
 1. FATAL（系统级故障）：
-   - 颜色：status.critical（红色脉冲）
-   - 图标：alert.octagon
-   - 必须提供恢复路径（刷新/导出）
+   - 必须使用红色脉冲 + 八边形警告图标
+   - 必须提供恢复路径（刷新页面 / 导出历史）
+   - 禁止仅显示"出错了"等模糊文案
 
 2. TRANSIENT（网络抖动）：
-   - 颜色：status.neutral（灰色）
-   - 图标：loader（旋转）
+   - 必须使用灰色加载 + 旋转图标
    - 禁止红色背景
+   - 必须说明"系统正在自动恢复"
 
 3. RETRYABLE（限流）：
-   - 颜色：status.warning（黄色）
-   - 图标：clock
-   - 必须显示倒计时或升级入口
+   - 必须使用黄色提示 + 时钟图标
+   - 必须显示倒计时
+   - 必须提供升级入口
 
 4. DEGRADED（部分可用）：
-   - 颜色：status.info（蓝色）
-   - 图标：info.circle
-   - 必须说明可用功能
+   - 必须使用蓝色提示 + 信息图标
+   - 必须说明哪些功能仍然可用
+   - 必须提供"继续生成"选项
 
-【不可变边界】
-- 禁止：所有错误状态共用同一种红色视觉表达
-- 违反动作：BLOCK（直接拦截）</pre>
-          </div>
-        </div>
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">消费场景</p>
-          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-              <span style="font-size: 20px;">🤖</span>
-              <div>
-                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">AI 编程工具</div>
-                <div style="font-size: 12px; color: var(--text-tertiary);">Cursor / Copilot / v0</div>
-              </div>
-            </div>
-            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
-              Prompt 前缀在 AI 生成界面之前注入上下文。AI 不再按概率猜测颜色，而是按契约约束生成。约束从"需要被想起"变成"已经在场"。
-            </p>
-            <div style="margin-top: 12px; padding: 8px 12px; border-radius: 6px; background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.15);">
-              <div style="font-size: 12px; color: var(--primary); font-weight: 600;">注入方式：system prompt 前缀 / .cursorrules / 项目级 AI 指令</div>
-            </div>
-          </div>
+<span style="color: #cf1322; font-weight: 700;">不可变边界（强制执行）：</span>
+- 禁止所有错误状态共用同一种红色视觉表达
+- 每个错误级别必须提供明确的用户行动指引
+
+<span style="color: var(--primary);">[SEMANTIC_CONSTRAINTS_END]</span></pre>
         </div>
       </div>
-    </div>
 
-    <!-- Format: JSON Schema -->
-    <div id="fmt-schema" class="format-content">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">编译产物 · JSON Schema</p>
-          <div class="yaml-block" style="font-size: 12px; line-height: 1.7;">
-<pre style="white-space: pre-wrap; margin: 0;">{
-  "$id": "err-001.schema.json",
-  "title": "Error Severity Visual Mapping",
+      <!-- JSON Schema -->
+      <div id="content-schema" class="tab-content">
+        <p style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 10px; font-weight: 600;">机器形态 2：JSON Schema（给结构校验器）— CI 流水线校验组件 Props</p>
+        <div class="code-editor">
+<pre style="white-space: pre-wrap; margin: 0;"><span style="color: var(--text-tertiary);">// 由编译管线从 ERR-001.yaml 自动生成</span>
+<span style="color: var(--text-tertiary);">// 版本: v1.1.0</span>
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ErrorSeveritySchema",
   "type": "object",
   "properties": {
     "error_severity": {
       "type": "string",
-      "enum": ["fatal", "transient", "retryable", "degraded"]
+      "enum": ["fatal", "transient", "retryable", "degraded"],
+      "description": "错误严重程度级别"
     },
     "visual_mapping": {
       "type": "object",
       "properties": {
         "color_token": {
           "type": "string",
-          "enum": [
-            "status.critical",
-            "status.neutral",
-            "status.warning",
-            "status.info"
-          ]
+          "enum": ["status.critical", "status.neutral", "status.warning", "status.info"]
         },
-        "motion_token": {
-          "type": "string"
-        },
-        "icon_token": {
-          "type": "string"
-        }
+        "motion_token": { "type": "string" },
+        "icon_token": { "type": "string" }
       },
       "required": ["color_token", "icon_token"]
+    },
+    "user_action": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string" },
+          "action": { "type": "string" }
+        },
+        "required": ["label", "action"]
+      }
     }
   },
-  "allOf": [
-    {
-      "if": {
+  "required": ["error_severity", "visual_mapping", "user_action"],
+  <span style="color: #cf1322;">"if": {
+    "properties": { "error_severity": { "const": "retryable" } }
+  },
+  "then": {
+    "properties": {
+      "visual_mapping": {
         "properties": {
-          "error_severity": { "const": "retryable" }
-        }
-      },
-      "then": {
-        "properties": {
-          "visual_mapping": {
-            "properties": {
-              "color_token": { "not": { "const": "status.critical" } }
-            }
-          }
+          "color_token": { "not": { "const": "status.critical" } }
         }
       }
     }
-  ]
+  }</span>
 }</pre>
-          </div>
         </div>
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">消费场景</p>
-          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-              <span style="font-size: 20px;">📐</span>
-              <div>
-                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">结构校验器</div>
-                <div style="font-size: 12px; color: var(--text-tertiary);">TypeScript / Zod / AJV</div>
-              </div>
+      </div>
+
+      <!-- Checklist -->
+      <div id="content-checklist" class="tab-content">
+        <p style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 10px; font-weight: 600;">机器形态 3：Checklist（给设计师走查）— 可打印的逐项核对清单</p>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div class="checklist-row">
+            <div class="checklist-box checked"></div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">错误状态是否有颜色区分</div>
+              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">合格标准：不能全是红色</div>
             </div>
-            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
-              JSON Schema 在前端编码时实时校验。当开发者传入非法的 color_token 组合时，编辑器直接标红，类型系统拒绝编译通过。
-            </p>
-            <div style="margin-top: 12px; padding: 8px 12px; border-radius: 6px; background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.15);">
-              <div style="font-size: 12px; color: var(--primary); font-weight: 600;">校验时机：编码时实时 / 构建时静态分析</div>
+            <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">ERR-001 § error_severity</span>
+          </div>
+          <div class="checklist-row">
+            <div class="checklist-box checked"></div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">fatal 级别是否提供恢复路径</div>
+              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">合格标准：必须有"刷新页面"或"导出历史"</div>
             </div>
+            <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">ERR-001 § fatal.user_action</span>
+          </div>
+          <div class="checklist-row">
+            <div class="checklist-box checked"></div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">transient 级别是否使用红色</div>
+              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">合格标准：禁止使用红色背景</div>
+            </div>
+            <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">ERR-001 § transient.llm_constraints</span>
+          </div>
+          <div class="checklist-row">
+            <div class="checklist-box"></div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">retryable 级别是否显示倒计时</div>
+              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">合格标准：必须显示剩余等待时间</div>
+            </div>
+            <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">ERR-001 § retryable.llm_constraints</span>
+          </div>
+          <div class="checklist-row">
+            <div class="checklist-box"></div>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">degraded 级别是否说明可用功能</div>
+              <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">合格标准：必须说明哪些功能仍然可用</div>
+            </div>
+            <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">ERR-001 § degraded.llm_constraints</span>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Format: Checklist -->
-    <div id="fmt-checklist" class="format-content">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">编译产物 · Checklist</p>
-          <div class="yaml-block" style="font-size: 12px; line-height: 1.7;">
-<pre style="white-space: pre-wrap; margin: 0;">错误状态走查清单（ERR-001）
+      <!-- CI Rules -->
+      <div id="content-ci" class="tab-content">
+        <p style="font-size: 12px; color: var(--text-tertiary); margin-bottom: 10px; font-weight: 600;">机器形态 4：CI 规则（给自动化流水线）— GitHub Actions / ESLint 自动拦截</p>
+        <div class="code-editor">
+<pre style="white-space: pre-wrap; margin: 0;"><span style="color: var(--text-tertiary);"># .github/workflows/semantic-check.yml</span>
+<span style="color: var(--text-tertiary);"># 由编译管线从 ERR-001.yaml 自动生成</span>
 
-□ 是否区分了 Fatal/Transient/Retryable/Degraded 四级？
-□ 每级是否有不同的颜色（红/灰/黄/蓝）？
-□ 每级是否有明确的用户行动指引？
-□ Fatal 是否有恢复路径（刷新/导出）？
-□ Retryable 是否有倒计时或升级入口？
-□ 是否禁止了所有错误共用同一种红色？
-□ 是否引用了意图契约 ERR-001？
+name: Semantic Contract Check
+on: [pull_request]
 
-【严重级别速查表】
-┌───────────┬───────┬─────────────┬──────────────┐
-│ 级别      │ 颜色  │ 图标        │ 用户行动     │
-├───────────┼───────┼─────────────┼──────────────┤
-│ fatal     │ 红脉冲│ alert.octagon│ 刷新/导出   │
-│ transient │ 灰    │ loader      │ 等待/重试   │
-│ retryable │ 黄    │ clock       │ 倒计时/升级 │
-│ degraded  │ 蓝    │ info.circle │ 继续/简化   │
-└───────────┴───────┴─────────────┴──────────────┘</pre>
-          </div>
-        </div>
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">消费场景</p>
-          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-              <span style="font-size: 20px;">📋</span>
-              <div>
-                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">设计师走查</div>
-                <div style="font-size: 12px; color: var(--text-tertiary);">设计评审 / QA 验收</div>
-              </div>
-            </div>
-            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
-              Checklist 不是"规范文档的精简版"，而是"契约真身的消费视图"。设计师逐条勾选，每条都对应 YAML 中的一个语义令牌或不可变边界。
-            </p>
-            <div style="margin-top: 12px; padding: 8px 12px; border-radius: 6px; background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.15);">
-              <div style="font-size: 12px; color: var(--primary); font-weight: 600;">走查时机：设计评审 / 交付验收 / 回归测试</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+jobs:
+  semantic-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-    <!-- Format: CI -->
-    <div id="fmt-ci" class="format-content">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">编译产物 · CI 规则</p>
-          <div class="yaml-block" style="font-size: 12px; line-height: 1.7;">
-<pre style="white-space: pre-wrap; margin: 0;"># .github/workflows/semantic-pipeline.yml
-# 编译自：contract/err-001.yaml
+      - name: Load Semantic Contract
+        run: |
+          pip install semantic-pipeline
+          sp-load intent/err-001.yaml
 
-rules:
-  error-severity-color:
-    description: "禁止所有错误状态共用同一种红色"
-    selector: "[data-severity]"
-    mapping:
-      fatal:
-        color: "#cf1322"
-        bg: "rgba(207,19,34,0.15)"
-      transient:
-        color: "#a0a0a0"
-        bg: "#1e1e22"
-      retryable:
-        color: "#f5a623"
-        bg: "rgba(212,136,6,0.15)"
-      degraded:
-        color: "#4a9eff"
-        bg: "rgba(22,119,255,0.15)"
-    forbidden:
-      - selector: "[data-severity='retryable']"
-        forbidden_color: "#cf1322"
-        action: "block"
-        message: "限流提示禁止使用红色（status.critical）"
-      - selector: "[data-severity='transient']"
-        forbidden_color: "#cf1322"
-        action: "block"
-        message: "网络错误禁止使用红色"
+      - name: Check Error Severity Colors
+        run: |
+          sp-check \
+            --rule "error_severity_color" \
+            --forbid "status.critical" for "retryable" \
+            --forbid "status.critical" for "transient" \
+            --forbid "status.critical" for "degraded"
+        <span style="color: #cf1322;">failure(): |
+          echo "❌ 语义违规：错误状态颜色映射不符合契约"
+          echo "修正建议："
+          echo "  - retryable → status.warning（黄色）"
+          echo "  - transient → status.neutral（灰色）"
+          echo "  - degraded → status.info（蓝色）"
+          exit 1</span>
 
-  error-action-completeness:
-    description: "每个错误级别必须提供用户行动"
-    required_children:
-      - selector: "[data-action]"
-    action: "warn"
-    message: "错误状态缺少用户行动按钮"</pre>
-          </div>
-        </div>
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">消费场景</p>
-          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-              <span style="font-size: 20px;">⚙️</span>
-              <div>
-                <div style="font-size: 14px; font-weight: 700; color: var(--text-primary);">自动化流水线</div>
-                <div style="font-size: 12px; color: var(--text-tertiary);">GitHub Actions / GitLab CI</div>
-              </div>
-            </div>
-            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
-              CI 规则在代码合并前自动执行。不合规的提交被阻断，无法进入主分支。约束从"人记得检查"变成"机器强制执行"。
-            </p>
-            <div style="margin-top: 12px; padding: 8px 12px; border-radius: 6px; background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.15);">
-              <div style="font-size: 12px; color: var(--primary); font-weight: 600;">执行时机：PR 创建时 / 合并前 / 定时回归</div>
-            </div>
-          </div>
+      - name: Check User Actions
+        run: |
+          sp-check \
+            --rule "user_action_required" \
+            --min-actions 1 \
+            --require-labels ["刷新页面", "导出历史", "等待自动恢复"]
+        <span style="color: #cf1322;">failure(): |
+          echo "❌ 语义违规：错误状态缺少用户行动指引"
+          exit 1</span></pre>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ===== STEP 4: Machine Interception ===== -->
-  <div class="panel" style="margin-bottom: 24px;">
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-      <div class="step-badge">4</div>
-      <div>
-        <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary);">机器拦截现场</h3>
-        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">当 AI 试图生成违规内容时，四种形态如何接力拦截</p>
-      </div>
-    </div>
+  <!-- Machine Interception Scene -->
+  <h2 style="font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">机器拦截现场</h2>
+  <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; font-weight: 500;">当 AI 试图生成违规内容时，机器如何拦截？</p>
 
-    <!-- AI Input -->
-    <div style="background: linear-gradient(135deg, rgba(22,119,255,0.08), rgba(54,207,201,0.05)); border: 1px dashed rgba(22,119,255,0.3); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+    <!-- Without Contract -->
+    <div class="compare-card violation">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 18px;">🤖</span>
-          <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">AI 生成请求</span>
-        </div>
-        <button class="ai-generate-btn" onclick="runInterception()">模拟 AI 生成</button>
+        <span style="font-size: 13px; font-weight: 700; color: #ef4444;">❌ 未注入契约</span>
+        <span class="status-pill status-red">违规通过</span>
       </div>
-      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-bottom: 12px;">
-        AI 收到用户提示："生成一个请求过于频繁的错误提示"
-      </p>
-      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <select id="ai-severity" style="width: auto; padding: 8px 12px; font-size: 13px; cursor: pointer;">
-          <option value="retryable">AI 选择：retryable（限流）</option>
-          <option value="fatal">AI 选择：fatal（系统故障）</option>
-          <option value="transient">AI 选择：transient（网络错误）</option>
-          <option value="degraded">AI 选择：degraded（部分可用）</option>
-        </select>
-        <select id="ai-color" style="width: auto; padding: 8px 12px; font-size: 13px; cursor: pointer;">
-          <option value="wrong">AI 颜色：红色（status.critical）❌ 违规</option>
-          <option value="correct">AI 颜色：黄色（status.warning）✓ 合规</option>
-        </select>
+      <div style="background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.25); border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
+        <div style="font-size: 13px; color: #cf1322; font-weight: 700;">⚠️ 请求过于频繁，系统出现严重错误</div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 500;">红色背景 · 无恢复指引 · 用户恐慌性刷新</div>
+      </div>
+      <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+        <div style="margin-bottom: 4px;">• AI 把 retryable 做成了 fatal 级别的视觉</div>
+        <div style="margin-bottom: 4px;">• 用户看到"严重错误"，以为数据丢失</div>
+        <div>• 其实等 30 秒就好，但用户 panic 了</div>
       </div>
     </div>
 
-    <!-- Interception Chain -->
-    <div id="interception-chain" style="display: none;">
-      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">四层拦截链路</p>
-
-      <!-- Layer 1: Prompt -->
-      <div class="interceptor-box interceptor-pass" id="layer-prompt" style="margin-bottom: 8px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 16px;">🤖</span>
-            <div>
-              <div style="font-size: 13px; font-weight: 700;">Layer 1 · Prompt 前缀注入</div>
-              <div style="font-size: 12px; opacity: 0.8; font-weight: 500;">AI 上下文已加载 ERR-001 约束</div>
-            </div>
-          </div>
-          <span id="status-prompt" style="font-size: 12px; font-weight: 700;">✓ 已注入</span>
-        </div>
+    <!-- With Contract -->
+    <div class="compare-card compliant">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <span style="font-size: 13px; font-weight: 700; color: #52c41a;">✓ 注入契约后</span>
+        <span class="status-pill status-green">合规生成</span>
       </div>
-      <div class="trace-line"></div>
-
-      <!-- Layer 2: AI Generation -->
-      <div class="interceptor-box" id="layer-ai" style="margin-bottom: 8px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 16px;">⚡</span>
-            <div>
-              <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Layer 2 · AI 生成决策</div>
-              <div id="ai-decision" style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">AI 生成 retryable 级别 + 红色背景</div>
-            </div>
-          </div>
-          <span id="status-ai" style="font-size: 12px; font-weight: 700;">...</span>
-        </div>
+      <div style="background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.25); border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
+        <div style="font-size: 13px; color: #f5a623; font-weight: 700;">⏱️ 请求过于频繁，请在 42 秒后重试</div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; font-weight: 500;">黄色提示 · 时钟图标 · 倒计时 + 升级入口</div>
       </div>
-      <div class="trace-line"></div>
-
-      <!-- Layer 3: Schema Validation -->
-      <div class="interceptor-box" id="layer-schema" style="margin-bottom: 8px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 16px;">📐</span>
-            <div>
-              <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Layer 3 · JSON Schema 校验</div>
-              <div id="schema-result" style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">等待校验...</div>
-            </div>
-          </div>
-          <span id="status-schema" style="font-size: 12px; font-weight: 700;">...</span>
-        </div>
-      </div>
-      <div class="trace-line"></div>
-
-      <!-- Layer 4: CI Block -->
-      <div class="interceptor-box" id="layer-ci" style="margin-bottom: 8px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 16px;">⚙️</span>
-            <div>
-              <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Layer 4 · CI 流水线拦截</div>
-              <div id="ci-result" style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">等待执行...</div>
-            </div>
-          </div>
-          <span id="status-ci" style="font-size: 12px; font-weight: 700;">...</span>
-        </div>
-      </div>
-
-      <!-- Final Result -->
-      <div id="final-result" style="margin-top: 16px; padding: 16px; border-radius: 10px; display: none;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span id="final-icon" style="font-size: 28px;"></span>
-          <div>
-            <div id="final-title" style="font-size: 16px; font-weight: 800;"></div>
-            <div id="final-desc" style="font-size: 13px; font-weight: 500; margin-top: 4px;"></div>
-          </div>
-        </div>
+      <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.7; font-weight: 500;">
+        <div style="margin-bottom: 4px;">• 机器先查 ERR-001.yaml → 匹配 retryable</div>
+        <div style="margin-bottom: 4px;">• 拦截：禁止用"严重"描述限流，禁止红色</div>
+        <div>• 返回修正建议 → AI 重新生成合规内容</div>
       </div>
     </div>
   </div>
 
-  <!-- ===== STEP 5: Summary ===== -->
+  <!-- Interceptor Log -->
   <div class="panel" style="margin-bottom: 32px;">
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-      <div class="step-badge">5</div>
-      <div>
-        <h3 style="font-size: 18px; font-weight: 700; color: var(--text-primary);">编译即规则</h3>
-        <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">一份 YAML，四种机器形态，一个拦截现场</p>
-      </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+      <h3 style="font-size: 14px; font-weight: 700; color: var(--text-primary);">拦截日志</h3>
+      <button class="btn-outline" onclick="toggleLog()" id="log-toggle">展开日志</button>
     </div>
-
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
-      <div style="text-align: center; padding: 20px 12px; border-radius: 10px; border: 1px solid var(--border); background: #16161a;">
-        <div style="font-size: 28px; margin-bottom: 8px;">🤖</div>
-        <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Prompt 前缀</div>
-        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">给 AI 编程工具</div>
-        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">生成前注入</div>
-      </div>
-      <div style="text-align: center; padding: 20px 12px; border-radius: 10px; border: 1px solid var(--border); background: #16161a;">
-        <div style="font-size: 28px; margin-bottom: 8px;">📐</div>
-        <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">JSON Schema</div>
-        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">给结构校验器</div>
-        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">编码时校验</div>
-      </div>
-      <div style="text-align: center; padding: 20px 12px; border-radius: 10px; border: 1px solid var(--border); background: #16161a;">
-        <div style="font-size: 28px; margin-bottom: 8px;">📋</div>
-        <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Checklist</div>
-        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">给设计师走查</div>
-        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">交付时复查</div>
-      </div>
-      <div style="text-align: center; padding: 20px 12px; border-radius: 10px; border: 1px solid var(--border); background: #16161a;">
-        <div style="font-size: 28px; margin-bottom: 8px;">⚙️</div>
-        <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">CI 规则</div>
-        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">给自动化流水线</div>
-        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">合并前阻断</div>
-      </div>
-    </div>
-
-    <div style="padding: 14px 18px; border-radius: 8px; background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2);">
-      <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">核心结论</div>
-      <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.8; font-weight: 500;">
-        YAML 契约不是"规范文档的代码格式"，而是<strong style="color: var(--primary);">设计意图的接口定义</strong>。它定义了机器能理解的语义接口，经编译管线翻译为四种消费格式，在四个不同环节接力拦截语义漂移。<br><br>
-        同一份 ERR-001.yaml，AI 读 Prompt 前缀、校验器读 JSON Schema、设计师读 Checklist、流水线读 CI 规则——<strong style="color: var(--primary);">真身只有一份，消费格式无限</strong>。
-      </div>
+    <div id="interceptor-log" class="interceptor-log" style="display: none;">
+      <div class="log-line"><span class="log-time">13:40:01</span><span class="log-info">[Compiler] 加载契约 intent/err-001.yaml (v1.1.0)</span></div>
+      <div class="log-line"><span class="log-time">13:40:01</span><span class="log-info">[Compiler] 查字典 → semantic_domain: "observational" ✓</span></div>
+      <div class="log-line"><span class="log-time">13:40:02</span><span class="log-info">[Compiler] 查字典 → semantic_tokens.error_severity: 4 级别已注册 ✓</span></div>
+      <div class="log-line"><span class="log-time">13:40:02</span><span class="log-info">[Compiler] 编译完成 → 输出 4 种机器形态</span></div>
+      <div class="log-line"><span class="log-time">13:40:03</span><span class="log-warn">[AI Generator] 生成内容: "请求过于频繁，系统出现严重错误"</span></div>
+      <div class="log-line"><span class="log-time">13:40:03</span><span class="log-warn">[Validator] 语义推演 → 检测到 retryable 级别使用 "严重" 文案</span></div>
+      <div class="log-line"><span class="log-time">13:40:03</span><span class="log-error">[Validator] 安全推演 → 检测到 retryable 级别使用 status.critical（红色）</span></div>
+      <div class="log-line"><span class="log-time">13:40:03</span><span class="log-error">[Validator] ❌ 违反不可变边界: safety → "禁止所有错误状态共用同一种红色视觉表达"</span></div>
+      <div class="log-line"><span class="log-time">13:40:03</span><span class="log-error">[Validator] 🚫 BLOCKED → 返回错误码 SEM-001 + 修正建议</span></div>
+      <div class="log-line"><span class="log-time">13:40:04</span><span class="log-success">[AI Generator] 重新生成: "请求过于频繁，请在 42 秒后重试"</span></div>
+      <div class="log-line"><span class="log-time">13:40:04</span><span class="log-success">[Validator] ✓ 语义推演通过 · ✓ 安全推演通过 · ✓ 美感推演通过</span></div>
+      <div class="log-line"><span class="log-time">13:40:04</span><span class="log-success">[Validator] ✅ 输出合规 → 允许合并</span></div>
     </div>
   </div>
 
   <!-- Bottom CTA -->
   <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
     <div>
-      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">编译演示完成，下一步？</p>
-      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">去契约库查看全部模式，或进入验证实验室测试拦截效果</p>
+      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">契约编译完成，下一步？</p>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">去验证实验室测试机器拦截效果，或查看消费状态追踪</p>
     </div>
     <a href="https://2436041978-ops.github.io/semantic-pipeline/" class="btn-primary">返回 Schema-As-Code →</a>
   </div>
@@ -1073,137 +898,83 @@ rules:
 </div>
 
 <script>
-// ===== Compile Pipeline =====
-function runCompile() {
-  const btn = document.getElementById('compile-btn');
-  const viz = document.getElementById('pipeline-viz');
+let compiled = false;
+let currentFormat = 'prompt';
 
-  btn.innerHTML = '<span>⚡</span> 编译中...';
-  btn.style.opacity = '0.7';
+function runCompile() {
+  if (compiled) return;
+  compiled = true;
+
+  const btn = document.getElementById('compile-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> 编译中...';
+
+  document.getElementById('node-source').classList.add('active');
 
   setTimeout(() => {
-    viz.style.display = 'block';
-    viz.classList.add('fade-in');
-    btn.innerHTML = '<span>✓</span> 编译完成';
-    btn.classList.add('compiled');
-    btn.style.opacity = '1';
-    btn.disabled = true;
-    btn.style.cursor = 'default';
+    document.getElementById('conn-1').classList.add('flowing');
+    document.getElementById('node-compiler').classList.add('active');
+  }, 400);
+
+  setTimeout(() => {
+    document.getElementById('conn-2').classList.add('flowing');
+    document.getElementById('node-outputs').classList.add('active');
   }, 800);
+
+  setTimeout(() => {
+    ['prompt','schema','checklist','ci'].forEach((fmt, i) => {
+      setTimeout(() => {
+        const card = document.getElementById('fmt-' + fmt);
+        const status = document.getElementById('status-' + fmt);
+        card.classList.add('active');
+        card.classList.add('pulse-ring');
+        status.textContent = '✓ 已编译';
+        status.style.color = '#52c41a';
+        setTimeout(() => card.classList.remove('pulse-ring'), 2000);
+      }, i * 200);
+    });
+
+    setTimeout(() => {
+      document.getElementById('format-display').style.display = 'block';
+      btn.innerHTML = '<span>✓</span> 编译完成';
+      btn.style.background = '#52c41a';
+    }, 1000);
+  }, 1200);
 }
 
-function showFormat(fmt) {
-  switchFormat(fmt, document.querySelector('.format-tab[onclick*="' + fmt + '"]'));
-  document.querySelector('.panel:nth-of-type(3)').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+function switchFormat(fmt) {
+  currentFormat = fmt;
 
-// ===== Format Switching =====
-function switchFormat(fmt, el) {
-  document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
-  if (el) el.classList.add('active');
-  document.querySelectorAll('.format-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.fmt === fmt) btn.classList.add('active');
+  });
+
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('content-' + fmt).classList.add('active');
+
+  document.querySelectorAll('.format-card').forEach(c => c.classList.remove('active'));
   document.getElementById('fmt-' + fmt).classList.add('active');
 }
 
-// ===== Interception Simulation =====
-function runInterception() {
-  const chain = document.getElementById('interception-chain');
-  const severity = document.getElementById('ai-severity').value;
-  const color = document.getElementById('ai-color').value;
-
-  chain.style.display = 'block';
-  chain.classList.add('fade-in');
-
-  // Reset all
-  ['prompt','ai','schema','ci'].forEach(id => {
-    const el = document.getElementById('layer-' + id);
-    el.className = 'interceptor-box interceptor-pass';
-    el.style.opacity = '0.4';
-  });
-  ['status-prompt','status-ai','status-schema','status-ci'].forEach(id => {
-    document.getElementById(id).textContent = '...';
-  });
-  document.getElementById('final-result').style.display = 'none';
-
-  const isWrong = color === 'wrong';
-  const severityLabel = {
-    'fatal': 'fatal（系统故障）',
-    'transient': 'transient（网络错误）',
-    'retryable': 'retryable（限流）',
-    'degraded': 'degraded（部分可用）'
-  }[severity];
-
-  // Layer 1: Prompt (always pass - it's just injection)
-  setTimeout(() => {
-    document.getElementById('layer-prompt').style.opacity = '1';
-    document.getElementById('status-prompt').textContent = '✓ 已注入';
-  }, 200);
-
-  // Layer 2: AI Generation
-  setTimeout(() => {
-    document.getElementById('layer-ai').style.opacity = '1';
-    document.getElementById('ai-decision').textContent = 
-      'AI 生成 ' + severityLabel + ' + ' + (isWrong ? '红色背景（status.critical）' : '合规颜色');
-    document.getElementById('status-ai').textContent = isWrong ? '⚠️ 违规生成' : '✓ 合规生成';
-    if (isWrong) {
-      document.getElementById('layer-ai').className = 'interceptor-box interceptor-warn';
-    }
-  }, 600);
-
-  // Layer 3: Schema
-  setTimeout(() => {
-    document.getElementById('layer-schema').style.opacity = '1';
-    if (isWrong && severity !== 'fatal') {
-      document.getElementById('schema-result').textContent = 
-        severity + ' 级别禁止使用 status.critical（红色）→ 校验失败';
-      document.getElementById('status-schema').textContent = '✗ BLOCKED';
-      document.getElementById('layer-schema').className = 'interceptor-box interceptor-block';
-    } else {
-      document.getElementById('schema-result').textContent = 
-        'color_token 与 severity 级别匹配 → 校验通过';
-      document.getElementById('status-schema').textContent = '✓ 通过';
-    }
-  }, 1200);
-
-  // Layer 4: CI
-  setTimeout(() => {
-    document.getElementById('layer-ci').style.opacity = '1';
-    if (isWrong && severity !== 'fatal') {
-      document.getElementById('ci-result').textContent = 
-        '检测到 "' + severity + '" 使用了 #cf1322（红色）→ 阻断合并';
-      document.getElementById('status-ci').textContent = '✗ 已阻断';
-      document.getElementById('layer-ci').className = 'interceptor-box interceptor-block';
-    } else {
-      document.getElementById('ci-result').textContent = 
-        '所有错误状态颜色合规 → 允许合并';
-      document.getElementById('status-ci').textContent = '✓ 通过';
-    }
-  }, 1800);
-
-  // Final Result
-  setTimeout(() => {
-    const final = document.getElementById('final-result');
-    final.style.display = 'block';
-    final.classList.add('fade-in');
-
-    if (isWrong && severity !== 'fatal') {
-      final.className = 'interceptor-box interceptor-block';
-      document.getElementById('final-icon').textContent = '🚫';
-      document.getElementById('final-title').textContent = '拦截成功 · 违规内容未到达用户';
-      document.getElementById('final-title').style.color = '#cf1322';
-      document.getElementById('final-desc').textContent = 
-        'Schema 校验器在编码时发现颜色不匹配，CI 流水线阻断合并。错误在到达生产环境前被消灭。';
-      document.getElementById('final-desc').style.color = 'var(--text-secondary)';
-    } else {
-      final.className = 'interceptor-box interceptor-pass';
-      document.getElementById('final-icon').textContent = '✓';
-      document.getElementById('final-title').textContent = '生成合规 · 所有检查通过';
-      document.getElementById('final-title').style.color = '#52c41a';
-      document.getElementById('final-desc').textContent = 
-        'AI 生成的颜色与 severity 级别匹配，Schema 校验通过，CI 流水线允许合并。';
-      document.getElementById('final-desc').style.color = 'var(--text-secondary)';
-    }
-  }, 2400);
+function toggleLog() {
+  const log = document.getElementById('interceptor-log');
+  const btn = document.getElementById('log-toggle');
+  if (log.style.display === 'none') {
+    log.style.display = 'block';
+    btn.textContent = '收起日志';
+    const lines = log.querySelectorAll('.log-line');
+    lines.forEach((line, i) => {
+      line.style.opacity = '0';
+      setTimeout(() => {
+        line.style.transition = 'opacity 0.3s';
+        line.style.opacity = '1';
+      }, i * 80);
+    });
+  } else {
+    log.style.display = 'none';
+    btn.textContent = '展开日志';
+  }
 }
 </script>
 

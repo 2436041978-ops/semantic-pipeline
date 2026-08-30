@@ -10,7 +10,7 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   :root {
-    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
     --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
     --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
     --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
@@ -30,7 +30,7 @@
   .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
   .card:active { transform: scale(0.98); }
   .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
-  .collapsible-content.open { max-height: 6000px; opacity: 1; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
   .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
   .chevron.rotated { transform: rotate(180deg); }
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
@@ -47,24 +47,14 @@
   .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
   .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
   .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
-  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 11px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .code-block pre { white-space: pre-wrap; margin: 0; }
-  .scroll-hint { display: flex; justify-content: center; gap: 4px; margin-top: 10px; }
-  .scroll-hint-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); transition: background 0.3s ease, transform 0.3s ease; }
-  .scroll-hint-dot.active { background: var(--primary); transform: scale(1.3); }
-  .h-scroll { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 2px 4px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
-  .h-scroll::-webkit-scrollbar { display: none; }
-  .h-scroll > * { flex-shrink: 0; }
-  .h-card { width: 230px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: transform 0.15s ease, border-color 0.2s ease; }
-  .h-card:active { transform: scale(0.97); }
   .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
   .divider { height: 1px; background: var(--border); margin: 16px 0; }
-  .gate-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; }
-  .mobile-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .mobile-table th { text-align: left; padding: 8px 10px; color: var(--text-tertiary); font-weight: 700; border-bottom: 1px solid var(--border-light); white-space: nowrap; }
-  .mobile-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
-  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px; }
+  .tc { display: flex; align-items: flex-start; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; }
+  .tc-id { font-size: 10px; font-weight: 800; color: #f5a623; white-space: nowrap; margin-top: 1px; }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -73,511 +63,218 @@
   <div style="padding: 12px 16px;">
     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
       <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
-      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code 语义编码层 · ③</span>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 主题 ④</span>
     </div>
-    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">契约的机器防线</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Machine Defenses</span></h1>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">契约的机器防线</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Machine Defense</span></h1>
     <p class="text-caption" style="color: var(--text-tertiary);">契约不是文档，是机器执行的拦截规则</p>
   </div>
 </div>
 
 <div style="padding: 0 16px;">
 
-  <!-- 三道闸总览 -->
+  <!-- 导语 -->
   <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
     <div style="padding: 16px;">
-      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 12px;">
-        契约从创建到消费的每一步都有机器校验兜底——<span style="color: var(--text-primary); font-weight: 700;">入口防呆、入库校验、同步对账</span>，三道闸贯穿契约全生命周期。
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
+        契约的 7 个字段冻结、单一来源编译、产物禁止手改——这些规则写在规范里，不等于被机器守住了。本页验证：机器在契约全生命周期中，能否自动守住<span style="color: var(--text-primary); font-weight: 700;">结构、语义、同步三道闸</span>。
       </p>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span class="gate-chip" style="background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3);">2.1 入口防呆</span>
-          <span class="text-micro" style="color: var(--text-tertiary);">格式错误在表单层消除</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span class="gate-chip" style="background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3);">2.2 入库校验</span>
-          <span class="text-micro" style="color: var(--text-tertiary);">五项前置校验拦截非法契约</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span class="gate-chip" style="background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3);">2.3 同步防线</span>
-          <span class="text-micro" style="color: var(--text-tertiary);">产物与源契约持续一致</span>
-        </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;">
+        <span class="badge badge-blue">🛡️ 第一道闸 · 入口防呆</span>
+        <span class="badge badge-amber">🔍 第二道闸 · 入库安检</span>
+        <span class="badge badge-purple">🔒 第三道闸 · 同步防线</span>
       </div>
     </div>
   </div>
 
-  <!-- ============ 2.1 入口防呆 ============ -->
-  <div style="margin: 20px 0 12px; display: flex; align-items: center; gap: 10px;">
-    <span class="badge badge-blue">GATE 1</span>
-    <h2 class="text-h2">2.1 入口防呆 · 契约编辑器</h2>
+  <!-- 演示进度 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 14px 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🎬 自动演示 · 15 组对抗用例</p>
+        <span class="badge badge-green">15 / 15 全部通过</span>
+      </div>
+      <div style="height: 6px; background: #2a2a2e; border-radius: 3px; overflow: hidden;">
+        <div style="height: 100%; width: 100%; border-radius: 3px; background: #52c41a;"></div>
+      </div>
+    </div>
   </div>
 
-  <!-- 5 步表单 -->
+  <!-- 第一道闸 -->
   <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('editor')">
+    <div style="padding: 16px;" onclick="toggleCollapse('g1')">
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">✎</div>
-          <h2 class="text-h3">编辑器 5 步表单</h2>
+          <span class="badge badge-blue">第一道闸</span>
+          <h2 class="text-h2">入口防呆</h2>
         </div>
-        <svg class="chevron" id="chevron-editor" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <svg class="chevron" id="chevron-g1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">所有关键字段下拉选择，不可自由输入</p>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">写的时候，格式错误在产生前就消除 · TC-001 ~ TC-006</p>
     </div>
-    <div class="collapsible-content" id="content-editor">
+    <div class="collapsible-content" id="content-g1">
       <div style="padding: 0 16px 16px;">
         <div class="divider"></div>
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="width: 20px; height: 20px; border-radius: 5px; background: var(--primary); color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;">1</span>
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">选组件类型</p>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">下拉：Alert / Button / Modal / Toast …（字典注册项）</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="width: 20px; height: 20px; border-radius: 5px; background: var(--primary); color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;">2</span>
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">选覆盖层</p>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">下拉：transactional / observational / navigational / conversational</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="width: 20px; height: 20px; border-radius: 5px; background: var(--primary); color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;">3</span>
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">填语义令牌 <span class="badge badge-red" style="padding: 1px 6px; font-size: 10px;">必填</span></p>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">color_token / motion_token 从令牌表下拉，✓ hint 实时提示合法性</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="width: 20px; height: 20px; border-radius: 5px; background: var(--primary); color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;">4</span>
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">填不可变边界</p>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">boundary_type + violation_action（block / warn）</p>
-          </div>
-          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="width: 20px; height: 20px; border-radius: 5px; background: #52c41a; color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;">5</span>
-              <p class="text-caption" style="color: #52c41a; font-weight: 700;">生成 YAML</p>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">表单输出即合法契约，格式错误在产生前就被消除</p>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">契约表单生成器 · 入口防呆</p>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <p class="text-micro" style="color: var(--text-secondary);">意图编号 <span style="color:#cf1322;">*</span>　版本号 <span style="color:#cf1322;">*</span>（SemVer x.y.z）</p>
+            <p class="text-micro" style="color: var(--text-secondary);">语义域 <span style="color:#cf1322;">*</span>　下拉：observational（观察型）/ transactional（事务型）/ navigational（导航型）</p>
+            <p class="text-micro" style="color: var(--text-secondary);">语义令牌 · fatal 级别描述 <span style="color:#cf1322;">*</span></p>
+            <p class="text-micro" style="color: var(--text-secondary);">不可变边界 · 规则 <span style="color:#cf1322;">*</span>　"禁止所有错误状态共用同一种红色视觉表达"</p>
+            <p class="text-micro" style="color: var(--text-secondary);">违反动作 <span style="color:#cf1322;">*</span>　下拉：block（阻断）/ warn（警告）/ escalate（升级审核）</p>
           </div>
         </div>
-        <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: var(--radius-sm); padding: 12px;">
-          <p class="text-caption" style="color: #4a9eff; font-weight: 600; line-height: 1.7;">防呆的核心：让人根本没有机会写出格式错误的契约——下拉只能选字典里已有的值。</p>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">对抗用例 · 全部在表单层拦截</p>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div class="tc"><span class="tc-id">TC-001</span><p class="text-micro" style="color: var(--text-secondary);"><span style="color: var(--text-primary); font-weight: 700;">缺必填字段</span>——契约缺 version 字段 → 表单提交按钮灰显</p></div>
+          <div class="tc"><span class="tc-id">TC-002</span><p class="text-micro" style="color: var(--text-secondary);"><span style="color: var(--text-primary); font-weight: 700;">版本号格式错误</span>——version: "1.0" → 提示请使用 SemVer x.y.z</p></div>
+          <div class="tc"><span class="tc-id">TC-003</span><p class="text-micro" style="color: var(--text-secondary);"><span style="color: var(--text-primary); font-weight: 700;">非法引用</span>——semantic_domain 选不存在的域 → 下拉无此选项</p></div>
+          <div class="tc"><span class="tc-id">TC-004</span><p class="text-micro" style="color: var(--text-secondary);"><span style="color: var(--text-primary); font-weight: 700;">字段层级挂错</span>——llm_constraints 挂错层级 → 表单结构强制根节点</p></div>
+          <div class="tc"><span class="tc-id">TC-005</span><p class="text-micro" style="color: var(--text-secondary);"><span style="color: var(--text-primary); font-weight: 700;">缺子字段</span>——fatal 级别缺 llm_constraints → 提示必须附带</p></div>
+          <div class="tc"><span class="tc-id">TC-006</span><p class="text-micro" style="color: var(--text-secondary);"><span style="color: var(--text-primary); font-weight: 700;">手写绕过</span>——手写 YAML 缺字段 → API 校验返回错误，阻断入库</p></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 手写 YAML 错误路径 -->
+  <!-- 第二道闸 -->
   <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('manual')">
+    <div style="padding: 16px;" onclick="toggleCollapse('g2')">
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 13px; font-weight: 800;">✗</div>
-          <h2 class="text-h3">绕过编辑器手写 YAML 会怎样</h2>
+          <span class="badge badge-amber">第二道闸</span>
+          <h2 class="text-h2">入库安检</h2>
         </div>
-        <svg class="chevron" id="chevron-manual" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <svg class="chevron" id="chevron-g2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">5 类典型格式错误及其后果</p>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">五项前置安检，任一不过即阻断 · TC-007 ~ TC-012</p>
     </div>
-    <div class="collapsible-content" id="content-manual">
+    <div class="collapsible-content" id="content-g2">
       <div style="padding: 0 16px 16px;">
         <div class="divider"></div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: #cf1322; font-weight: 700;">① 缺 immutable_boundaries</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">契约没有红线，等于没有约束力 → 入库校验 FIELD_INCOMPLETE 拦截</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: #cf1322; font-weight: 700;">② version: "1.0" 非 SemVer</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">版本对账依赖三段式语义化版本 → 字段级校验直接拒绝</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: #cf1322; font-weight: 700;">③ llm_constraints 挂错层级</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">约束挂在 visual_mapping 下，编译器找不到 → SCHEMA_VIOLATION</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: #cf1322; font-weight: 700;">④ "文案要友好一点"不可判定</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">主观描述无法编译为机器规则 → description 必须含现象+根因+后果</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #cf1322; border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: #cf1322; font-weight: 700;">⑤ 无现象+根因+后果</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">字段级校验要求 description 三要素齐全，缺一不可入库</p>
-          </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">五项安检流程</p>
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;"><span style="color:#4a9eff; font-weight:800;">1</span><p class="text-micro" style="color: var(--text-secondary); flex:1;"><span style="color: var(--text-primary); font-weight: 700;">覆盖层存在性</span>——semantic_domain 是否在字典预定义列表中</p></div>
+          <div style="display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;"><span style="color:#4a9eff; font-weight:800;">2</span><p class="text-micro" style="color: var(--text-secondary); flex:1;"><span style="color: var(--text-primary); font-weight: 700;">绑定存在性</span>——契约引用的语义绑定是否都在字典中已定义</p></div>
+          <div style="display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;"><span style="color:#4a9eff; font-weight:800;">3</span><p class="text-micro" style="color: var(--text-secondary); flex:1;"><span style="color: var(--text-primary); font-weight: 700;">场景一致性</span>——场景映射是否指向字典中已定义的覆盖层</p></div>
+          <div style="display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;"><span style="color:#4a9eff; font-weight:800;">4</span><p class="text-micro" style="color: var(--text-secondary); flex:1;"><span style="color: var(--text-primary); font-weight: 700;">字段完整性</span>——7 个顶层字段齐全、版本号符合 SemVer x.y.z</p></div>
+          <div style="display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;"><span style="color:#4a9eff; font-weight:800;">5</span><p class="text-micro" style="color: var(--text-secondary); flex:1;"><span style="color: var(--text-primary); font-weight: 700;">结构合法性</span>——YAML 语法、缩进、类型符合 intent-schema.json</p></div>
+        </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">对抗用例 · 全部在入库前拦截</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <div class="tc"><span class="tc-id">TC-007</span><p class="text-micro" style="color: var(--text-secondary);">覆盖层不存在</p></div>
+          <div class="tc"><span class="tc-id">TC-008</span><p class="text-micro" style="color: var(--text-secondary);">绑定不存在</p></div>
+          <div class="tc"><span class="tc-id">TC-009</span><p class="text-micro" style="color: var(--text-secondary);">场景不一致</p></div>
+          <div class="tc"><span class="tc-id">TC-010</span><p class="text-micro" style="color: var(--text-secondary);">字段不完整</p></div>
+          <div class="tc"><span class="tc-id">TC-011</span><p class="text-micro" style="color: var(--text-secondary);">结构不合法</p></div>
+          <div class="tc"><span class="tc-id">TC-012</span><p class="text-micro" style="color: var(--text-secondary);">语义不可判定</p></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 表单校验规则 -->
+  <!-- 第三道闸 -->
   <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('formrules')">
+    <div style="padding: 16px;" onclick="toggleCollapse('g3')">
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">≡</div>
-          <h2 class="text-h3">表单校验规则</h2>
+          <span class="badge badge-purple">第三道闸</span>
+          <h2 class="text-h2">同步防线</h2>
         </div>
-        <svg class="chevron" id="chevron-formrules" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <svg class="chevron" id="chevron-g3" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">字段级 + 令牌级两层规则</p>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">单一来源对账 · TC-013 ~ TC-015 · 5 分钟内告警并阻断</p>
     </div>
-    <div class="collapsible-content" id="content-formrules">
+    <div class="collapsible-content" id="content-g3">
       <div style="padding: 0 16px 16px;">
         <div class="divider"></div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">字段级</p>
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <p class="text-micro" style="color: var(--text-primary); font-weight: 700; font-family: 'SF Mono', monospace;">intent_id → [A-Z]{3}-\d{3}</p>
-            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">如 ERR-001、ACT-001，正则实时校验</p>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">版本声明对账</p>
+        <div style="background: #0d0d0d; border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <p class="text-micro" style="color: #6abe4a; font-weight: 700;">契约库 · 唯一事实来源</p>
+          <p class="text-micro" style="color: var(--text-secondary);">ERR-001.yaml · 版本 v1.1.0 · 更新于 2026-07-12</p>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">🤖 AI 编程工具</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">Prompt 前缀</p>
+            <p class="text-micro" style="color: #6abe4a; font-weight: 700;">v1.1.0 ✓ 最新</p>
           </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <p class="text-micro" style="color: var(--text-primary); font-weight: 700; font-family: 'SF Mono', monospace;">semantic_domain → 下拉自字典</p>
-            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">只能选已注册的四个覆盖层</p>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">📐 前端工程</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">JSON Schema</p>
+            <p class="text-micro" style="color: #6abe4a; font-weight: 700;">v1.1.0 ✓ 最新</p>
           </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <p class="text-micro" style="color: var(--text-primary); font-weight: 700; font-family: 'SF Mono', monospace;">version → SemVer 三段式</p>
-            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">v1.1.0 合法，"1.0" 拒绝</p>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">📋 设计走查</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">Checklist</p>
+            <p class="text-micro" style="color: #6abe4a; font-weight: 700;">v1.1.0 ✓ 最新</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">⚙️ CI 流水线</p>
+            <p class="text-micro" style="color: var(--text-tertiary);">GitHub Actions</p>
+            <p class="text-micro" style="color: #6abe4a; font-weight: 700;">v1.1.0 ✓ 最新</p>
           </div>
         </div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">令牌级</p>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">description / visual_mapping / llm_constraints 必填</p>
-            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">缺任一字段无法提交</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">tokens 全部下拉自令牌表</p>
-            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">color_token、motion_token、icon_token 不可手输</p>
-          </div>
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">对抗用例 · 机器 5 分钟内告警并阻断</p>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div class="tc"><span class="tc-id">TC-013</span><p class="text-micro" style="color: var(--text-secondary);"><span style="color: var(--text-primary); font-weight: 700;">下游过期</span>——契约 v1.1.0，某产品线仍在消费 v1.0.0</p></div>
+          <div class="tc"><span class="tc-id">TC-014</span><p class="text-micro" style="color: var(--text-secondary);"><span style="color: var(--text-primary); font-weight: 700;">手改产物</span>——直接修改 compiled/ 下的文件</p></div>
+          <div class="tc"><span class="tc-id">TC-015</span><p class="text-micro" style="color: var(--text-secondary);"><span style="color: var(--text-primary); font-weight: 700;">编译记录缺失</span>——编译产物存在，但编译记录被删除</p></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ============ 2.2 入库校验 ============ -->
-  <div style="margin: 20px 0 12px; display: flex; align-items: center; gap: 10px;">
-    <span class="badge badge-purple">GATE 2</span>
-    <h2 class="text-h2">2.2 入库校验 · 五项前置校验</h2>
-  </div>
-
-  <!-- 统计 -->
-  <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-    <div class="card" style="flex: 1; text-align: center; padding: 12px 4px;">
-      <p class="text-h1" style="color: #52c41a;">6/6</p>
-      <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">对抗用例全部拦截</p>
-    </div>
-    <div class="card" style="flex: 1; text-align: center; padding: 12px 4px;">
-      <p class="text-h1" style="color: #52c41a;">100%</p>
-      <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">拦截率</p>
-    </div>
-    <div class="card" style="flex: 1; text-align: center; padding: 12px 4px;">
-      <p class="text-h1" style="color: var(--primary);">5</p>
-      <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">校验项</p>
-    </div>
-  </div>
-
-  <!-- 五项校验 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('five')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #a855f7, #1677ff); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">5</div>
-          <h2 class="text-h3">五项前置校验（含拦截实例）</h2>
-        </div>
-        <svg class="chevron" id="chevron-five" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">非法契约能被拦住吗？——逐项验证</p>
-    </div>
-    <div class="collapsible-content" id="content-five">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">① 覆盖层存在性</p>
-              <span class="badge badge-red" style="font-size: 10px;">SEMANTIC_DOMAIN_UNDEFINED</span>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">写入 <span style="font-family: 'SF Mono', monospace;">semantic_domain: custom_domain</span> → 字典无此覆盖层，拦截</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">② 绑定存在性</p>
-              <span class="badge badge-red" style="font-size: 10px;">BINDING_UNDEFINED</span>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">引用 <span style="font-family: 'SF Mono', monospace;">status.unknown</span> → 令牌表无此绑定，拦截</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">③ 场景一致性</p>
-              <span class="badge badge-red" style="font-size: 10px;">SCENARIO_DOMAIN_MISMATCH</span>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">transactional 场景引用 observational 专属令牌 → 跨层引用，拦截</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">④ 字段完整性</p>
-              <span class="badge badge-red" style="font-size: 10px;">FIELD_INCOMPLETE</span>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">缺 immutable_boundaries + version "1.0" 非 SemVer → 拦截</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">⑤ 结构合法性</p>
-              <span class="badge badge-red" style="font-size: 10px;">SCHEMA_VIOLATION</span>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">YAML 缩进错误 / 字段挂错层级 → Schema 校验不通过，拦截</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 错误响应格式 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('errresp')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #a855f7, #1677ff); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">{ }</div>
-          <h2 class="text-h3">错误响应格式</h2>
-        </div>
-        <svg class="chevron" id="chevron-errresp" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">每次拦截返回可定位的结构化错误</p>
-    </div>
-    <div class="collapsible-content" id="content-errresp">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <div class="code-block" style="font-size: 11px; padding: 10px;">
-<pre>{
-  "code": "BINDING_UNDEFINED",
-  "message": "引用的语义绑定 status.unknown 在令牌表中不存在",
-  "location": "semantic_tokens.error_severity.fatal.visual_mapping.color_token",
-  "severity": "error",
-  "action": "reject"
-}</pre>
-        </div>
-        <p class="text-micro" style="color: var(--text-tertiary); margin-top: 8px;">code 定责 · location 定位 · action 决定 reject / warn</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- 对抗用例表 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('adversarial')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #a855f7, #1677ff); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">⚔</div>
-          <h2 class="text-h3">6 组对抗用例</h2>
-        </div>
-        <svg class="chevron" id="chevron-adversarial" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">全部已拦截 · 左右滑动查看</p>
-    </div>
-    <div class="collapsible-content" id="content-adversarial">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <div class="table-scroll">
-          <table class="mobile-table" style="min-width: 560px;">
-            <thead>
-              <tr><th>#</th><th>攻击方式</th><th>拦截校验</th><th>错误码</th><th>结果</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>1</td><td>自定义覆盖层 custom_domain</td><td>① 覆盖层存在性</td><td style="font-family: 'SF Mono', monospace;">SEMANTIC_DOMAIN_UNDEFINED</td><td><span class="badge badge-green" style="font-size: 10px;">已拦截</span></td></tr>
-              <tr><td>2</td><td>引用不存在令牌 status.unknown</td><td>② 绑定存在性</td><td style="font-family: 'SF Mono', monospace;">BINDING_UNDEFINED</td><td><span class="badge badge-green" style="font-size: 10px;">已拦截</span></td></tr>
-              <tr><td>3</td><td>跨场景引用专属令牌</td><td>③ 场景一致性</td><td style="font-family: 'SF Mono', monospace;">SCENARIO_DOMAIN_MISMATCH</td><td><span class="badge badge-green" style="font-size: 10px;">已拦截</span></td></tr>
-              <tr><td>4</td><td>缺红线 + 非 SemVer 版本</td><td>④ 字段完整性</td><td style="font-family: 'SF Mono', monospace;">FIELD_INCOMPLETE</td><td><span class="badge badge-green" style="font-size: 10px;">已拦截</span></td></tr>
-              <tr><td>5</td><td>YAML 缩进 / 层级错误</td><td>⑤ 结构合法性</td><td style="font-family: 'SF Mono', monospace;">SCHEMA_VIOLATION</td><td><span class="badge badge-green" style="font-size: 10px;">已拦截</span></td></tr>
-              <tr><td>6</td><td>组合攻击（多错误并发）</td><td>全量校验</td><td style="font-family: 'SF Mono', monospace;">MULTI_VIOLATION</td><td><span class="badge badge-green" style="font-size: 10px;">已拦截</span></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div style="background: rgba(168,85,247,0.05); border: 1px solid rgba(168,85,247,0.2); border-radius: var(--radius-sm); padding: 12px; margin-top: 12px;">
-          <p class="text-caption" style="color: #a855f7; font-weight: 600; line-height: 1.7;">入库校验：五项前置校验 · 拦截率 100% · 结构违规机器全责，语义违规人机分担，同步违规管线全责。</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ 2.3 同步防线 ============ -->
-  <div style="margin: 20px 0 12px; display: flex; align-items: center; gap: 10px;">
-    <span class="badge badge-green">GATE 3</span>
-    <h2 class="text-h2">2.3 同步防线 · 单一来源对账</h2>
-  </div>
-
-  <!-- 统计 -->
-  <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-    <div class="card" style="flex: 1; text-align: center; padding: 12px 4px;">
-      <p class="text-h1" style="color: var(--primary);">3</p>
-      <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">道闸口</p>
-    </div>
-    <div class="card" style="flex: 1; text-align: center; padding: 12px 4px;">
-      <p class="text-h1" style="color: #52c41a;">100%</p>
-      <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">结构违规拦截率</p>
-    </div>
-    <div class="card" style="flex: 1; text-align: center; padding: 12px 4px;">
-      <p class="text-h1" style="color: #f5a623;">5min</p>
-      <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">告警响应</p>
-    </div>
-  </div>
-
-  <!-- 版本声明 + 对账逻辑 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('reconcile')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #52c41a, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">⇄</div>
-          <h2 class="text-h3">版本声明与消费方对账</h2>
-        </div>
-        <svg class="chevron" id="chevron-reconcile" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">产物头部自带版本声明，消费方加载时对账</p>
-    </div>
-    <div class="collapsible-content" id="content-reconcile">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">编译产物头部</p>
-        <div class="code-block" style="font-size: 11px; padding: 10px; margin-bottom: 12px;">
-<pre># COMPILED FROM SOURCE — DO NOT EDIT
-# source: contracts/ERR-001.yaml
-# contract_version: v1.1.0
-# checksum: sha256:9f2c…a41e</pre>
-        </div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">消费方对账逻辑</p>
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
-          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <p class="text-caption" style="color: #52c41a; font-weight: 700;">✓ 版本一致 + checksum 匹配 → 正常加载</p>
-          </div>
-          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <p class="text-caption" style="color: #f5a623; font-weight: 700;">⚠ 版本过期 → CONTRACT_VERSION_MISMATCH</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 2px;">触发 warning，通知重新编译</p>
-          </div>
-          <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <p class="text-caption" style="color: #cf1322; font-weight: 700;">✗ checksum 不匹配 → ARTIFACT_TAMPERED</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 2px;">reject_load，产物被拒绝加载</p>
-          </div>
-        </div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">手改产物的下场</p>
-        <div class="code-block" style="font-size: 11px; padding: 10px;">
-<pre>[CI 阻断] ARTIFACT_TAMPERED
-产物 dist/prompt_prefix.txt 的 sha256
-与契约 ERR-001.yaml v1.1.0 编译指纹不匹配
-→ 拒绝合并，请修改源契约后重新编译</pre>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 三层编译验证 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('layers')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #52c41a, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">L3</div>
-          <h2 class="text-h3">三层编译验证</h2>
-        </div>
-        <svg class="chevron" id="chevron-layers" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">结构 → 语义 → 一致性</p>
-    </div>
-    <div class="collapsible-content" id="content-layers">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L1 结构验证</p>
-              <span class="badge badge-green" style="font-size: 10px;">✓ 通过</span>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">Schema 合法性，结构违规 100% 拦截</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L2 语义验证</p>
-              <span class="badge badge-green" style="font-size: 10px;">✓ 拦截率 97%</span>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">语义引用与场景一致性检查</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">L3 一致性验证</p>
-              <span class="badge badge-green" style="font-size: 10px;">✓ 无分叉</span>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">产物与源契约版本/指纹对账</p>
-          </div>
-        </div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">compile_report.yaml</p>
-        <div class="code-block" style="font-size: 11px; padding: 10px;">
-<pre>validations:
-  structure:   { status: pass }
-  semantic:    { status: pass, block_rate: 0.97 }
-  consistency: { status: pass, drift: none }
-outputs:
-  prompt_prefix: { checksum: sha256:9f2c… }
-  json_schema:   { checksum: sha256:3b7d… }
-  checklist:     { checksum: sha256:e01a… }
-  ci_rule:       { checksum: sha256:c94f… }</pre>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 调整前后对比 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('beforeafter')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #52c41a, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">⇅</div>
-          <h2 class="text-h3">调整前后对比</h2>
-        </div>
-        <svg class="chevron" id="chevron-beforeafter" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">同步防线建立前 vs 建立后 · 左右滑动</p>
-    </div>
-    <div class="collapsible-content" id="content-beforeafter">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <div class="table-scroll">
-          <table class="mobile-table" style="min-width: 520px;">
-            <thead>
-              <tr><th>场景</th><th>无对账（前）</th><th>有对账（后）</th></tr>
-            </thead>
-            <tbody>
-              <tr><td style="color: var(--text-primary); font-weight: 700;">过期产物</td><td>旧版 Prompt 静默继续生效</td><td>warning + 触发重编译</td></tr>
-              <tr><td style="color: var(--text-primary); font-weight: 700;">手改产物</td><td>无人发现，分叉累积</td><td>CI 阻断 ARTIFACT_TAMPERED</td></tr>
-              <tr><td style="color: var(--text-primary); font-weight: 700;">结构写错</td><td>编译通过，运行期才暴露</td><td>L1 结构验证直接拒绝</td></tr>
-              <tr><td style="color: var(--text-primary); font-weight: 700;">归因留痕</td><td>问题来源无法追溯</td><td>版本 + checksum 全程留痕</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 总结 -->
-  <div class="card" style="margin-bottom: 12px; border-left: 3px solid var(--primary);">
+  <!-- 防线验证结论 -->
+  <div class="card" style="margin-bottom: 16px;">
     <div style="padding: 16px;">
-      <p class="text-h3" style="margin-bottom: 4px;">三道闸贯穿契约全生命周期</p>
-      <p class="text-caption" style="color: var(--text-secondary);">入口防呆 → 入库校验 → 同步对账。契约不是写完就结束的文档，而是从创建到消费每一步都被机器校验的规则。</p>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <span class="badge badge-green">✓ 结论</span>
+        <h2 class="text-h2">防线验证结论</h2>
+      </div>
+      <p class="text-caption" style="color: var(--text-secondary); margin-bottom: 10px;">15 组对抗用例全部通过，机器拦截率 <span style="color: #6abe4a; font-weight: 700;">100%</span></p>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+        <div style="background: var(--surface); border: 1px solid rgba(22,119,255,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+          <p class="text-h1" style="color: #4a9eff;">6/6</p>
+          <p class="text-micro" style="color: var(--text-tertiary);">入口防呆<br>表单层拦截</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+          <p class="text-h1" style="color: #f5a623;">6/6</p>
+          <p class="text-micro" style="color: var(--text-tertiary);">入库安检<br>五项前置校验</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(168,85,247,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
+          <p class="text-h1" style="color: #a855f7;">3/3</p>
+          <p class="text-micro" style="color: var(--text-tertiary);">同步防线<br>版本对账</p>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div style="height: 40px;"></div>
+  <!-- 总结卡 -->
+  <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(22,119,255,0.12), rgba(54,207,201,0.08)); border: 1px solid rgba(22,119,255,0.3);">
+    <div style="padding: 20px; text-align: center;">
+      <p class="text-h2" style="color: var(--text-primary); margin-bottom: 8px;">"写在规范里 ≠ 被机器守住"</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">
+        三道闸验证完成——去契约库查看已入库的契约，<br>
+        或进入验证实验室测试拦截效果。
+      </p>
+    </div>
+  </div>
+
 </div>
 
-<!-- 底部 Tab 导航 -->
+<!-- 底部导航 -->
 <div class="bottom-nav">
-  <div class="nav-item" onclick="window.location.href='./contract.html'">
-    <div class="nav-icon">📐</div>
+  <div class="nav-item active" onclick="location.href='./契约的机器防线mob.html'">
+    <div class="nav-icon">📘</div>
     <div class="nav-label">主题</div>
   </div>
-  <div class="nav-item" onclick="window.location.href='./case_field_diff.html'">
-    <div class="nav-icon">🧩</div>
+  <div class="nav-item" onclick="location.href='./case_contract_diff.html'">
+    <div class="nav-icon">🔍</div>
     <div class="nav-label">案例</div>
   </div>
-  <div class="nav-item active">
-    <div class="nav-icon">🧪</div>
+  <div class="nav-item" onclick="location.href='./constraint_validation.html'">
+    <div class="nav-icon">✓</div>
     <div class="nav-label">验证</div>
   </div>
 </div>
@@ -586,9 +283,8 @@ outputs:
 function toggleCollapse(id) {
   const content = document.getElementById('content-' + id);
   const chevron = document.getElementById('chevron-' + id);
-  const isOpen = content.classList.contains('open');
-  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
-  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+  content.classList.toggle('open');
+  chevron.classList.toggle('rotated');
 }
 document.addEventListener('touchstart', () => {}, { passive: true });
 </script>

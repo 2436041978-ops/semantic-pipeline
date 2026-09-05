@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Schema-As-Code · 编译管线</title>
+<title>Schema-As-Code · 编译管线演示</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
   :root {
     --primary: #1677ff;
     --primary-hover: #4096ff;
@@ -19,7 +18,6 @@
     --border: #2a2a2e;
     --radius: 12px;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { 
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
@@ -29,7 +27,6 @@
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
   }
-
   .top-nav {
     background: rgba(15,15,18,0.92);
     backdrop-filter: blur(16px);
@@ -56,6 +53,7 @@
     font-size: 18px;
     color: var(--text-primary);
     cursor: pointer;
+    text-decoration: none;
   }
   .nav-brand-icon {
     width: 32px; height: 32px;
@@ -125,13 +123,11 @@
     border-color: var(--primary);
     color: var(--primary);
   }
-
   .cards-section {
     max-width: 1200px;
     margin: 0 auto;
     padding: 100px 24px 60px;
   }
-
   .yaml-block {
     background: #0d0d0d;
     border-radius: 8px;
@@ -142,183 +138,7 @@
     color: #e5e5e5;
     overflow-x: auto;
   }
-
-  .compile-step {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    margin-bottom: 16px;
-    transition: all 0.3s;
-  }
-  .compile-step:hover {
-    border-color: #3a3a3e;
-  }
-
-  .step-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  .step-number {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #1677ff, #36cfc9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 14px;
-    font-weight: 800;
-    flex-shrink: 0;
-  }
-  .step-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-  .step-subtitle {
-    font-size: 13px;
-    color: var(--text-tertiary);
-    font-weight: 500;
-  }
-
-  .verify-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    border-radius: 100px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-  .verify-pass {
-    background: rgba(82,196,26,0.15);
-    color: #52c41a;
-    border: 1px solid rgba(82,196,26,0.3);
-  }
-  .verify-fail {
-    background: rgba(207,19,34,0.15);
-    color: #cf1322;
-    border: 1px solid rgba(207,19,34,0.3);
-  }
-  .verify-warn {
-    background: rgba(245,158,11,0.15);
-    color: #f5a623;
-    border: 1px solid rgba(245,158,11,0.3);
-  }
-
-  .format-output {
-    background: #16161a;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    flex: 1;
-  }
-  .format-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
-  .format-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-  .format-role {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-weight: 600;
-  }
-  .role-ai { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
-  .role-fe { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
-  .role-ci { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
-  .role-ops { background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); }
-
-  .version-declare {
-    background: #0d0d0d;
-    border: 1px dashed rgba(22,119,255,0.3);
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 11px;
-    font-family: 'SF Mono', monospace;
-    color: var(--text-tertiary);
-    margin-bottom: 12px;
-  }
-
-  .cross-check-row {
-    display: grid;
-    grid-template-columns: 160px 1fr 1fr 1fr 1fr;
-    gap: 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .cross-check-header {
-    background: #16161a;
-    padding: 10px 12px;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-tertiary);
-    border-right: 1px solid var(--border);
-  }
-  .cross-check-cell {
-    padding: 10px 12px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    border-right: 1px solid var(--border);
-  }
-
-  .sync-timeline {
-    position: relative;
-    padding-left: 24px;
-  }
-  .sync-timeline::before {
-    content: '';
-    position: absolute;
-    left: 6px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--border);
-  }
-  .sync-item {
-    position: relative;
-    padding-bottom: 20px;
-  }
-  .sync-item::before {
-    content: '';
-    position: absolute;
-    left: -22px;
-    top: 4px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--primary);
-    border: 2px solid var(--bg);
-  }
-  .sync-item.done::before {
-    background: #52c41a;
-    box-shadow: 0 0 0 3px rgba(82,196,26,0.2);
-  }
-  .sync-item.pending::before {
-    background: #f5a623;
-  }
-  .sync-label {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 2px;
-  }
-  .sync-meta {
-    font-size: 12px;
-    color: var(--text-tertiary);
-    font-weight: 500;
-  }
-
+  .yaml-block pre { margin: 0; white-space: pre-wrap; }
   .footer {
     border-top: 1px solid var(--border);
     padding: 40px 24px;
@@ -346,25 +166,901 @@
     color: var(--text-tertiary);
     font-weight: 500;
   }
-
   @media (max-width: 1024px) {
     .nav-center { display: none; }
   }
+
+  /* === Step Card === */
+  .step-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 24px;
+    transition: border-color 0.3s;
+  }
+  .step-card:hover {
+    border-color: #3a3a3e;
+  }
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .step-num {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .step-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .step-subtitle {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  /* === Source Pills === */
+  .source-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .source-pill.org {
+    background: rgba(22,119,255,0.12);
+    color: #4a9eff;
+    border: 1px solid rgba(22,119,255,0.25);
+  }
+  .source-pill.team {
+    background: rgba(168,85,247,0.12);
+    color: #a855f7;
+    border: 1px solid rgba(168,85,247,0.25);
+  }
+
+  /* === Governance Bar === */
+  .governance-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 16px;
+    background: rgba(22,119,255,0.05);
+    border: 1px solid rgba(22,119,255,0.15);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .governance-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .gov-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .gov-dot.green { background: #52c41a; }
+  .gov-dot.purple { background: #a855f7; }
+
+  /* === Source Selector === */
+  .source-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .source-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .source-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .source-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  /* === YAML Editor — Compact, Fully Visible, Interactive === */
+  .yaml-editor {
+    background: #0a0a0c;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 12.5px;
+    line-height: 1.45;
+    overflow: hidden;
+  }
+  .yaml-line {
+    display: flex;
+    align-items: center;
+    padding: 1px 0;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .yaml-line:hover {
+    background: rgba(255,255,255,0.03);
+  }
+  .yaml-line.active {
+    background: rgba(22,119,255,0.08);
+    border-left-color: var(--primary);
+  }
+  .yaml-line.org {
+    background: rgba(22,119,255,0.035);
+  }
+  .yaml-line.org:hover {
+    background: rgba(22,119,255,0.08);
+  }
+  .yaml-line.org.active {
+    background: rgba(22,119,255,0.12);
+    border-left-color: #4a9eff;
+  }
+  .yaml-line.team {
+    background: rgba(168,85,247,0.035);
+  }
+  .yaml-line.team:hover {
+    background: rgba(168,85,247,0.08);
+  }
+  .yaml-line.team.active {
+    background: rgba(168,85,247,0.12);
+    border-left-color: #a855f7;
+  }
+  .yaml-line.dim {
+    opacity: 0.2;
+    filter: grayscale(0.8);
+  }
+  .yaml-line-num {
+    width: 36px;
+    text-align: right;
+    padding-right: 10px;
+    color: #3a3a3e;
+    font-size: 11px;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .yaml-line:hover .yaml-line-num {
+    color: #555;
+  }
+  .yaml-line.active .yaml-line-num {
+    color: var(--primary);
+  }
+  .yaml-line-content {
+    flex: 1;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .yaml-fold-btn {
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 4px;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    font-size: 10px;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .yaml-fold-btn.collapsed {
+    transform: rotate(-90deg);
+  }
+  .yaml-fold-btn:hover {
+    color: var(--text-secondary);
+  }
+  .yaml-line.collapsed {
+    display: none;
+  }
+  .yaml-comment { color: #4b5563; font-style: italic; }
+  .yaml-key { color: #60a5fa; }
+  .yaml-value { color: #a3e635; }
+  .yaml-str { color: #fbbf24; }
+  .yaml-num { color: #f472b6; }
+
+  /* === Info Panel (Right Side) === */
+  .info-panel {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: sticky;
+    top: 80px;
+  }
+  .info-panel-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .info-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 70px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .info-value {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .info-value strong {
+    color: var(--text-primary);
+    font-weight: 700;
+  }
+  .info-highlight-org {
+    color: #4a9eff;
+    font-weight: 700;
+  }
+  .info-highlight-team {
+    color: #a855f7;
+    font-weight: 700;
+  }
+
+  /* === Structure Tree === */
+  .struct-tree {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .struct-tree-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+  .struct-node {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .struct-node:hover {
+    background: rgba(255,255,255,0.04);
+  }
+  .struct-node.active {
+    background: rgba(22,119,255,0.1);
+    color: var(--primary);
+  }
+  .struct-indent { width: 14px; flex-shrink: 0; }
+  .struct-icon {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .struct-icon.org { background: rgba(22,119,255,0.2); color: #4a9eff; }
+  .struct-icon.team { background: rgba(168,85,247,0.2); color: #a855f7; }
+  .struct-icon.boundary { background: rgba(207,19,34,0.15); color: #cf1322; }
+  .struct-label {
+    color: var(--text-secondary);
+  }
+  .struct-node.active .struct-label {
+    color: var(--primary);
+  }
+
+  /* === Merge Viz === */
+  .merge-viz {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    margin: 12px 0;
+  }
+  .merge-layer {
+    flex: 1;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid;
+  }
+  .merge-layer.org {
+    background: rgba(22,119,255,0.04);
+    border-color: rgba(22,119,255,0.18);
+  }
+  .merge-layer.team {
+    background: rgba(168,85,247,0.04);
+    border-color: rgba(168,85,247,0.18);
+  }
+  .merge-layer.output {
+    background: rgba(82,196,26,0.04);
+    border-color: rgba(82,196,26,0.18);
+  }
+  .merge-layer-title {
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .merge-layer.org .merge-layer-title { color: #4a9eff; }
+  .merge-layer.team .merge-layer-title { color: #a855f7; }
+  .merge-layer.output .merge-layer-title { color: #52c41a; }
+  .merge-rule-item {
+    font-size: 11px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+  .merge-rule-item.org {
+    background: rgba(22,119,255,0.08);
+    color: #4a9eff;
+    border: 1px solid rgba(22,119,255,0.12);
+  }
+  .merge-rule-item.team {
+    background: rgba(168,85,247,0.08);
+    color: #a855f7;
+    border: 1px solid rgba(168,85,247,0.12);
+  }
+  .merge-rule-item.merged {
+    background: rgba(82,196,26,0.08);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.12);
+  }
+  .merge-arrow-v {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    font-size: 18px;
+    font-weight: 700;
+    padding: 2px 0;
+  }
+
+  /* === Pipeline Flow === */
+  .pipeline-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 24px 0;
+    padding: 20px;
+    background: #16161a;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .flow-node {
+    flex: 1;
+    text-align: center;
+    padding: 14px 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .flow-node:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(22,119,255,0.15);
+  }
+  .flow-node.active {
+    border-color: var(--primary);
+    background: rgba(22,119,255,0.08);
+  }
+  .flow-node .flow-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .flow-node .flow-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .flow-node .flow-meta {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  .flow-arrow {
+    width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .flow-detail-panel {
+    display: none;
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    animation: slideDown 0.3s ease;
+  }
+  .flow-detail-panel.show {
+    display: block;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* === Format Tabs === */
+  .fmt-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .fmt-tab {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .fmt-tab:hover { color: var(--primary); }
+  .fmt-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+  .fmt-tab .tab-badge {
+    position: absolute;
+    top: 6px;
+    right: 4px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #52c41a;
+  }
+  .fmt-content {
+    display: none;
+  }
+  .fmt-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* === Diff Cards === */
+  .diff-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .diff-card:hover {
+    border-color: #3a3a3e;
+  }
+  .diff-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+  .diff-card.org::before { background: #4a9eff; }
+  .diff-card.team::before { background: #a855f7; }
+  .diff-card.merge::before { background: linear-gradient(180deg, #4a9eff, #a855f7); }
+  .diff-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .diff-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .diff-consumer {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+  }
+
+  /* === Trace Chain === */
+  .trace-chain {
+    position: relative;
+    padding-left: 20px;
+  }
+  .trace-chain::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    background: var(--border);
+  }
+  .trace-item {
+    position: relative;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .trace-item:hover {
+    border-color: var(--primary);
+    background: rgba(22,119,255,0.04);
+  }
+  .trace-item::before {
+    content: '';
+    position: absolute;
+    left: -17px;
+    top: 20px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    border: 2px solid var(--bg);
+    z-index: 2;
+  }
+  .trace-item.consumed::before {
+    background: #52c41a;
+    box-shadow: 0 0 0 3px rgba(82,196,26,0.2);
+  }
+  .trace-item.team-consumed::before {
+    background: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168,85,247,0.2);
+  }
+  .trace-item.pending::before {
+    background: #f5a623;
+  }
+  .trace-item.expanded {
+    border-color: var(--primary);
+  }
+  .trace-detail {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .trace-detail.show {
+    display: block;
+    animation: slideDown 0.25s ease;
+  }
+  .trace-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .trace-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .trace-status {
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  /* === Progress === */
+  .progress-wrap {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .progress-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .progress-value {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .progress-track {
+    width: 100%;
+    background: #2a2a2e;
+    border-radius: 100px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 1s ease;
+  }
+  .progress-note {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    margin-top: 6px;
+  }
+
+  /* === Timeline === */
+  .dual-timeline {
+    display: flex;
+    gap: 24px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .timeline-track {
+    flex: 1;
+    position: relative;
+    padding-left: 20px;
+  }
+  .timeline-track::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .timeline-track.org::before { background: rgba(74,158,255,0.3); }
+  .timeline-track.team::before { background: rgba(168,85,247,0.3); }
+  .t-item {
+    position: relative;
+    padding-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .t-item:hover {
+    opacity: 0.9;
+  }
+  .t-item::before {
+    content: '';
+    position: absolute;
+    left: -19px;
+    top: 3px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    border: 2px solid #16161a;
+  }
+  .t-item.latest::before {
+    background: #52c41a;
+    box-shadow: 0 0 0 3px rgba(82,196,26,0.2);
+  }
+  .t-item.org-v::before { background: #4a9eff; }
+  .t-item.team-v::before { background: #a855f7; }
+  .t-tag {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .t-date {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+  .t-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  /* === Lifecycle === */
+  .lifecycle-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .lc-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .lc-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  .lc-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    transition: color 0.3s;
+  }
+  .lc-card:hover .lc-value {
+    color: var(--primary);
+  }
+  .lc-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+  }
+
+  /* === Legend === */
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .legend-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .legend-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .legend-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  /* === Status Pills === */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-pill.ok {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-pill.warn {
+    background: rgba(212,136,6,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(212,136,6,0.3);
+  }
+
+  /* === CTA === */
+  .cta-bar {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* === Tooltip === */
+  .has-tooltip {
+    position: relative;
+  }
+  .has-tooltip .tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1e;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .has-tooltip:hover .tooltip {
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    .legend-grid, .lifecycle-grid {
+      grid-template-columns: 1fr;
+    }
+    .dual-timeline {
+      flex-direction: column;
+    }
+    .pipeline-flow {
+      flex-wrap: wrap;
+    }
+    .merge-viz {
+      flex-direction: column;
+    }
+  }
 </style>
+<base target="_blank">
 </head>
 <body>
 
 <!-- ==================== NAV ==================== -->
 <div class="top-nav">
   <div class="top-nav-inner">
-    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" class="nav-brand">
       <div class="nav-brand-icon">S</div>
       <span>Schema-As-Code</span>
-    </div>
+    </a>
     <div class="nav-center">
       <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
       <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
-      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract" class="active">Contract Library</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
       <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
     </div>
     <div class="nav-right">
@@ -380,582 +1076,1096 @@
   </div>
 </div>
 
-<!-- ==================== PAGE: COMPILE PIPELINE ==================== -->
-<div class="page active">
-  <div class="cards-section">
-    <!-- Breadcrumb -->
-    <div style="margin-bottom: 24px;">
-      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
-        <span>←</span> Schema-As-Code
-      </a>
-      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
-      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--text-secondary); font-size: 14px; cursor: pointer; font-weight: 600; text-decoration: none;">Contract Library</a>
-      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
-      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">编译管线</span>
-    </div>
+<!-- ==================== PAGE ==================== -->
+<div class="cards-section">
 
-    <div style="margin-bottom: 32px;">
-      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
-        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
-        <span>Schema-As-Code 翻译层 · ④ 编译管线</span>
+  <!-- Breadcrumb -->
+  <div style="margin-bottom: 24px;">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="color: var(--primary); font-size: 14px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+      <span>←</span> Schema-As-Code
+    </a>
+    <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+    <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">编译管线演示</span>
+  </div>
+
+  <!-- Hero -->
+  <div style="margin-bottom: 32px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+      <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+      <span>阶段二 · 编译管线 · 单一来源多目标输出</span>
+    </div>
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">编译管线演示 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Compilation Pipeline</span></h1>
+    <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; margin-bottom: 20px; font-weight: 500;">
+      一份 YAML 语义契约，经编译管线输出为 Prompt 前缀、JSON Schema、Checklist 走查清单、CI 校验规则。<br>
+      组织级基线与团队级扩展在编译前合并，消费状态实时追踪。
+    </p>
+    <div class="governance-bar">
+      <div class="governance-item">
+        <div class="gov-dot green"></div>
+        <span style="color: #52c41a;">组织级基线 v1.1.0</span>
       </div>
-      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">编译管线 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Compile Pipeline</span></h1>
-      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
-        一份 YAML 契约，机器自动编译为 4 种消费格式——不是人工复制粘贴，是查字典编译。<br>
-        验证：四种格式是否承载同一语义？编译错误是否被拦截？同步是否持续？
+      <div class="governance-item">
+        <div class="gov-dot purple"></div>
+        <span style="color: #a855f7;">前端团队扩展 v2.0.1</span>
+      </div>
+      <div class="governance-item">
+        <span style="color: var(--text-secondary);">上次对账 2 小时前</span>
+      </div>
+      <div class="governance-item">
+        <span style="color: var(--text-tertiary);">覆盖 3 个业务团队 · 12 个活跃消费者</span>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="status-pill ok">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+          已对齐
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 0: Pipeline Flow ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">0</div>
+      <div>
+        <div class="step-title">编译管线全景图</div>
+        <div class="step-subtitle">Pipeline Overview · 点击节点查看编译阶段详情</div>
+      </div>
+    </div>
+    <div class="pipeline-flow">
+      <div class="flow-node active" onclick="showFlowDetail('source')">
+        <div class="flow-icon">📄</div>
+        <div class="flow-label">源契约</div>
+        <div class="flow-meta">ERR-001.yaml</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" onclick="showFlowDetail('merge')">
+        <div class="flow-icon">🔀</div>
+        <div class="flow-label">团队隔离编译</div>
+        <div class="flow-meta">基线 + 扩展合并</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" onclick="showFlowDetail('compile')">
+        <div class="flow-icon">⚙️</div>
+        <div class="flow-label">编译引擎</div>
+        <div class="flow-meta">四格式并行生成</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" onclick="showFlowDetail('consume')">
+        <div class="flow-icon">📊</div>
+        <div class="flow-label">消费追踪</div>
+        <div class="flow-meta">12 个活跃消费者</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" onclick="showFlowDetail('reconcile')">
+        <div class="flow-icon">🔄</div>
+        <div class="flow-label">版本对账</div>
+        <div class="flow-meta">双轨时间线管理</div>
+      </div>
+    </div>
+    <div id="flow-detail-source" class="flow-detail-panel show">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">📄 源契约阶段</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        输入为合并后的 YAML 语义契约，包含组织级基线层（蓝色标记）与前端团队扩展层（紫色标记）。编译源选择器可切换视图，过滤不同来源的规则行。
       </p>
     </div>
+    <div id="flow-detail-merge" class="flow-detail-panel">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">🔀 团队隔离编译阶段</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        基线层优先加载，扩展层追加。冲突时基线自动胜出。对账通过后方可进入编译引擎。
+      </p>
+    </div>
+    <div id="flow-detail-compile" class="flow-detail-panel">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">⚙️ 编译引擎阶段</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        单一来源多目标输出：同一份合并后的契约，并行编译为 Prompt 前缀、JSON Schema、Checklist、CI 规则四种消费格式。
+      </p>
+    </div>
+    <div id="flow-detail-consume" class="flow-detail-panel">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">📊 消费追踪阶段</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        实时追踪每个契约被哪些 Prompt 前缀引用、被哪些组件校验规则消费。覆盖率低于阈值时触发规则迭代信号。
+      </p>
+    </div>
+    <div id="flow-detail-reconcile" class="flow-detail-panel">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">🔄 版本对账阶段</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        双轨版本时间线：组织级基线由规范评审组维护，团队扩展由团队治理接口人维护。定期对账确保无冲突。
+      </p>
+    </div>
+  </div>
 
-    <!-- 三个核心命题 -->
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
-      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
-        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">四种格式承载同一语义</h3>
-        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">同一契约编译为 Prompt / Schema / ESLint / Checklist，交叉比对语义等价性，无分叉</p>
+  <!-- ==================== STEP 1: Source Contract — Fully Visible, Compact, Interactive ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">源契约：ERR-001.yaml</div>
+        <div class="step-subtitle">Source Contract · 点击代码行查看治理信息 · 点击 ▼ 折叠节点</div>
       </div>
-      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
-        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">编译错误可被拦截</h3>
-        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">字段缺失、字典引用非法、语义分叉 → 被四层编译验证阻断</p>
-      </div>
-      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
-        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">同步持续一致</h3>
-        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">契约升级后四种格式自动重编译，消费方版本声明对账，过期自动告警</p>
+      <div style="margin-left: auto; display: flex; gap: 8px;">
+        <span class="source-pill org">组织级基线</span>
+        <span class="source-pill team">前端团队扩展</span>
       </div>
     </div>
 
-    <!-- ==================== Step 1: 编译输入 ==================== -->
-    <div class="compile-step">
-      <div class="step-header">
-        <div class="step-number">1</div>
-        <div>
-          <div class="step-title">编译输入</div>
-          <div class="step-subtitle">Input · YAML 契约 + 语义字典 → 进入编译管线</div>
+    <!-- Source Filter -->
+    <div class="source-selector">
+      <button class="source-btn active" onclick="filterSource('all', this)">🔀 合并视图</button>
+      <button class="source-btn" onclick="filterSource('org', this)">🏛️ 仅组织级基线</button>
+      <button class="source-btn" onclick="filterSource('team', this)">🏢 仅团队级扩展</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 16px;">
+      <!-- LEFT: Interactive YAML Editor — Fully Visible, Compact -->
+      <div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">合并后契约（点击行查看治理详情）</p>
+          <div>
+            <span class="source-pill org" id="badge-org">org-baseline</span>
+            <span class="source-pill team" id="badge-team">team-ext</span>
+          </div>
         </div>
-        <div style="margin-left: auto;">
-          <span class="verify-badge verify-pass">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
-            前置校验通过
-          </span>
+
+        <div class="yaml-editor" id="yaml-editor">
+          <!-- Line 1 -->
+          <div class="yaml-line org" data-src="org" data-line="1" onclick="selectLine(this, 1)">
+            <span class="yaml-line-num">1</span>
+            <span class="yaml-line-content"><span class="yaml-comment"># 组织级基线层 — 不可覆盖</span></span>
+          </div>
+          <!-- Line 2 -->
+          <div class="yaml-line org" data-src="org" data-line="2" onclick="selectLine(this, 2)">
+            <span class="yaml-line-num">2</span>
+            <span class="yaml-line-content"><span class="yaml-key">intent_id</span>: <span class="yaml-str">"ERR-001"</span></span>
+          </div>
+          <!-- Line 3 -->
+          <div class="yaml-line org" data-src="org" data-line="3" onclick="selectLine(this, 3)">
+            <span class="yaml-line-num">3</span>
+            <span class="yaml-line-content"><span class="yaml-key">semantic_domain</span>: <span class="yaml-str">"observational"</span></span>
+          </div>
+          <!-- Line 4 -->
+          <div class="yaml-line org" data-src="org" data-line="4" onclick="selectLine(this, 4)">
+            <span class="yaml-line-num">4</span>
+            <span class="yaml-line-content"><span class="yaml-key">version</span>: <span class="yaml-str">"v1.1.0"</span></span>
+          </div>
+          <!-- Line 5 -->
+          <div class="yaml-line org" data-src="org" data-line="5" onclick="selectLine(this, 5)">
+            <span class="yaml-line-num">5</span>
+            <span class="yaml-line-content"><span class="yaml-key">baseline_author</span>: <span class="yaml-str">"规范评审组"</span></span>
+          </div>
+          <!-- Line 6 -->
+          <div class="yaml-line" data-src="none" data-line="6">
+            <span class="yaml-line-num">6</span>
+            <span class="yaml-line-content"></span>
+          </div>
+          <!-- Line 7 -->
+          <div class="yaml-line org" data-src="org" data-line="7" onclick="selectLine(this, 7)">
+            <span class="yaml-line-num">7</span>
+            <span class="yaml-line-content"><span class="yaml-key">semantic_tokens</span>:</span>
+          </div>
+          <!-- Line 8 -->
+          <div class="yaml-line org" data-src="org" data-line="8" onclick="selectLine(this, 8)">
+            <span class="yaml-line-num">8</span>
+            <span class="yaml-line-content">  <span class="yaml-key">error_severity</span>:</span>
+          </div>
+
+          <!-- FATAL Block -->
+          <div class="yaml-line org" data-src="org" data-line="9" onclick="selectLine(this, 9)">
+            <span class="yaml-line-num">9</span>
+            <span class="yaml-line-content">    <span class="yaml-fold-btn" onclick="toggleFold('fatal', event)">▼</span><span class="yaml-key">fatal</span>:</span>
+          </div>
+          <div class="fold-group" id="fold-fatal">
+            <div class="yaml-line org" data-src="org" data-line="10" onclick="selectLine(this, 10)">
+              <span class="yaml-line-num">10</span>
+              <span class="yaml-line-content">      <span class="yaml-key">description</span>: <span class="yaml-str">"系统级故障，对话上下文可能丢失"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="11" onclick="selectLine(this, 11)">
+              <span class="yaml-line-num">11</span>
+              <span class="yaml-line-content">      <span class="yaml-key">visual_mapping</span>:</span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="12" onclick="selectLine(this, 12)">
+              <span class="yaml-line-num">12</span>
+              <span class="yaml-line-content">        <span class="yaml-key">color_token</span>: <span class="yaml-str">"status.critical"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="13" onclick="selectLine(this, 13)">
+              <span class="yaml-line-num">13</span>
+              <span class="yaml-line-content">        <span class="yaml-key">motion_token</span>: <span class="yaml-str">"pulse.red.urgent"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="14" onclick="selectLine(this, 14)">
+              <span class="yaml-line-num">14</span>
+              <span class="yaml-line-content">        <span class="yaml-key">icon_token</span>: <span class="yaml-str">"alert.octagon"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="15" onclick="selectLine(this, 15)">
+              <span class="yaml-line-num">15</span>
+              <span class="yaml-line-content">      <span class="yaml-key">user_action</span>:</span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="16" onclick="selectLine(this, 16)">
+              <span class="yaml-line-num">16</span>
+              <span class="yaml-line-content">        - <span class="yaml-key">label</span>: <span class="yaml-str">"刷新页面"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="17" onclick="selectLine(this, 17)">
+              <span class="yaml-line-num">17</span>
+              <span class="yaml-line-content">          <span class="yaml-key">action</span>: <span class="yaml-str">"refresh"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="18" onclick="selectLine(this, 18)">
+              <span class="yaml-line-num">18</span>
+              <span class="yaml-line-content">        - <span class="yaml-key">label</span>: <span class="yaml-str">"导出历史"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="19" onclick="selectLine(this, 19)">
+              <span class="yaml-line-num">19</span>
+              <span class="yaml-line-content">          <span class="yaml-key">action</span>: <span class="yaml-str">"export_history"</span></span>
+            </div>
+          </div>
+
+          <!-- TRANSIENT Block -->
+          <div class="yaml-line org" data-src="org" data-line="20" onclick="selectLine(this, 20)">
+            <span class="yaml-line-num">20</span>
+            <span class="yaml-line-content">    <span class="yaml-fold-btn" onclick="toggleFold('transient', event)">▼</span><span class="yaml-key">transient</span>:</span>
+          </div>
+          <div class="fold-group" id="fold-transient">
+            <div class="yaml-line org" data-src="org" data-line="21" onclick="selectLine(this, 21)">
+              <span class="yaml-line-num">21</span>
+              <span class="yaml-line-content">      <span class="yaml-key">description</span>: <span class="yaml-str">"网络抖动，系统可自动恢复"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="22" onclick="selectLine(this, 22)">
+              <span class="yaml-line-num">22</span>
+              <span class="yaml-line-content">      <span class="yaml-key">visual_mapping</span>:</span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="23" onclick="selectLine(this, 23)">
+              <span class="yaml-line-num">23</span>
+              <span class="yaml-line-content">        <span class="yaml-key">color_token</span>: <span class="yaml-str">"status.neutral"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="24" onclick="selectLine(this, 24)">
+              <span class="yaml-line-num">24</span>
+              <span class="yaml-line-content">        <span class="yaml-key">motion_token</span>: <span class="yaml-str">"spinner"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="25" onclick="selectLine(this, 25)">
+              <span class="yaml-line-num">25</span>
+              <span class="yaml-line-content">        <span class="yaml-key">icon_token</span>: <span class="yaml-str">"loader"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="26" onclick="selectLine(this, 26)">
+              <span class="yaml-line-num">26</span>
+              <span class="yaml-line-content">      <span class="yaml-key">user_action</span>:</span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="27" onclick="selectLine(this, 27)">
+              <span class="yaml-line-num">27</span>
+              <span class="yaml-line-content">        - <span class="yaml-key">label</span>: <span class="yaml-str">"等待自动恢复"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="28" onclick="selectLine(this, 28)">
+              <span class="yaml-line-num">28</span>
+              <span class="yaml-line-content">          <span class="yaml-key">action</span>: <span class="yaml-str">"wait"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="29" onclick="selectLine(this, 29)">
+              <span class="yaml-line-num">29</span>
+              <span class="yaml-line-content">        - <span class="yaml-key">label</span>: <span class="yaml-str">"手动重试"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="30" onclick="selectLine(this, 30)">
+              <span class="yaml-line-num">30</span>
+              <span class="yaml-line-content">          <span class="yaml-key">action</span>: <span class="yaml-str">"retry"</span></span>
+            </div>
+          </div>
+
+          <!-- RETRYABLE Block -->
+          <div class="yaml-line org" data-src="org" data-line="31" onclick="selectLine(this, 31)">
+            <span class="yaml-line-num">31</span>
+            <span class="yaml-line-content">    <span class="yaml-fold-btn" onclick="toggleFold('retryable', event)">▼</span><span class="yaml-key">retryable</span>:</span>
+          </div>
+          <div class="fold-group" id="fold-retryable">
+            <div class="yaml-line org" data-src="org" data-line="32" onclick="selectLine(this, 32)">
+              <span class="yaml-line-num">32</span>
+              <span class="yaml-line-content">      <span class="yaml-key">description</span>: <span class="yaml-str">"请求频率已达上限"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="33" onclick="selectLine(this, 33)">
+              <span class="yaml-line-num">33</span>
+              <span class="yaml-line-content">      <span class="yaml-key">visual_mapping</span>:</span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="34" onclick="selectLine(this, 34)">
+              <span class="yaml-line-num">34</span>
+              <span class="yaml-line-content">        <span class="yaml-key">color_token</span>: <span class="yaml-str">"status.warning"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="35" onclick="selectLine(this, 35)">
+              <span class="yaml-line-num">35</span>
+              <span class="yaml-line-content">        <span class="yaml-key">motion_token</span>: <span class="yaml-str">"none"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="36" onclick="selectLine(this, 36)">
+              <span class="yaml-line-num">36</span>
+              <span class="yaml-line-content">        <span class="yaml-key">icon_token</span>: <span class="yaml-str">"clock"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="37" onclick="selectLine(this, 37)">
+              <span class="yaml-line-num">37</span>
+              <span class="yaml-line-content">      <span class="yaml-key">user_action</span>:</span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="38" onclick="selectLine(this, 38)">
+              <span class="yaml-line-num">38</span>
+              <span class="yaml-line-content">        - <span class="yaml-key">label</span>: <span class="yaml-str">"等待倒计时"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="39" onclick="selectLine(this, 39)">
+              <span class="yaml-line-num">39</span>
+              <span class="yaml-line-content">          <span class="yaml-key">action</span>: <span class="yaml-str">"wait_countdown"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="40" onclick="selectLine(this, 40)">
+              <span class="yaml-line-num">40</span>
+              <span class="yaml-line-content">        - <span class="yaml-key">label</span>: <span class="yaml-str">"升级套餐"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="41" onclick="selectLine(this, 41)">
+              <span class="yaml-line-num">41</span>
+              <span class="yaml-line-content">          <span class="yaml-key">action</span>: <span class="yaml-str">"upgrade"</span></span>
+            </div>
+          </div>
+
+          <!-- DEGRADED Block -->
+          <div class="yaml-line org" data-src="org" data-line="42" onclick="selectLine(this, 42)">
+            <span class="yaml-line-num">42</span>
+            <span class="yaml-line-content">    <span class="yaml-fold-btn" onclick="toggleFold('degraded', event)">▼</span><span class="yaml-key">degraded</span>:</span>
+          </div>
+          <div class="fold-group" id="fold-degraded">
+            <div class="yaml-line org" data-src="org" data-line="43" onclick="selectLine(this, 43)">
+              <span class="yaml-line-num">43</span>
+              <span class="yaml-line-content">      <span class="yaml-key">description</span>: <span class="yaml-str">"部分功能可用，可继续生成"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="44" onclick="selectLine(this, 44)">
+              <span class="yaml-line-num">44</span>
+              <span class="yaml-line-content">      <span class="yaml-key">visual_mapping</span>:</span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="45" onclick="selectLine(this, 45)">
+              <span class="yaml-line-num">45</span>
+              <span class="yaml-line-content">        <span class="yaml-key">color_token</span>: <span class="yaml-str">"status.info"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="46" onclick="selectLine(this, 46)">
+              <span class="yaml-line-num">46</span>
+              <span class="yaml-line-content">        <span class="yaml-key">motion_token</span>: <span class="yaml-str">"none"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="47" onclick="selectLine(this, 47)">
+              <span class="yaml-line-num">47</span>
+              <span class="yaml-line-content">        <span class="yaml-key">icon_token</span>: <span class="yaml-str">"info.circle"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="48" onclick="selectLine(this, 48)">
+              <span class="yaml-line-num">48</span>
+              <span class="yaml-line-content">      <span class="yaml-key">user_action</span>:</span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="49" onclick="selectLine(this, 49)">
+              <span class="yaml-line-num">49</span>
+              <span class="yaml-line-content">        - <span class="yaml-key">label</span>: <span class="yaml-str">"继续生成"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="50" onclick="selectLine(this, 50)">
+              <span class="yaml-line-num">50</span>
+              <span class="yaml-line-content">          <span class="yaml-key">action</span>: <span class="yaml-str">"continue"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="51" onclick="selectLine(this, 51)">
+              <span class="yaml-line-num">51</span>
+              <span class="yaml-line-content">        - <span class="yaml-key">label</span>: <span class="yaml-str">"简化问题重试"</span></span>
+            </div>
+            <div class="yaml-line org" data-src="org" data-line="52" onclick="selectLine(this, 52)">
+              <span class="yaml-line-num">52</span>
+              <span class="yaml-line-content">          <span class="yaml-key">action</span>: <span class="yaml-str">"retry_simplified"</span></span>
+            </div>
+          </div>
+
+          <!-- Team Extension -->
+          <div class="yaml-line" data-src="none" data-line="53">
+            <span class="yaml-line-num">53</span>
+            <span class="yaml-line-content"></span>
+          </div>
+          <div class="yaml-line team" data-src="team" data-line="54" onclick="selectLine(this, 54)">
+            <span class="yaml-line-num">54</span>
+            <span class="yaml-line-content"><span class="yaml-comment"># === 团队级扩展层（前端团队 v2.0.1）===</span></span>
+          </div>
+          <div class="yaml-line team" data-src="team" data-line="55" onclick="selectLine(this, 55)">
+            <span class="yaml-line-num">55</span>
+            <span class="yaml-line-content"><span class="yaml-key">team</span>: <span class="yaml-str">"frontend"</span></span>
+          </div>
+          <div class="yaml-line team" data-src="team" data-line="56" onclick="selectLine(this, 56)">
+            <span class="yaml-line-num">56</span>
+            <span class="yaml-line-content"><span class="yaml-key">extends</span>: <span class="yaml-str">"ERR-001"</span></span>
+          </div>
+          <div class="yaml-line team" data-src="team" data-line="57" onclick="selectLine(this, 57)">
+            <span class="yaml-line-num">57</span>
+            <span class="yaml-line-content"><span class="yaml-key">team_interface</span>: <span class="yaml-str">"王五"</span></span>
+          </div>
+          <div class="yaml-line" data-src="none" data-line="58">
+            <span class="yaml-line-num">58</span>
+            <span class="yaml-line-content"></span>
+          </div>
+          <div class="yaml-line team" data-src="team" data-line="59" onclick="selectLine(this, 59)">
+            <span class="yaml-line-num">59</span>
+            <span class="yaml-line-content"><span class="yaml-key">semantic_tokens</span>:</span>
+          </div>
+          <div class="yaml-line team" data-src="team" data-line="60" onclick="selectLine(this, 60)">
+            <span class="yaml-line-num">60</span>
+            <span class="yaml-line-content">  <span class="yaml-key">error_severity</span>:</span>
+          </div>
+          <div class="yaml-line team" data-src="team" data-line="61" onclick="selectLine(this, 61)">
+            <span class="yaml-line-num">61</span>
+            <span class="yaml-line-content">    <span class="yaml-fold-btn" onclick="toggleFold('degraded-ext', event)">▼</span><span class="yaml-key">degraded</span>:</span>
+          </div>
+          <div class="fold-group" id="fold-degraded-ext">
+            <div class="yaml-line team" data-src="team" data-line="62" onclick="selectLine(this, 62)">
+              <span class="yaml-line-num">62</span>
+              <span class="yaml-line-content">      <span class="yaml-key">llm_constraints</span>:</span>
+            </div>
+            <div class="yaml-line team" data-src="team" data-line="63" onclick="selectLine(this, 63)">
+              <span class="yaml-line-num">63</span>
+              <span class="yaml-line-content">        - <span class="yaml-str">"必须在降级提示中显式列出可用功能清单"</span></span>
+            </div>
+            <div class="yaml-line team" data-src="team" data-line="64" onclick="selectLine(this, 64)">
+              <span class="yaml-line-num">64</span>
+              <span class="yaml-line-content">        - <span class="yaml-str">"禁止使用'部分失败'等模糊表述"</span></span>
+            </div>
+          </div>
+
+          <!-- Immutable Boundaries -->
+          <div class="yaml-line" data-src="none" data-line="65">
+            <span class="yaml-line-num">65</span>
+            <span class="yaml-line-content"></span>
+          </div>
+          <div class="yaml-line org" data-src="org" data-line="66" onclick="selectLine(this, 66)">
+            <span class="yaml-line-num">66</span>
+            <span class="yaml-line-content"><span class="yaml-key">immutable_boundaries</span>:</span>
+          </div>
+          <div class="yaml-line org" data-src="org" data-line="67" onclick="selectLine(this, 67)">
+            <span class="yaml-line-num">67</span>
+            <span class="yaml-line-content">  - <span class="yaml-key">boundary_type</span>: <span class="yaml-str">"safety"</span></span>
+          </div>
+          <div class="yaml-line org" data-src="org" data-line="68" onclick="selectLine(this, 68)">
+            <span class="yaml-line-num">68</span>
+            <span class="yaml-line-content">    <span class="yaml-key">rule</span>: <span class="yaml-str">"禁止所有错误状态共用同一种红色视觉表达"</span></span>
+          </div>
+          <div class="yaml-line org" data-src="org" data-line="69" onclick="selectLine(this, 69)">
+            <span class="yaml-line-num">69</span>
+            <span class="yaml-line-content">    <span class="yaml-key">violation_action</span>: <span class="yaml-str">"block"</span></span>
+          </div>
+          <div class="yaml-line org" data-src="org" data-line="70" onclick="selectLine(this, 70)">
+            <span class="yaml-line-num">70</span>
+            <span class="yaml-line-content">  - <span class="yaml-key">boundary_type</span>: <span class="yaml-str">"clarity"</span></span>
+          </div>
+          <div class="yaml-line org" data-src="org" data-line="71" onclick="selectLine(this, 71)">
+            <span class="yaml-line-num">71</span>
+            <span class="yaml-line-content">    <span class="yaml-key">rule</span>: <span class="yaml-str">"每个错误级别必须提供明确的用户行动指引"</span></span>
+          </div>
+          <div class="yaml-line org" data-src="org" data-line="72" onclick="selectLine(this, 72)">
+            <span class="yaml-line-num">72</span>
+            <span class="yaml-line-content">    <span class="yaml-key">violation_action</span>: <span class="yaml-str">"warn"</span></span>
+          </div>
         </div>
       </div>
 
+      <!-- RIGHT: Structure Tree + Info Panel -->
+      <div>
+        <!-- Structure Tree -->
+        <div class="struct-tree">
+          <p class="struct-tree-title">契约结构导航（点击跳转）</p>
+          <div class="struct-node active" onclick="jumpToLine(1)" id="struct-root">
+            <span class="struct-icon org">O</span>
+            <span class="struct-label">ERR-001 根契约</span>
+          </div>
+          <div class="struct-node" onclick="jumpToLine(7)" id="struct-tokens">
+            <span class="struct-indent"></span>
+            <span class="struct-icon org">T</span>
+            <span class="struct-label">semantic_tokens</span>
+          </div>
+          <div class="struct-node" onclick="jumpToLine(9)" id="struct-fatal">
+            <span class="struct-indent"></span>
+            <span class="struct-indent"></span>
+            <span class="struct-icon org">F</span>
+            <span class="struct-label">fatal</span>
+          </div>
+          <div class="struct-node" onclick="jumpToLine(20)" id="struct-transient">
+            <span class="struct-indent"></span>
+            <span class="struct-indent"></span>
+            <span class="struct-icon org">T</span>
+            <span class="struct-label">transient</span>
+          </div>
+          <div class="struct-node" onclick="jumpToLine(31)" id="struct-retryable">
+            <span class="struct-indent"></span>
+            <span class="struct-indent"></span>
+            <span class="struct-icon org">R</span>
+            <span class="struct-label">retryable</span>
+          </div>
+          <div class="struct-node" onclick="jumpToLine(42)" id="struct-degraded">
+            <span class="struct-indent"></span>
+            <span class="struct-indent"></span>
+            <span class="struct-icon org">D</span>
+            <span class="struct-label">degraded</span>
+          </div>
+          <div class="struct-node" onclick="jumpToLine(54)" id="struct-team">
+            <span class="struct-icon team">E</span>
+            <span class="struct-label">前端团队扩展</span>
+          </div>
+          <div class="struct-node" onclick="jumpToLine(66)" id="struct-boundary">
+            <span class="struct-icon boundary">B</span>
+            <span class="struct-label">immutable_boundaries</span>
+          </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="info-panel" id="info-panel">
+          <p class="info-panel-header">当前选中行治理信息</p>
+          <div id="info-content">
+            <div class="info-row">
+              <span class="info-label">行号</span>
+              <span class="info-value" id="info-line">2</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">来源</span>
+              <span class="info-value"><span class="info-highlight-org" id="info-source">组织级基线</span></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">语义层级</span>
+              <span class="info-value" id="info-layer">不可覆盖层</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">维护方</span>
+              <span class="info-value" id="info-owner">规范评审组</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">可修改性</span>
+              <span class="info-value" id="info-editable"><strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">消费状态</span>
+              <span class="info-value" id="info-consume">被 12 个 Prompt 引用 · 3 个业务团队覆盖</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Merge Viz -->
+        <div style="margin-top: 16px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">团队隔离编译可视化</p>
+          <div class="merge-viz">
+            <div class="merge-layer org">
+              <div class="merge-layer-title">组织级基线层</div>
+              <div class="merge-rule-item org">fatal / transient / retryable / degraded</div>
+              <div class="merge-rule-item org">safety 边界</div>
+              <div class="merge-rule-item org">clarity 边界</div>
+            </div>
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px;">
+              <div style="font-size: 18px; color: var(--text-tertiary);">+</div>
+            </div>
+            <div class="merge-layer team">
+              <div class="merge-layer-title">前端团队扩展层</div>
+              <div class="merge-rule-item team">degraded 文案约束</div>
+              <div class="merge-rule-item team">显式功能清单</div>
+              <div class="merge-rule-item team">禁止模糊表述</div>
+            </div>
+          </div>
+          <div class="merge-arrow-v">↓ 合并编译 ↓</div>
+          <div class="merge-layer output" style="margin-top: 0;">
+            <div class="merge-layer-title">编译输出（合并后）</div>
+            <div class="merge-rule-item merged">四级颜色映射 + 团队文案约束</div>
+            <div class="merge-rule-item merged">safety + clarity 边界</div>
+          </div>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 10px 14px; margin-top: 12px;">
+            <p style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 对账通过：前端团队扩展 v2.0.1 与组织级基线 v1.1.0 无冲突，可合并编译</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 2: Compilation Output ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">编译输出：四格式并行生成</div>
+        <div class="step-subtitle">Compilation Output · 一份 YAML 契约 → Prompt / Schema / Checklist / CI 规则</div>
+      </div>
+    </div>
+    <div class="fmt-tabs">
+      <button class="fmt-tab active" onclick="switchFmtTab('yaml', this)">YAML 契约<span class="tab-badge"></span></button>
+      <button class="fmt-tab" onclick="switchFmtTab('prompt', this)">Prompt 前缀<span class="tab-badge"></span></button>
+      <button class="fmt-tab" onclick="switchFmtTab('checklist', this)">Checklist<span class="tab-badge"></span></button>
+      <button class="fmt-tab" onclick="switchFmtTab('ci', this)">CI 规则<span class="tab-badge"></span></button>
+    </div>
+    <div class="fmt-content active" id="fmt-yaml">
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">输入契约：ERR-001.yaml</p>
-          <div class="yaml-block" style="font-size: 11px; padding: 12px; max-height: 280px;">
-<pre style="white-space: pre-wrap; margin: 0;">intent_id: "ERR-001"
-semantic_domain: "transactional"
+        <div class="diff-card org">
+          <div class="diff-header">
+            <span class="diff-title">组织级基线输出</span>
+            <span class="source-pill org">org-baseline</span>
+          </div>
+          <div class="yaml-block" style="font-size: 12px;">
+<pre>intent_id: "ERR-001"
+semantic_domain: "observational"
 version: "v1.1.0"
 
 semantic_tokens:
   error_severity:
     fatal:
-      description: "系统级故障，对话上下文可能丢失"
-      visual_mapping:
-        color_token: "status.critical"
-        motion_token: "pulse.red.urgent"
-        icon_token: "alert.octagon"
+      color_token: "status.critical"
+      motion_token: "pulse.red.urgent"
+      icon_token: "alert.octagon"
     transient:
-      description: "网络抖动，系统可自动恢复"
-      visual_mapping:
-        color_token: "status.neutral"
-        motion_token: "spinner"
-        icon_token: "loader"
+      color_token: "status.neutral"
+      motion_token: "spinner"
+      icon_token: "loader"
     retryable:
-      description: "请求频率已达上限"
-      visual_mapping:
-        color_token: "status.warning"
-        motion_token: "none"
-        icon_token: "clock"
+      color_token: "status.warning"
+      motion_token: "none"
+      icon_token: "clock"
     degraded:
-      description: "部分功能可用，可继续生成"
-      visual_mapping:
-        color_token: "status.info"
-        motion_token: "none"
-        icon_token: "info.circle"
+      color_token: "status.info"
+      motion_token: "none"
+      icon_token: "info.circle"
 
 immutable_boundaries:
-  - boundary_type: "safety"
-    rule: "禁止所有错误状态共用同一种红色视觉表达"
-    violation_action: "block"</pre>
+  - safety: "禁止所有错误状态共用同一种红色"
+  - clarity: "每个级别必须提供用户行动指引"</pre>
           </div>
+          <p class="diff-consumer">消费者：DesignOps · 规则仓库目录结构</p>
         </div>
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">前置校验结果</p>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
-              <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
-              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">字段完整性：7 个字段全部存在</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
-              <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
-              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">结构合法性：符合 schema/intent-schema.json</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
-              <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
-              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">覆盖层存在性：transactional 已注册</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
-              <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
-              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">绑定存在性：4 个令牌全部在字典注册</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
-              <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
-              <span style="font-size: 13px; color: #52c41a; font-weight: 600;">场景一致性：fatal 绑定 status.critical ✓</span>
-            </div>
+        <div class="diff-card merge">
+          <div class="diff-header">
+            <span class="diff-title">合并后完整输出</span>
+            <div><span class="source-pill org">org</span><span class="source-pill team">team</span></div>
           </div>
+          <div class="yaml-block" style="font-size: 12px;">
+<pre>intent_id: "ERR-001"
+semantic_domain: "observational"
+version: "v1.1.0+frontend-v2.0.1"
+
+semantic_tokens:
+  error_severity:
+    fatal: { color: "#cf1322", motion: "pulse" }
+    transient: { color: "#a0a0a0", motion: "spinner" }
+    retryable: { color: "#f5a623", motion: "none" }
+    degraded:
+      color: "#4a9eff"
+      motion: "none"
+      <span style="color:#a855f7;">llm_constraints:</span>
+        <span style="color:#a855f7;">- "必须显式列出可用功能清单"</span>
+        <span style="color:#a855f7;">- "禁止模糊表述"</span>
+
+immutable_boundaries:
+  - safety: "禁止统一红色" → block
+  - clarity: "必须提供行动指引" → warn</pre>
+          </div>
+          <p class="diff-consumer">消费者：全部编译目标 · 团队隔离编译结果</p>
         </div>
       </div>
     </div>
-
-    <!-- ==================== Step 2: 四层编译验证 ==================== -->
-    <div class="compile-step">
-      <div class="step-header">
-        <div class="step-number">2</div>
-        <div>
-          <div class="step-title">四层编译验证</div>
-          <div class="step-subtitle">Compile Process · 结构 → 语义 → 一致性 → 产物</div>
-        </div>
-        <div style="margin-left: auto;">
-          <span class="verify-badge verify-pass">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
-            全部通过
-          </span>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
-        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-            <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
-            <span style="font-size: 13px; font-weight: 700; color: #52c41a;">Layer 1</span>
-          </div>
-          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">结构验证</p>
-          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">YAML 语法、缩进、类型是否符合 schema</p>
-          <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
-            <div>✓ 语法合法</div>
-            <div>✓ 缩进正确</div>
-            <div>✓ 类型匹配</div>
-          </div>
-        </div>
-
-        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-            <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
-            <span style="font-size: 13px; font-weight: 700; color: #52c41a;">Layer 2</span>
-          </div>
-          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">语义验证</p>
-          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">引用是否在语义字典中注册</p>
-          <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
-            <div>✓ status.critical 已注册</div>
-            <div>✓ status.warning 已注册</div>
-            <div>✓ status.info 已注册</div>
-            <div>✓ status.neutral 已注册</div>
-          </div>
-        </div>
-
-        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-            <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
-            <span style="font-size: 13px; font-weight: 700; color: #52c41a;">Layer 3</span>
-          </div>
-          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">一致性验证</p>
-          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">四种格式交叉比对语义等价性</p>
-          <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
-            <div>✓ Prompt ↔ Schema 等价</div>
-            <div>✓ Schema ↔ ESLint 等价</div>
-            <div>✓ ESLint ↔ Checklist 等价</div>
-            <div>✓ 语义分叉率：0%</div>
-          </div>
-        </div>
-
-        <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-            <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
-            <span style="font-size: 13px; font-weight: 700; color: #52c41a;">Layer 4</span>
-          </div>
-          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">产物验证</p>
-          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">输出是否可被对应角色直接消费</p>
-          <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
-            <div>✓ Prompt 可直接粘贴</div>
-            <div>✓ Schema 可直接校验</div>
-            <div>✓ ESLint 可直接接入 CI</div>
-            <div>✓ Checklist 可直接走查</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 错误拦截演示 -->
-      <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 16px;">
-        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">编译错误拦截演示（假设场景）</p>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-          <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 12px;">
-            <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 6px;">✕ 字段缺失</p>
-            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px;">契约缺少 immutable_boundaries 字段</p>
-            <div style="background: #0d0d0d; border-radius: 6px; padding: 8px; font-family: 'SF Mono', monospace; font-size: 11px; color: #cf1322;">
-              [Layer 1 阻断] required_field_missing<br>
-              Path: intent.immutable_boundaries<br>
-              Action: BLOCK
-            </div>
-          </div>
-          <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 12px;">
-            <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 6px;">✕ 字典引用非法</p>
-            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px;">color_token: "status.danger" 未在字典注册</p>
-            <div style="background: #0d0d0d; border-radius: 6px; padding: 8px; font-family: 'SF Mono', monospace; font-size: 11px; color: #cf1322;">
-              [Layer 2 阻断] dictionary-reference-not-found<br>
-              Token: status.danger<br>
-              Action: BLOCK
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== Step 3: 编译输出 - 四种消费格式 ==================== -->
-    <div class="compile-step">
-      <div class="step-header">
-        <div class="step-number">3</div>
-        <div>
-          <div class="step-title">编译输出</div>
-          <div class="step-subtitle">Output · 同一语义，四种表达</div>
-        </div>
-        <div style="margin-left: auto;">
-          <span class="verify-badge verify-pass">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
-            4 种格式全部生成
-          </span>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
-        <!-- Prompt 前缀 -->
-        <div class="format-output">
-          <div class="format-header">
-            <span class="format-name">Prompt 前缀</span>
-            <span class="format-role role-ai">AI 工程师</span>
-          </div>
-          <div class="version-declare">
-            # source: ERR-001.yaml v1.1.0<br>
-            # compiled_at: 2026-07-12T13:40:00Z<br>
-            # format: prompt_prefix
-          </div>
-          <div class="yaml-block" style="font-size: 10px; padding: 10px; max-height: 200px;">
-<pre style="white-space: pre-wrap; margin: 0;">在生成错误状态界面时，必须遵守以下语义分级：
-
-- Fatal（系统级故障）：
-  使用红色脉冲 + 八边形警告图标
-  必须提供恢复路径（刷新/导出）
-
-- Transient（网络抖动）：
-  使用灰色加载 + 旋转图标
-  禁止红色背景
-
-- Retryable（限流）：
-  使用黄色提示 + 时钟图标
-  必须显示倒计时
-
-- Degraded（部分可用）：
-  使用蓝色提示 + 信息图标
-  必须说明可用功能
-
-禁止：所有错误状态共用同一种红色视觉表达。</pre>
-          </div>
-        </div>
-
-        <!-- JSON Schema -->
-        <div class="format-output">
-          <div class="format-header">
-            <span class="format-name">JSON Schema</span>
-            <span class="format-role role-fe">前端</span>
-          </div>
-          <div class="version-declare">
-            // source: ERR-001.yaml v1.1.0<br>
-            // compiled_at: 2026-07-12T13:40:00Z<br>
-            // format: json_schema
-          </div>
-          <div class="yaml-block" style="font-size: 10px; padding: 10px; max-height: 200px;">
-<pre style="white-space: pre-wrap; margin: 0;">{
-  "error_severity": {
-    "enum": ["fatal", "transient", "retryable", "degraded"],
-    "mapping": {
-      "fatal": {
-        "color_token": "status.critical",
-        "motion_token": "pulse.red.urgent",
-        "icon_token": "alert.octagon"
-      },
-      "transient": {
-        "color_token": "status.neutral",
-        "motion_token": "spinner",
-        "icon_token": "loader"
-      },
-      "retryable": {
-        "color_token": "status.warning",
-        "motion_token": "none",
-        "icon_token": "clock"
-      },
-      "degraded": {
-        "color_token": "status.info",
-        "motion_token": "none",
-        "icon_token": "info.circle"
-      }
-    }
-  }
-}</pre>
-          </div>
-        </div>
-
-        <!-- ESLint 规则 -->
-        <div class="format-output">
-          <div class="format-header">
-            <span class="format-name">ESLint 规则</span>
-            <span class="format-role role-ci">CI / 效能</span>
-          </div>
-          <div class="version-declare">
-            /* source: ERR-001.yaml v1.1.0 */<br>
-            /* compiled_at: 2026-07-12T13:40:00Z */<br>
-            /* format: eslint_rule */
-          </div>
-          <div class="yaml-block" style="font-size: 10px; padding: 10px; max-height: 200px;">
-<pre style="white-space: pre-wrap; margin: 0;">rules: {
-  "error-severity-color": {
-    selector: "[data-severity]",
-    mapping: {
-      fatal: { color: "#cf1322" },
-      transient: { color: "#a0a0a0" },
-      retryable: { color: "#f5a623" },
-      degraded: { color: "#4a9eff" }
-    },
-    forbidden: { same_color_all: true },
-    message: "禁止所有错误使用同一种颜色"
-  },
-  "error-severity-action": {
-    selector: "[data-severity='fatal']",
-    required_children: ["[data-action='refresh']"],
-    message: "Fatal 必须提供恢复路径"
-  }
-}</pre>
-          </div>
-        </div>
-
-        <!-- Checklist -->
-        <div class="format-output">
-          <div class="format-header">
-            <span class="format-name">Checklist</span>
-            <span class="format-role role-ops">DesignOps</span>
-          </div>
-          <div class="version-declare">
-            &lt;!-- source: ERR-001.yaml v1.1.0 --&gt;<br>
-            &lt;!-- compiled_at: 2026-07-12T13:40:00Z --&gt;<br>
-            &lt;!-- format: checklist --&gt;
-          </div>
-          <div class="yaml-block" style="font-size: 10px; padding: 10px; max-height: 200px;">
-<pre style="white-space: pre-wrap; margin: 0;">## ERR-001 错误状态走查清单
-
-- [ ] 是否区分了 Fatal/Transient/Retryable/Degraded 四级？
-- [ ] 每级是否有不同的颜色（红/灰/黄/蓝）？
-- [ ] 每级是否有明确的用户行动指引？
-- [ ] Fatal 是否有恢复路径（刷新/导出）？
-- [ ] Retryable 是否有倒计时或升级入口？
-- [ ] 是否引用了意图契约 ERR-001？
-- [ ] 是否禁止所有错误共用同一种红色？</pre>
-          </div>
-        </div>
-      </div>
-
-      <!-- 关键设计说明 -->
-      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 16px;">
-        <p style="font-size: 13px; color: var(--primary); font-weight: 600; margin-bottom: 8px;">关键设计：四种格式不是"各自为政"，而是"同一语义的不同表达"</p>
-        <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
-          Prompt 前缀里的 "status.critical" 和 JSON Schema 里的 "status.critical" 指向语义字典中的同一个绑定。<br>
-          ESLint 规则里的 "禁止所有错误使用同一种颜色" 和 Checklist 里的 "是否禁止所有错误共用同一种红色" 是同一约束的不同表达。<br>
-          四种格式共享同一信源——契约库。契约升级时，四种格式全部自动重编译。
-        </p>
-      </div>
-    </div>
-
-    <!-- ==================== Step 4: 一致性验证 - 交叉比对 ==================== -->
-    <div class="compile-step">
-      <div class="step-header">
-        <div class="step-number">4</div>
-        <div>
-          <div class="step-title">一致性验证</div>
-          <div class="step-subtitle">Cross-Check · 四种格式语义等价性交叉比对</div>
-        </div>
-        <div style="margin-left: auto;">
-          <span class="verify-badge verify-pass">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
-            语义分叉率 0%
-          </span>
-        </div>
-      </div>
-
-      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">同一语义绑定在四种格式中的表达对照</p>
-      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px;">
-        <div class="cross-check-row" style="background: #1a1a1e;">
-          <div class="cross-check-header">语义绑定</div>
-          <div class="cross-check-header">Prompt 前缀</div>
-          <div class="cross-check-header">JSON Schema</div>
-          <div class="cross-check-header">ESLint 规则</div>
-          <div class="cross-check-header" style="border-right: none;">Checklist</div>
-        </div>
-        <div class="cross-check-row">
-          <div class="cross-check-cell" style="font-weight: 700; color: #cf1322;">status.critical</div>
-          <div class="cross-check-cell">"红色脉冲 + 八边形警告"</div>
-          <div class="cross-check-cell">"color_token": "status.critical"</div>
-          <div class="cross-check-cell">fatal: { color: "#cf1322" }</div>
-          <div class="cross-check-cell" style="border-right: none;">Fatal 是否为红色脉冲？</div>
-        </div>
-        <div class="cross-check-row">
-          <div class="cross-check-cell" style="font-weight: 700; color: #a0a0a0;">status.neutral</div>
-          <div class="cross-check-cell">"灰色加载 + 旋转图标"</div>
-          <div class="cross-check-cell">"color_token": "status.neutral"</div>
-          <div class="cross-check-cell">transient: { color: "#a0a0a0" }</div>
-          <div class="cross-check-cell" style="border-right: none;">Transient 是否为灰色？</div>
-        </div>
-        <div class="cross-check-row">
-          <div class="cross-check-cell" style="font-weight: 700; color: #f5a623;">status.warning</div>
-          <div class="cross-check-cell">"黄色提示 + 时钟图标"</div>
-          <div class="cross-check-cell">"color_token": "status.warning"</div>
-          <div class="cross-check-cell">retryable: { color: "#f5a623" }</div>
-          <div class="cross-check-cell" style="border-right: none;">Retryable 是否为黄色？</div>
-        </div>
-        <div class="cross-check-row">
-          <div class="cross-check-cell" style="font-weight: 700; color: #4a9eff;">status.info</div>
-          <div class="cross-check-cell">"蓝色提示 + 信息图标"</div>
-          <div class="cross-check-cell">"color_token": "status.info"</div>
-          <div class="cross-check-cell">degraded: { color: "#4a9eff" }</div>
-          <div class="cross-check-cell" style="border-right: none;">Degraded 是否为蓝色？</div>
-        </div>
-        <div class="cross-check-row" style="border-bottom: none;">
-          <div class="cross-check-cell" style="font-weight: 700; color: var(--text-primary);">不可变边界</div>
-          <div class="cross-check-cell">"禁止所有错误共用同一种红色"</div>
-          <div class="cross-check-cell">forbidden: { same_color_all: true }</div>
-          <div class="cross-check-cell">forbidden: { same_color_all: true }</div>
-          <div class="cross-check-cell" style="border-right: none;">是否禁止所有错误共用同一种红色？</div>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
-          <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">4/4</div>
-          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">语义绑定全部对齐</div>
-        </div>
-        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
-          <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">0%</div>
-          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">语义分叉率</div>
-        </div>
-        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
-          <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">6/6</div>
-          <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">约束对全部匹配</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== Step 5: 同步机制 ==================== -->
-    <div class="compile-step">
-      <div class="step-header">
-        <div class="step-number">5</div>
-        <div>
-          <div class="step-title">同步机制</div>
-          <div class="step-subtitle">Sync · 不是一次性翻译，是持续同步</div>
-        </div>
-        <div style="margin-left: auto;">
-          <span class="verify-badge verify-pass">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
-            全部同步
-          </span>
-        </div>
-      </div>
-
+    <div class="fmt-content" id="fmt-prompt">
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <!-- 同步时间线 -->
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Git 钩子触发链路</p>
-          <div class="sync-timeline">
-            <div class="sync-item done">
-              <div class="sync-label">契约提交到 Git</div>
-              <div class="sync-meta">ERR-001.yaml v1.1.0 → main branch</div>
-            </div>
-            <div class="sync-item done">
-              <div class="sync-label">Git 钩子触发编译管线</div>
-              <div class="sync-meta">自动执行四层编译验证</div>
-            </div>
-            <div class="sync-item done">
-              <div class="sync-label">四种格式全部重编译</div>
-              <div class="sync-meta">Prompt / Schema / ESLint / Checklist</div>
-            </div>
-            <div class="sync-item done">
-              <div class="sync-label">产物写入 compiled/ 目录</div>
-              <div class="sync-meta">头部嵌入版本声明</div>
-            </div>
-            <div class="sync-item pending">
-              <div class="sync-label">消费方加载时版本对账</div>
-              <div class="sync-meta">核对源契约版本与编译时间</div>
-            </div>
+        <div class="diff-card org">
+          <div class="diff-header">
+            <span class="diff-title">Prompt 前缀（基线层）</span>
+            <span class="source-pill org">org-baseline</span>
           </div>
+          <div class="yaml-block" style="font-size: 12px;">
+<pre># === 组织级不可突破红线 ===
+# 来源：规范评审组 · ERR-001 v1.1.0
+# 规则制定流程：全组织统一规范，不可覆盖
+
+在生成任何错误状态界面时，必须遵守以下约束：
+
+【安全类约束 — 强制执行】
+- 禁止所有错误状态共用同一种红色视觉表达
+- 必须区分 Fatal / Transient / Retryable / Degraded 四级
+- Fatal 必须提供恢复路径（刷新/导出历史）
+
+【清晰类约束 — 警告模式】
+- 每个错误级别必须提供明确的用户行动指引
+- 禁止仅显示"出错了"等模糊文案</pre>
+          </div>
+          <p class="diff-consumer">消费者：Error-State-Generator · AI 生成工具</p>
         </div>
-
-        <!-- 版本声明与对账 -->
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">版本声明与消费方对账</p>
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Prompt 前缀</span>
-                <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 同步</span>
-              </div>
-              <div style="font-size: 11px; color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0 | compiled: 2026-07-12T13:40:00Z</div>
-            </div>
-            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">JSON Schema</span>
-                <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 同步</span>
-              </div>
-              <div style="font-size: 11px; color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0 | compiled: 2026-07-12T13:40:00Z</div>
-            </div>
-            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">ESLint 规则</span>
-                <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 同步</span>
-              </div>
-              <div style="font-size: 11px; color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0 | compiled: 2026-07-12T13:40:00Z</div>
-            </div>
-            <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Checklist</span>
-                <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 同步</span>
-              </div>
-              <div style="font-size: 11px; color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0 | compiled: 2026-07-12T13:40:00Z</div>
-            </div>
+        <div class="diff-card merge">
+          <div class="diff-header">
+            <span class="diff-title">Prompt 前缀（合并后）</span>
+            <div><span class="source-pill org">org</span><span class="source-pill team">team</span></div>
           </div>
+          <div class="yaml-block" style="font-size: 12px;">
+<pre># === 组织级不可突破红线 ===
+# 来源：规范评审组 · ERR-001 v1.1.0
 
-          <!-- 过期告警演示 -->
-          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 12px; margin-top: 12px;">
-            <p style="font-size: 12px; font-weight: 700; color: #f5a623; margin-bottom: 6px;">⏳ 假设场景：消费方版本过期</p>
-            <div style="background: #0d0d0d; border-radius: 6px; padding: 8px; font-family: 'SF Mono', monospace; font-size: 11px; color: #f5a623;">
-              [ALERT] version_mismatch<br>
-              Consumer: frontend-team<br>
-              Loaded: ERR-001 v1.0.0<br>
-              Current: ERR-001 v1.1.0<br>
-              Action: 请更新 compiled/ERR-001.schema.json
-            </div>
+在生成任何错误状态界面时，必须遵守以下约束：
+- 禁止所有错误状态共用同一种红色视觉表达
+- 必须区分 Fatal / Transient / Retryable / Degraded 四级
+
+# === 前端团队扩展（v2.0.1）===
+# 来源：前端团队 · 团队治理接口人：王五
+# 团队自定义空间：degraded 级别文案优化
+
+【Degraded 状态补充约束】
+- 必须在降级提示中显式列出可用功能清单
+- 禁止使用"部分失败""服务异常"等模糊表述
+- 必须说明"已生成的内容仍然有效"</pre>
           </div>
+          <p class="diff-consumer">消费者：Error-State-Generator · 前端团队 AI 工具</p>
         </div>
       </div>
     </div>
+    <div class="fmt-content" id="fmt-checklist">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="diff-card org">
+          <div class="diff-header">
+            <span class="diff-title">Checklist 走查清单（基线）</span>
+            <span class="source-pill org">org-baseline</span>
+          </div>
+          <div class="yaml-block" style="font-size: 12px;">
+<pre>错误状态走查清单（组织级基线）
+来源：规范评审组 · ERR-001 v1.1.0
 
-    <!-- 底部 CTA -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+安全类（不可突破）：
+□ 是否区分了 Fatal/Transient/Retryable/Degraded 四级？
+□ 每级是否有不同的颜色（红/灰/黄/蓝）？
+□ 是否禁止了所有错误共用同一种红色？
+
+清晰类（建议遵守）：
+□ 每级是否有明确的用户行动指引？
+□ Fatal 是否有恢复路径（刷新/导出）？
+□ Retryable 是否有倒计时或升级入口？</pre>
+          </div>
+          <p class="diff-consumer">消费者：设计师 · 走查流程</p>
+        </div>
+        <div class="diff-card merge">
+          <div class="diff-header">
+            <span class="diff-title">Checklist 走查清单（合并后）</span>
+            <div><span class="source-pill org">org</span><span class="source-pill team">team</span></div>
+          </div>
+          <div class="yaml-block" style="font-size: 12px;">
+<pre>错误状态走查清单（前端团队扩展版）
+基线来源：规范评审组 · 扩展来源：前端团队 v2.0.1
+
+【组织级基线层】
+□ 四级颜色区分（红/灰/黄/蓝）
+□ 禁止统一红色
+□ 每级提供行动指引
+
+【前端团队扩展层】
+□ Degraded 状态是否显式列出可用功能清单？
+□ 是否避免"部分失败"等模糊表述？
+□ 是否说明"已生成内容仍然有效"？
+□ 是否提供"继续生成"和"简化重试"双路径？</pre>
+          </div>
+          <p class="diff-consumer">消费者：前端设计团队 · 团队走查流程</p>
+        </div>
+      </div>
+    </div>
+    <div class="fmt-content" id="fmt-ci">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="diff-card org">
+          <div class="diff-header">
+            <span class="diff-title">CI 校验规则（基线）</span>
+            <span class="source-pill org">org-baseline</span>
+          </div>
+          <div class="yaml-block" style="font-size: 12px;">
+<pre># CI 校验规则（组织级基线）
+# 来源：规范评审组 · ERR-001 v1.1.0
+# 执行方：工程支持团队 · 基础设施团队
+
+rules:
+  error-severity-color:
+    selector: "[data-severity]"
+    mapping:
+      fatal: { color: "#cf1322" }
+      transient: { color: "#a0a0a0" }
+      retryable: { color: "#f5a623" }
+      degraded: { color: "#4a9eff" }
+    forbidden: { color: "#cf1322" }
+    message: "禁止全部错误使用同一种红色"
+
+  error-action-required:
+    selector: "[data-severity]"
+    required_children: [".user-action"]
+    message: "每个错误级别必须提供用户行动指引"</pre>
+          </div>
+          <p class="diff-consumer">消费者：Stylelint / ESLint · 研发效能流水线</p>
+        </div>
+        <div class="diff-card merge">
+          <div class="diff-header">
+            <span class="diff-title">CI 校验规则（合并后）</span>
+            <div><span class="source-pill org">org</span><span class="source-pill team">team</span></div>
+          </div>
+          <div class="yaml-block" style="font-size: 12px;">
+<pre># CI 校验规则（前端团队合并版）
+# 基线：规范评审组 v1.1.0
+# 扩展：前端团队 v2.0.1
+
+rules:
+  # === 组织级基线层 ===
+  error-severity-color:
+    selector: "[data-severity]"
+    mapping: { fatal: "#cf1322", transient: "#a0a0a0", ... }
+    forbidden: { color: "#cf1322" }
+
+  # === 前端团队扩展层 ===
+  degraded-clarity:
+    selector: "[data-severity='degraded']"
+    required_text: ["可用功能", "仍然有效"]
+    forbidden_text: ["部分失败", "服务异常"]
+    message: "Degraded 状态必须显式列出可用功能"
+
+  degraded-actions:
+    selector: "[data-severity='degraded']"
+    required_actions: ["continue", "retry_simplified"]
+    message: "必须提供继续生成和简化重试双路径"</pre>
+          </div>
+          <p class="diff-consumer">消费者：前端团队 CI 流水线 · 技术实现层</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 3: Consumption Tracking ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">3</div>
       <div>
-        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">契约不是"写好了就完事"，机器要自动翻译并验证</p>
-        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">YAML 契约（高级语言）→ 语义字典（IR）→ 四种消费格式（目标代码）</p>
+        <div class="step-title">消费状态看板</div>
+        <div class="step-subtitle">Consumption Tracking · 从消费数据到规则迭代</div>
       </div>
-      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
-        返回 Schema-As-Code →
-      </a>
     </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">契约消费者追踪（点击展开详情）</p>
+        <div class="trace-chain">
+          <div class="trace-item consumed" onclick="toggleTrace(this)">
+            <p class="trace-label">Prompt 前缀：Error-State-Generator</p>
+            <p class="trace-desc">引用了 error_severity.fatal / transient / retryable / degraded</p>
+            <p class="trace-status" style="color: #52c41a;">✓ 已消费 · 4/4 tokens · 组织级基线</p>
+            <div class="trace-detail">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; line-height: 1.7;">消费时间：2026-07-12 12:30<br>引用方式：Prompt 前缀注入<br>覆盖范围：全组织通用错误状态生成</p>
+            </div>
+          </div>
+          <div class="trace-item team-consumed" onclick="toggleTrace(this)">
+            <p class="trace-label">Prompt 前缀：Frontend-Degraded-Optimizer</p>
+            <p class="trace-desc">追加 degraded 级别的 LLM 约束（团队级扩展）</p>
+            <p class="trace-status" style="color: #a855f7;">✓ 已消费 · 1/1 team-ext · 前端团队</p>
+            <div class="trace-detail">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; line-height: 1.7;">消费时间：2026-07-12 13:15<br>引用方式：在基线 Prompt 后追加团队扩展约束<br>覆盖范围：前端团队 Degraded 状态优化</p>
+            </div>
+          </div>
+          <div class="trace-item consumed" onclick="toggleTrace(this)">
+            <p class="trace-label">组件校验：Alert-Validator</p>
+            <p class="trace-desc">校验 Alert 组件的 color_token 与 motion_token 匹配</p>
+            <p class="trace-status" style="color: #52c41a;">✓ 已消费 · immutable_boundary.safety</p>
+            <div class="trace-detail">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; line-height: 1.7;">消费时间：2026-07-12 11:00<br>校验方式：运行时组件语义快照匹配<br>触发条件：Alert 组件渲染时自动校验</p>
+            </div>
+          </div>
+          <div class="trace-item consumed" onclick="toggleTrace(this)">
+            <p class="trace-label">CI 规则：error-severity-color</p>
+            <p class="trace-desc">Stylelint 规则，禁止全部错误使用 #cf1322</p>
+            <p class="trace-status" style="color: #52c41a;">✓ 已消费 · 2/2 boundaries</p>
+            <div class="trace-detail">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; line-height: 1.7;">消费时间：2026-07-12 10:00<br>执行方式：CI 流水线自动执行<br>阻断策略：safety 边界违反 → 阻断合并；clarity 边界违反 → 警告</p>
+            </div>
+          </div>
+          <div class="trace-item pending" onclick="toggleTrace(this)">
+            <p class="trace-label">Prompt 前缀：Boundary-Action-Generator</p>
+            <p class="trace-desc">等待接入：BND-001 契约尚未被该生成器引用</p>
+            <p class="trace-status" style="color: #f5a623;">⏳ 待消费 · 规则变更申请流程中</p>
+            <div class="trace-detail">
+              <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; line-height: 1.7;">申请时间：2026-07-11 16:00<br>当前状态：规范评审组评审中<br>预计完成：2026-07-15</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">覆盖率统计与规则迭代</p>
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span class="progress-title">Semantic Tokens 消费率</span>
+            <span class="progress-value" style="color: #52c41a;">100%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width: 100%; background: #52c41a;"></div></div>
+          <p class="progress-note">4/4 tokens 被至少一个消费者引用</p>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span class="progress-title">Immutable Boundaries 执行率</span>
+            <span class="progress-value" style="color: #52c41a;">100%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width: 100%; background: #52c41a;"></div></div>
+          <p class="progress-note">2/2 boundaries 被至少一个校验器执行</p>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span class="progress-title">Prompt 前缀覆盖率</span>
+            <span class="progress-value" style="color: #f5a623;">75%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width: 75%; background: #f5a623;"></div></div>
+          <p class="progress-note">3/4 生成器已引用 ERR-001 契约</p>
+        </div>
+        <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 12px 16px;">
+          <p style="font-size: 13px; color: var(--primary); font-weight: 600; margin-bottom: 4px;">规则迭代信号</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">Boundary-Action-Generator 待接入 → 触发规则变更申请流程 → 规范评审组评审 → 纳入下一版本基线</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 4: Version Reconciliation ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">版本对账与规则全生命周期管理</div>
+        <div class="step-subtitle">Version Reconciliation · 语义规则负责人视角</div>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">双轨版本时间线（点击版本查看变更）</p>
+        <div class="dual-timeline">
+          <div class="timeline-track org">
+            <p style="font-size: 12px; font-weight: 700; color: #4a9eff; margin-bottom: 12px;">组织级基线</p>
+            <div class="t-item org-v latest" onclick="alert('v1.1.0: 增加 degraded 级别；优化同义词防火墙匹配逻辑')">
+              <div class="t-tag">v1.1.0</div>
+              <div class="t-date">2026-06-20 · 规范评审组发布</div>
+              <div class="t-desc">增加 "degraded" 级别；优化同义词防火墙匹配逻辑</div>
+            </div>
+            <div class="t-item org-v" onclick="alert('v1.0.0: 初始版本：fatal / transient / retryable 三级错误状态语义分级')">
+              <div class="t-tag">v1.0.0</div>
+              <div class="t-date">2026-06-01 · 规范评审组发布</div>
+              <div class="t-desc">初始版本：fatal / transient / retryable 三级错误状态语义分级</div>
+            </div>
+          </div>
+          <div class="timeline-track team">
+            <p style="font-size: 12px; font-weight: 700; color: #a855f7; margin-bottom: 12px;">前端团队扩展</p>
+            <div class="t-item team-v latest" onclick="alert('v2.0.1: 追加 degraded 级别 LLM 约束：显式列出可用功能清单')">
+              <div class="t-tag">v2.0.1</div>
+              <div class="t-date">2026-07-10 · 团队治理接口人：王五</div>
+              <div class="t-desc">追加 degraded 级别 LLM 约束：显式列出可用功能清单</div>
+            </div>
+            <div class="t-item team-v" onclick="alert('v2.0.0: 初始化前端团队扩展规则仓库目录结构')">
+              <div class="t-tag">v2.0.0</div>
+              <div class="t-date">2026-07-01 · 团队治理接口人：王五</div>
+              <div class="t-desc">初始化前端团队扩展规则仓库目录结构</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 12px; text-align: center; padding: 10px; background: rgba(82,196,26,0.05); border-radius: 8px;">
+          <p style="font-size: 13px; color: #52c41a; font-weight: 600;">✓ 上次对账：2026-07-12 13:40 · 无冲突 · 可合并编译</p>
+        </div>
+      </div>
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">规则全生命周期管理（悬停查看详情）</p>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+          <div class="lifecycle-grid">
+            <div class="lc-card has-tooltip">
+              <div class="lc-value" style="color: #4a9eff;">94%</div>
+              <div class="lc-label">规则健康度</div>
+              <div class="tooltip">基于消费覆盖率 + 版本新鲜度 + 冲突率综合计算</div>
+            </div>
+            <div class="lc-card has-tooltip">
+              <div class="lc-value">12</div>
+              <div class="lc-label">活跃消费者</div>
+              <div class="tooltip">当前正在引用该契约的 Prompt / 校验器 / CI 规则总数</div>
+            </div>
+            <div class="lc-card has-tooltip">
+              <div class="lc-value">3</div>
+              <div class="lc-label">覆盖业务团队</div>
+              <div class="tooltip">前端 / 后端 / 设计团队已接入该契约</div>
+            </div>
+            <div class="lc-card has-tooltip">
+              <div class="lc-value">2h</div>
+              <div class="lc-label">最近消费</div>
+              <div class="tooltip">Frontend-Degraded-Optimizer 于 2 小时前消费了团队扩展</div>
+            </div>
+          </div>
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <p style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">规则负责人信息</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+              <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center;">
+                <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 2px;">基线规则负责人</p>
+                <p style="font-size: 14px; color: var(--text-primary); font-weight: 700;">张三</p>
+                <p style="font-size: 11px; color: var(--text-secondary); font-weight: 500;">规范评审组</p>
+              </div>
+              <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center;">
+                <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 2px;">团队治理接口人</p>
+                <p style="font-size: 14px; color: var(--text-primary); font-weight: 700;">王五</p>
+                <p style="font-size: 11px; color: var(--text-secondary); font-weight: 500;">前端团队</p>
+              </div>
+              <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center;">
+                <p style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 2px;">下次评审日期</p>
+                <p style="font-size: 14px; color: var(--text-primary); font-weight: 700;">2026-09-15</p>
+                <p style="font-size: 11px; color: var(--text-secondary); font-weight: 500;">规范评审组例会</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 5: Governance Legend ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">解耦标记系统说明</div>
+        <div class="step-subtitle">Governance Annotation Legend · 组织级语义治理的信息层嵌入规范</div>
+      </div>
+    </div>
+    <div class="legend-grid">
+      <div class="legend-card">
+        <p class="legend-title">来源标记</p>
+        <div class="legend-row">
+          <span class="source-pill org">org-baseline</span>
+          <span class="legend-text">组织级基线，不可本地修改</span>
+        </div>
+        <div class="legend-row">
+          <span class="source-pill team">team-ext</span>
+          <span class="legend-text">团队级扩展规则，可迭代</span>
+        </div>
+      </div>
+      <div class="legend-card">
+        <p class="legend-title">层级语义</p>
+        <div class="legend-row">
+          <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; background: rgba(207,19,34,0.15); color: #cf1322; font-weight: 700;">基线层</span>
+          <span class="legend-text">不可覆盖层，全组织统一规范</span>
+        </div>
+        <div class="legend-row">
+          <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; background: rgba(168,85,247,0.15); color: #a855f7; font-weight: 700;">扩展层</span>
+          <span class="legend-text">团队自定义空间，可自治调整</span>
+        </div>
+      </div>
+      <div class="legend-card">
+        <p class="legend-title">对账状态</p>
+        <div class="legend-row">
+          <span class="status-pill ok"><span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>已对齐</span>
+          <span class="legend-text">基线与扩展无冲突</span>
+        </div>
+        <div class="legend-row">
+          <span class="status-pill warn"><span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>待对账</span>
+          <span class="legend-text">存在待评审差异</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top: 16px; background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 16px;">
+      <p style="font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 12px;">组织级语义治理设计原则</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+          <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 4px;">各团队自治但遵守统一规范</p>
+          团队可在团队自定义空间内追加约束，但不可覆盖组织级不可突破红线。冲突时基线层自动胜出。
+        </div>
+        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+          <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 4px;">前置校验的组织意义</p>
+          编译管线的前置校验不是阻断发布，而是设定自治门槛。基线通过即可发布，扩展建议记录为技术债，由团队自行排期优化。
+        </div>
+        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+          <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 4px;">规则制定流程</p>
+          基线变更须经规范评审组评审；团队扩展由团队治理接口人审核；实验环境可先行验证，成熟后通过规则变更申请流程升格为基线。
+        </div>
+        <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+          <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 4px;">从消费数据到规则迭代</p>
+          消费状态看板追踪每条规则的引用方与覆盖率。低覆盖率规则触发评审组复审，高需求场景驱动新规则纳入规则仓库目录结构。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom CTA -->
+  <div class="cta-bar">
+    <div>
+      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">编译管线演示完毕</p>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</p>
+    </div>
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block;">
+      返回主站 →
+    </a>
   </div>
 </div>
 
@@ -969,6 +2179,135 @@ immutable_boundaries:
     Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
   </div>
 </div>
+
+<script>
+// Flow node interaction
+function showFlowDetail(id) {
+  document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.flow-detail-panel').forEach(p => p.classList.remove('show'));
+  document.getElementById('flow-detail-' + id).classList.add('show');
+}
+
+// Source filter
+function filterSource(mode, btn) {
+  document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const lines = document.querySelectorAll('.yaml-line');
+  const badgeOrg = document.getElementById('badge-org');
+  const badgeTeam = document.getElementById('badge-team');
+  lines.forEach(line => {
+    line.classList.remove('dim');
+    if (mode === 'org' && line.dataset.src === 'team') line.classList.add('dim');
+    if (mode === 'team' && line.dataset.src === 'org') line.classList.add('dim');
+  });
+  if (badgeOrg) badgeOrg.classList.toggle('dim', mode === 'team');
+  if (badgeTeam) badgeTeam.classList.toggle('dim', mode === 'org');
+}
+
+// Fold/unfold YAML blocks
+function toggleFold(id, event) {
+  event.stopPropagation();
+  const group = document.getElementById('fold-' + id);
+  const btn = event.currentTarget;
+  if (group.style.display === 'none') {
+    group.style.display = 'block';
+    btn.classList.remove('collapsed');
+    btn.textContent = '▼';
+  } else {
+    group.style.display = 'none';
+    btn.classList.add('collapsed');
+    btn.textContent = '▶';
+  }
+}
+
+// Line selection + info panel update
+const lineInfo = {
+  1: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 12 个 Prompt 引用 · 3 个业务团队覆盖' },
+  2: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 12 个 Prompt 引用 · 3 个业务团队覆盖' },
+  3: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 12 个 Prompt 引用 · 3 个业务团队覆盖' },
+  4: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 12 个 Prompt 引用 · 3 个业务团队覆盖' },
+  5: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 12 个 Prompt 引用 · 3 个业务团队覆盖' },
+  7: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 12 个 Prompt 引用 · 3 个业务团队覆盖' },
+  8: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 12 个 Prompt 引用 · 3 个业务团队覆盖' },
+  9: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 8 个 Prompt 引用 · 全组织覆盖' },
+  20: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 6 个 Prompt 引用 · 全组织覆盖' },
+  31: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 5 个 Prompt 引用 · 全组织覆盖' },
+  42: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 4 个 Prompt 引用 · 前端团队扩展覆盖' },
+  54: { source: '前端团队扩展', layer: '团队自定义空间', owner: '前端团队 · 团队治理接口人：王五', editable: '<strong style="color:#a855f7;">团队可自治修改</strong> · 须经团队治理接口人审核', consume: '被 2 个 Prompt 引用 · 仅前端团队' },
+  55: { source: '前端团队扩展', layer: '团队自定义空间', owner: '前端团队 · 团队治理接口人：王五', editable: '<strong style="color:#a855f7;">团队可自治修改</strong> · 须经团队治理接口人审核', consume: '被 2 个 Prompt 引用 · 仅前端团队' },
+  56: { source: '前端团队扩展', layer: '团队自定义空间', owner: '前端团队 · 团队治理接口人：王五', editable: '<strong style="color:#a855f7;">团队可自治修改</strong> · 须经团队治理接口人审核', consume: '被 2 个 Prompt 引用 · 仅前端团队' },
+  57: { source: '前端团队扩展', layer: '团队自定义空间', owner: '前端团队 · 团队治理接口人：王五', editable: '<strong style="color:#a855f7;">团队可自治修改</strong> · 须经团队治理接口人审核', consume: '被 2 个 Prompt 引用 · 仅前端团队' },
+  59: { source: '前端团队扩展', layer: '团队自定义空间', owner: '前端团队 · 团队治理接口人：王五', editable: '<strong style="color:#a855f7;">团队可自治修改</strong> · 须经团队治理接口人审核', consume: '被 2 个 Prompt 引用 · 仅前端团队' },
+  60: { source: '前端团队扩展', layer: '团队自定义空间', owner: '前端团队 · 团队治理接口人：王五', editable: '<strong style="color:#a855f7;">团队可自治修改</strong> · 须经团队治理接口人审核', consume: '被 2 个 Prompt 引用 · 仅前端团队' },
+  61: { source: '前端团队扩展', layer: '团队自定义空间', owner: '前端团队 · 团队治理接口人：王五', editable: '<strong style="color:#a855f7;">团队可自治修改</strong> · 须经团队治理接口人审核', consume: '被 2 个 Prompt 引用 · 仅前端团队' },
+  62: { source: '前端团队扩展', layer: '团队自定义空间', owner: '前端团队 · 团队治理接口人：王五', editable: '<strong style="color:#a855f7;">团队可自治修改</strong> · 须经团队治理接口人审核', consume: '被 2 个 Prompt 引用 · 仅前端团队' },
+  63: { source: '前端团队扩展', layer: '团队自定义空间', owner: '前端团队 · 团队治理接口人：王五', editable: '<strong style="color:#a855f7;">团队可自治修改</strong> · 须经团队治理接口人审核', consume: '被 2 个 Prompt 引用 · 仅前端团队' },
+  64: { source: '前端团队扩展', layer: '团队自定义空间', owner: '前端团队 · 团队治理接口人：王五', editable: '<strong style="color:#a855f7;">团队可自治修改</strong> · 须经团队治理接口人审核', consume: '被 2 个 Prompt 引用 · 仅前端团队' },
+  66: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 3 个 CI 规则引用 · 全组织覆盖' },
+  67: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 3 个 CI 规则引用 · 全组织覆盖' },
+  68: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 3 个 CI 规则引用 · 全组织覆盖' },
+  69: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 3 个 CI 规则引用 · 全组织覆盖' },
+  70: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 3 个 CI 规则引用 · 全组织覆盖' },
+  71: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 3 个 CI 规则引用 · 全组织覆盖' },
+  72: { source: '组织级基线', layer: '不可覆盖层', owner: '规范评审组', editable: '<strong style="color:#cf1322;">不可本地修改</strong> · 变更须经规范评审组评审', consume: '被 3 个 CI 规则引用 · 全组织覆盖' }
+};
+
+function selectLine(el, lineNum) {
+  document.querySelectorAll('.yaml-line').forEach(l => l.classList.remove('active'));
+  el.classList.add('active');
+  const info = lineInfo[lineNum] || lineInfo[2];
+  const isTeam = el.dataset.src === 'team';
+  document.getElementById('info-line').textContent = lineNum;
+  document.getElementById('info-source').textContent = info.source;
+  document.getElementById('info-source').className = isTeam ? 'info-highlight-team' : 'info-highlight-org';
+  document.getElementById('info-layer').textContent = info.layer;
+  document.getElementById('info-owner').textContent = info.owner;
+  document.getElementById('info-editable').innerHTML = info.editable;
+  document.getElementById('info-consume').textContent = info.consume;
+}
+
+function jumpToLine(lineNum) {
+  const line = document.querySelector('.yaml-line[data-line="' + lineNum + '"]');
+  if (line) {
+    selectLine(line, lineNum);
+    line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.querySelectorAll('.struct-node').forEach(n => n.classList.remove('active'));
+    const structMap = {1:'root', 7:'tokens', 9:'fatal', 20:'transient', 31:'retryable', 42:'degraded', 54:'team', 66:'boundary'};
+    const sid = structMap[lineNum];
+    if (sid) document.getElementById('struct-' + sid)?.classList.add('active');
+  }
+}
+
+// Format tab switching
+function switchFmtTab(tab, btn) {
+  document.querySelectorAll('.fmt-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.fmt-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('fmt-' + tab).classList.add('active');
+}
+
+// Trace expand
+function toggleTrace(item) {
+  const detail = item.querySelector('.trace-detail');
+  const isExpanded = item.classList.contains('expanded');
+  document.querySelectorAll('.trace-item').forEach(t => {
+    t.classList.remove('expanded');
+    const d = t.querySelector('.trace-detail');
+    if (d) d.classList.remove('show');
+  });
+  if (!isExpanded) {
+    item.classList.add('expanded');
+    if (detail) detail.classList.add('show');
+  }
+}
+
+// Init: select line 2
+window.addEventListener('DOMContentLoaded', () => {
+  const line2 = document.querySelector('.yaml-line[data-line="2"]');
+  if (line2) selectLine(line2, 2);
+});
+</script>
 
 </body>
 </html>

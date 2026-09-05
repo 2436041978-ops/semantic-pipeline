@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Schema-As-Code · 产物层差异</title>
+<title>Schema-As-Code · 产物层差异演示</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   :root {
-    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
     --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
     --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
     --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
@@ -30,7 +30,7 @@
   .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
   .card:active { transform: scale(0.98); }
   .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
-  .collapsible-content.open { max-height: 6000px; opacity: 1; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
   .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
   .chevron.rotated { transform: rotate(180deg); }
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
@@ -45,28 +45,15 @@
   .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
   .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
   .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
   .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
-  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 11px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .code-block pre { white-space: pre-wrap; margin: 0; }
-  .scroll-hint { display: flex; justify-content: center; gap: 4px; margin-top: 10px; }
-  .scroll-hint-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); transition: background 0.3s ease, transform 0.3s ease; }
-  .scroll-hint-dot.active { background: var(--primary); transform: scale(1.3); }
-  .h-scroll { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 2px 4px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
-  .h-scroll::-webkit-scrollbar { display: none; }
-  .h-scroll > * { flex-shrink: 0; }
-  .h-card { width: 230px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: transform 0.15s ease, border-color 0.2s ease; }
-  .h-card:active { transform: scale(0.97); }
   .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
   .divider { height: 1px; background: var(--border); margin: 16px 0; }
-  .mobile-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .mobile-table th { text-align: left; padding: 8px 10px; color: var(--text-tertiary); font-weight: 700; border-bottom: 1px solid var(--border-light); white-space: nowrap; }
-  .mobile-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
-  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px; }
-  .version-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
-  .version-old { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
-  .version-new { background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); }
-  .version-missing { background: #1e1e22; color: #666; border: 1px solid #2a2a2e; }
+  .role-h { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -75,321 +62,243 @@
   <div style="padding: 12px 16px;">
     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
       <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
-      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code 编译与交付层 · ④</span>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 阶段二 · 产物层差异</span>
     </div>
-    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">产物层差异</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Artifact Layer Diff</span></h1>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">产物层差异演示</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Four-Role Consumption</span></h1>
     <p class="text-caption" style="color: var(--text-tertiary);">同一份契约的四角色消费格式</p>
   </div>
 </div>
 
 <div style="padding: 0 16px;">
 
-  <!-- 导语 -->
+  <!-- 导语 + 状态条 -->
   <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
     <div style="padding: 16px;">
-      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
-        同一份契约，<span style="color: var(--text-primary); font-weight: 700;">手工维护四份产物</span> vs <span style="color: var(--text-primary); font-weight: 700;">编译管线自动生成</span>，分别长什么样？产物层的一致性，靠人维护为什么守不住？
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 10px;">
+        同一份 YAML 语义契约，经编译管线后，不同角色消费不同格式的产物：<span style="color: var(--text-primary); font-weight: 700;">设计师看 Checklist，DesignOps 看 YAML，前端看 JSON Schema，研发效能看 CI 规则</span>。
       </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="badge badge-blue">组织级基线 v1.1.0</span>
+        <span class="badge badge-purple">前端团队扩展 v2.0.1</span>
+        <span class="badge badge-gray">契约：ERR-001 · 错误状态后果差异未分级</span>
+        <span class="badge badge-green">✓ 已对齐</span>
+      </div>
     </div>
   </div>
 
-  <!-- 三个核心命题（横向滑动） -->
-  <div style="margin: 16px 0;">
-    <div class="h-scroll" id="prop-scroll">
-      <div class="h-card" style="width: 220px; border-left: 3px solid var(--primary);">
-        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 13px; font-weight: 800; margin-bottom: 10px;">1</div>
-        <h3 class="text-h3" style="margin-bottom: 6px;">同一条规则，两种形态</h3>
-        <p class="text-caption" style="color: var(--text-secondary);">手工：四份独立文件各自解读。编译：一份 YAML → 四份产物</p>
-      </div>
-      <div class="h-card" style="width: 220px; border-left: 3px solid #f5a623;">
-        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; color: #f5a623; font-size: 13px; font-weight: 800; margin-bottom: 10px;">2</div>
-        <h3 class="text-h3" style="margin-bottom: 6px;">一致性靠人守不住</h3>
-        <p class="text-caption" style="color: var(--text-secondary);">10 条规则 × 4 份产物 × 5 条产品线 = 200 个人脑对齐点</p>
-      </div>
-      <div class="h-card" style="width: 220px; border-left: 3px solid #52c41a;">
-        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(82,196,26,0.15); border: 1px solid rgba(82,196,26,0.3); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 13px; font-weight: 800; margin-bottom: 10px;">3</div>
-        <h3 class="text-h3" style="margin-bottom: 6px;">差别不可替代</h3>
-        <p class="text-caption" style="color: var(--text-secondary);">版本对账检测过期、哈希校验拦截手改、消费追踪定位滞后——从"人盯"变"机管"</p>
-      </div>
-    </div>
-    <div class="scroll-hint" id="prop-hint">
-      <div class="scroll-hint-dot active"></div>
-      <div class="scroll-hint-dot"></div>
-      <div class="scroll-hint-dot"></div>
-    </div>
-  </div>
-
-  <!-- Before / After 变更场景 -->
+  <!-- 1 角色视角 -->
   <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('ba')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">Δ</div>
-          <h2 class="text-h2">变更场景：限流提示增加倒计时</h2>
-        </div>
-        <svg class="chevron" id="chevron-ba" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">retryable 级别必须显示倒计时 + 升级入口。15 天后，四份产物分别是什么状态？</p>
-    </div>
-    <div class="collapsible-content" id="content-ba">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <!-- Before -->
-        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #f5a623; border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px;">
-          <span class="badge badge-amber" style="margin-bottom: 10px;">BEFORE · 手工维护四份产物</span>
-          <div style="display: flex; flex-direction: column; gap: 8px; margin: 10px 0;">
-            <div style="background: rgba(245,158,11,0.03); border: 1px solid rgba(245,158,11,0.3); border-radius: 6px; padding: 10px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">Prompt 前缀（AI 用）</span>
-                <span class="version-pill version-old">v1.0.0 · 过期</span>
-              </div>
-              <p class="text-micro" style="color: var(--text-secondary);">维护者忘了更新。AI 继续生成无倒计时的限流提示。</p>
-            </div>
-            <div style="background: rgba(82,196,26,0.03); border: 1px solid rgba(82,196,26,0.3); border-radius: 6px; padding: 10px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">Checklist（走查用）</span>
-                <span class="version-pill version-new">v1.1.0 · 最新</span>
-              </div>
-              <p class="text-micro" style="color: var(--text-secondary);">走查按新标准判不合格，但 AI 按旧版生成。</p>
-            </div>
-            <div style="background: rgba(245,158,11,0.03); border: 1px solid rgba(245,158,11,0.3); border-radius: 6px; padding: 10px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">JSON Schema（前端校验）</span>
-                <span class="version-pill version-old">v1.0.0 · 过期</span>
-              </div>
-              <p class="text-micro" style="color: var(--text-secondary);">前端手工加字段，拼写与文档不一致（count_down vs countdown），校验形同虚设。</p>
-            </div>
-            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">CI 规则（流水线）</span>
-                <span class="version-pill version-missing">未更新</span>
-              </div>
-              <p class="text-micro" style="color: var(--text-secondary);">CI 工程师没收到通知，不拦截无倒计时的限流提示。</p>
-            </div>
-          </div>
-          <p class="text-micro" style="color: #f5a623; font-weight: 600; line-height: 1.7;">⚠️ 四份产物，四个版本。走查按新版判不合格，AI 按旧版生成，前端不拦截，CI 不阻断——没有任何机制能回答"这四份产物现在一致吗"。</p>
-        </div>
-        <!-- After -->
-        <div style="background: var(--surface); border: 1px solid var(--border); border-left: 3px solid #52c41a; border-radius: var(--radius-sm); padding: 12px;">
-          <span class="badge badge-green" style="margin-bottom: 10px;">AFTER · 编译管线自动生成</span>
-          <div class="code-block" style="font-size: 11px; padding: 10px; margin: 10px 0;">
-<pre># 单一来源：ERR-001.yaml
-error_severity:
-  retryable:
-    visual_mapping: { color_token: "status.warning", icon_token: "clock" }
-    user_action:
-      - { label: "等待倒计时", action: "wait_countdown" }  # ← 新增
-      - { label: "升级套餐",   action: "upgrade" }        # ← 新增</pre>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(82,196,26,0.03); border: 1px solid rgba(82,196,26,0.3); border-radius: 6px; padding: 8px 10px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">Prompt 前缀</span>
-              <span class="version-pill version-new">v1.1.0 · 已编译</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(82,196,26,0.03); border: 1px solid rgba(82,196,26,0.3); border-radius: 6px; padding: 8px 10px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">Checklist</span>
-              <span class="version-pill version-new">v1.1.0 · 已编译</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(82,196,26,0.03); border: 1px solid rgba(82,196,26,0.3); border-radius: 6px; padding: 8px 10px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">JSON Schema（countdown 自动注入，拼写一致）</span>
-              <span class="version-pill version-new">v1.1.0 · 已编译</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(82,196,26,0.03); border: 1px solid rgba(82,196,26,0.3); border-radius: 6px; padding: 8px 10px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">CI 规则（自动拦截缺 countdown）</span>
-              <span class="version-pill version-new">v1.1.0 · 已编译</span>
-            </div>
-          </div>
-          <p class="text-micro" style="color: #52c41a; font-weight: 600; line-height: 1.7;">✓ 一处修改，四处同步，零遗漏。每份产物携带版本身份证——过期可检测，手改可拦截，滞后能定位。</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 逐维度差异对照 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('dims')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">≡</div>
-          <h2 class="text-h2">逐维度差异对照</h2>
-        </div>
-        <svg class="chevron" id="chevron-dims" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">六个维度：手工维护 vs 编译管线 · 左右滑动</p>
-    </div>
-    <div class="collapsible-content" id="content-dims">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <div class="table-scroll">
-          <table class="mobile-table" style="min-width: 640px;">
-            <thead>
-              <tr><th>维度</th><th>Before（手工）</th><th>After（管线）</th><th>差异能力</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-primary);">事实源</td>
-                <td>无。四份产物各自解读，同一条规则四种理解</td>
-                <td>YAML 契约唯一来源，争议有仲裁依据</td>
-                <td style="color: #52c41a; font-weight: 600;">单一真相源</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-primary);">同步方式</td>
-                <td>四个人各自记得、各自有时间、各自理解</td>
-                <td>Git 提交 → 钩子编译 → 四份产物自动生成</td>
-                <td style="color: #52c41a; font-weight: 600;">一处修改四处同步</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-primary);">版本标识</td>
-                <td>产物无版本信息，一个月后不知新旧</td>
-                <td>头部嵌入：源契约 / 版本 / 编译时间 / Commit Hash</td>
-                <td style="color: #52c41a; font-weight: 600;">过期可检测</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-primary);">一致性证明</td>
-                <td>无法证明。走查合格但 AI 生成旧版</td>
-                <td>三层编译验证：结构 / 语义 / 交叉比对</td>
-                <td style="color: #52c41a; font-weight: 600;">一致性可证</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-primary);">手改风险</td>
-                <td>产物即源头，改了没人知道，两套"真相"并存</td>
-                <td>compiled/ 禁止手改，CI 校验哈希拒绝合入</td>
-                <td style="color: #52c41a; font-weight: 600;">完整性机管</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-primary);">字段适配</td>
-                <td>同一份内容发所有人，Prompt 里塞 Schema 语法</td>
-                <td>字段裁剪：每份只拿自己需要的</td>
-                <td style="color: #52c41a; font-weight: 600;">精准投递</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 产物身份证 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('idcard')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 800;">ID</div>
-          <h2 class="text-h2">产物身份证</h2>
-        </div>
-        <svg class="chevron" id="chevron-idcard" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">以前产物只有内容；现在携带来源 + 版本 + 一致性证明</p>
-    </div>
-    <div class="collapsible-content" id="content-idcard">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">Prompt 前缀（带身份证）</p>
-        <div class="code-block" style="font-size: 11px; padding: 10px; margin-bottom: 12px;">
-<pre># === COMPILED PRODUCT ===
-# source: intent/err-001.yaml
-# version: v1.1.0
-# compiled_at: 2026-07-12T13:40:00Z
-# commit: a1b2c3d
-# hash: sha256:9f8e7d...
-# DO NOT EDIT MANUALLY
-# ========================
-
-在生成错误状态界面时，必须遵守以下语义分级：
-- Fatal：红色脉冲 + 八边形警告
-- Retryable：黄色提示 + 时钟图标 + 必须显示倒计时</pre>
-        </div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 8px;">版本对账演示</p>
-        <div class="code-block" style="font-size: 11px; padding: 10px; margin-bottom: 8px;">
-<pre>$ semantic-pipeline verify --product=prompt-err-001
-
-[VERIFY] Product: prompt-err-001
-  Product Version: v1.1.0 (commit: a1b2c3d)
-  Consumer Loaded: v1.0.0 (commit: e5f6a7b)
-
-[ALERT] Version mismatch detected!
-  Expected: v1.1.0 | Actual: v1.0.0
-  Lag: 1 version behind
-  Action: Notify consumer owner to update
-
-[RESULT] ❌ FAILED — Consumer running stale product</pre>
-        </div>
-        <p class="text-micro" style="color: #f5a623; font-weight: 600;">⏳ 消费方加载旧版本产物时，版本对账直接标记"消费版本滞后"，5 分钟内告警。</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- 五角色反馈 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('roles')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">👥</div>
-          <h2 class="text-h2">五角色反馈：同一根因，不同坑</h2>
-        </div>
-        <svg class="chevron" id="chevron-roles" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">产物无单一来源、无同步机制，各角色踩坑各不相同</p>
-    </div>
-    <div class="collapsible-content" id="content-roles">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🎨 设计师</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"规范改了，Prompt 前缀还是旧的，AI 继续按老规矩生成。"</p>
-            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">✓ 机制解：产物头部嵌入版本声明，过期自动告警</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">💻 前端 / AI 工程师</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"Checklist 是新的，CI 规则是旧的，走查和拦截标准不一致。"</p>
-            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">✓ 机制解：单一来源编译，三层验证保证一致性</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">📋 DesignOps</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"有人嫌麻烦直接手改了编译产物，两套'真相'同时在线。"</p>
-            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">✓ 机制解：compiled/ 禁止手改，CI 拒绝手工修改</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🏗️ 语义翻译设计师 / 体验架构师</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"模式库维护成本高，每次变更要改四份文件。"</p>
-            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">✓ 机制解：改一次 YAML，四处自动同步</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">📊 管理层 / 决策者</p>
-            <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">"规范更新了，但不知道哪些产物还没跟上。"</p>
-            <p class="text-micro" style="color: #52c41a; margin-top: 2px;">✓ 机制解：消费状态数据库，变更 5 分钟告警</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 结论 -->
-  <div class="card" style="margin-bottom: 12px; border-left: 3px solid #52c41a;">
     <div style="padding: 16px;">
-      <p class="text-h3" style="color: #52c41a; margin-bottom: 8px;">不是"多了一种工具"，是"一致性从人管变成机管"</p>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <span class="badge badge-blue">1</span>
+        <h2 class="text-h2">选择角色视角</h2>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px;">
+        <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.35); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+          <p style="font-size: 18px;">🎨</p><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">设计师</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+          <p style="font-size: 18px;">📋</p><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">DesignOps</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+          <p style="font-size: 18px;">💻</p><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">前端</p>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+          <p style="font-size: 18px;">⚙️</p><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">研发效能</p>
+        </div>
+      </div>
+      <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px;">
+        <p class="text-caption" style="color: var(--text-secondary); line-height: 1.7;"><span style="color: #f5a623; font-weight: 700;">设计师视角：</span>走查清单（Checklist），人工逐条核对语义约束是否在设计稿中正确落地。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 四角色消费视图 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('views')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-purple">2</span>
+          <h2 class="text-h2">四角色消费视图</h2>
+        </div>
+        <svg class="chevron" id="chevron-views" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">同一份源契约 → 编译映射 → 角色产物</p>
+    </div>
+    <div class="collapsible-content" id="content-views">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">源契约（同一份）<span class="badge badge-blue" style="font-size: 9px; margin-left: 4px;">org-baseline</span><span class="badge badge-purple" style="font-size: 9px; margin-left: 4px;">team-ext</span></p>
+        <div class="code-block" style="margin-bottom: 8px;"><pre>intent_id: "ERR-001"
+version: "v1.1.0"
+semantic_tokens:
+  error_severity:
+    fatal:     { color: "status.critical", motion: "pulse.red.urgent",
+                 icon: "alert.octagon", action: [refresh, export_history] }
+    transient: { color: "status.neutral",  motion: "spinner",
+                 icon: "loader",      action: [wait, retry] }
+    retryable: { color: "status.warning",  motion: "none",
+                 icon: "clock",       action: [wait_countdown, upgrade] }
+    degraded:  { color: "status.info",     motion: "none",
+                 icon: "info.circle", action: [continue, retry_simplified] }
+  llm_constraints:  # 团队扩展
+    - "显式列出可用功能清单"
+    - "禁止模糊表述"
+immutable_boundaries:
+  - safety:  "禁止统一红色" → block
+  - clarity: "必须提供行动指引" → warn</pre></div>
+        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px;">
+          <span class="text-micro" style="color: var(--text-tertiary);">编译映射 →</span>
+          <span class="badge badge-red" style="font-size: 9px;">fatal</span>
+          <span class="badge badge-gray" style="font-size: 9px;">transient</span>
+          <span class="badge badge-amber" style="font-size: 9px;">retryable</span>
+          <span class="badge badge-blue" style="font-size: 9px;">degraded</span>
+          <span class="badge badge-purple" style="font-size: 9px;">team-ext</span>
+          <span class="badge badge-green" style="font-size: 9px;">boundary</span>
+        </div>
+
+        <!-- 设计师 -->
+        <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <div class="role-h"><span class="badge badge-amber" style="font-size: 10px;">🎨 设计师</span><span class="text-micro" style="color: var(--text-tertiary);">Checklist 走查清单 · org-baseline</span></div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <p class="text-micro" style="color: var(--text-secondary);">□ 是否区分 Fatal / Transient / Retryable / Degraded 四级？</p>
+            <p class="text-micro" style="color: var(--text-secondary);">□ Fatal 是否为红色脉冲 + 八边形警告图标？</p>
+            <p class="text-micro" style="color: var(--text-secondary);">□ Transient 是否为灰色加载 + 旋转图标？</p>
+            <p class="text-micro" style="color: var(--text-secondary);">□ Retryable 是否为黄色 + 时钟图标？</p>
+            <p class="text-micro" style="color: var(--text-secondary);">□ Degraded 是否为蓝色 + 信息图标？</p>
+            <p class="text-micro" style="color: var(--text-secondary);">□ Degraded 是否显式列出可用功能清单？<span class="badge badge-purple" style="font-size: 8px; margin-left: 4px;">团队扩展</span></p>
+            <p class="text-micro" style="color: var(--text-secondary);">□ 是否避免"部分失败"等模糊表述？<span class="badge badge-purple" style="font-size: 8px; margin-left: 4px;">团队扩展</span></p>
+            <p class="text-micro" style="color: var(--text-secondary);">□ 每级是否提供明确的用户行动指引？</p>
+            <p class="text-micro" style="color: var(--text-secondary);">□ 是否禁止所有错误共用同一种红色？</p>
+          </div>
+          <p class="text-micro" style="color: var(--text-tertiary); margin-top: 6px;">使用场景：走查错误状态组件时逐条核对；团队扩展项（紫色）由前端团队追加，可选择性采纳。</p>
+        </div>
+
+        <!-- DesignOps -->
+        <div style="background: var(--surface); border: 1px solid rgba(22,119,255,0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <div class="role-h"><span class="badge badge-blue" style="font-size: 10px;">📋 DesignOps</span><span class="text-micro" style="color: var(--text-tertiary);">YAML 语义契约 · 规则仓库管理</span></div>
+          <div class="code-block"><pre>intent_id: "ERR-001"
+semantic_domain: "observational"
+version: "v1.1.0"
+semantic_tokens:
+  error_severity:
+    fatal:     { color: "status.critical", ... }
+    transient: { color: "status.neutral",  ... }
+    retryable: { color: "status.warning",  ... }
+    degraded:  { color: "status.info",     ... }
+immutable_boundaries:
+  - safety:  "禁止统一红色" → block
+  - clarity: "必须提供行动指引" → warn</pre></div>
+        </div>
+
+        <!-- 前端 -->
+        <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <div class="role-h"><span class="badge badge-green" style="font-size: 10px;">💻 前端</span><span class="text-micro" style="color: var(--text-tertiary);">JSON Schema 组件约束 · org-baseline</span></div>
+          <div class="code-block"><pre>{
+  "type": "object",
+  "properties": {
+    "severity": { "enum": ["fatal","transient","retryable","degraded"] },
+    "color": {
+      "mapping": {
+        "fatal": "#cf1322", "transient": "#a0a0a0",
+        "retryable": "#f5a623", "degraded": "#4a9eff"
+      }
+    },
+    "actions": { "type": "array", "minItems": 1 }
+  },
+  "required": ["severity", "color", "actions"]
+}</pre></div>
+        </div>
+
+        <!-- 研发效能 -->
+        <div style="background: var(--surface); border: 1px solid rgba(168,85,247,0.3); border-radius: var(--radius-sm); padding: 12px;">
+          <div class="role-h"><span class="badge badge-purple" style="font-size: 10px;">⚙️ 研发效能</span><span class="text-micro" style="color: var(--text-tertiary);">CI 校验规则 · 前端团队合并版</span></div>
+          <div class="code-block"><pre># 基线：规范评审组 v1.1.0 · 扩展：前端团队 v2.0.1
+rules:
+  error-severity-color:
+    selector: "[data-severity]"
+    mapping:
+      fatal: "#cf1322"  transient: "#a0a0a0"
+      retryable: "#f5a623"  degraded: "#4a9eff"
+    forbidden: { color: "#cf1322" }
+  degraded-clarity:  # [frontend-team]
+    selector: "[data-severity='degraded']"
+    required_text: ["可用功能", "仍然有效"]
+    forbidden_text: ["部分失败", "服务异常"]</pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 四角色产物说明 -->
+  <div class="card" style="margin-bottom: 16px;">
+    <div style="padding: 16px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <span class="badge badge-green">3</span>
+        <h2 class="text-h2">四角色产物说明</h2>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-bottom: 10px;">同一份契约，四种消费格式，各取所需</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
+        <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+          <p style="font-size: 18px;">🎨</p>
+          <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">设计师</p>
+          <p class="text-micro" style="color: var(--text-tertiary);">走查清单，人工逐条核对</p>
+          <span class="badge badge-amber" style="font-size: 9px; margin-top: 4px;">Checklist</span>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(22,119,255,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+          <p style="font-size: 18px;">📋</p>
+          <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">DesignOps</p>
+          <p class="text-micro" style="color: var(--text-tertiary);">原始语义契约，规则仓库管理</p>
+          <span class="badge badge-blue" style="font-size: 9px; margin-top: 4px;">YAML</span>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+          <p style="font-size: 18px;">💻</p>
+          <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">前端</p>
+          <p class="text-micro" style="color: var(--text-tertiary);">组件 Props 类型约束</p>
+          <span class="badge badge-green" style="font-size: 9px; margin-top: 4px;">JSON Schema</span>
+        </div>
+        <div style="background: var(--surface); border: 1px solid rgba(168,85,247,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+          <p style="font-size: 18px;">⚙️</p>
+          <p class="text-micro" style="color: var(--text-primary); font-weight: 700;">研发效能</p>
+          <p class="text-micro" style="color: var(--text-tertiary);">流水线自动校验规则</p>
+          <span class="badge badge-purple" style="font-size: 9px; margin-top: 4px;">CI 规则</span>
+        </div>
+      </div>
+      <div style="background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.25); border-radius: var(--radius-sm); padding: 12px;">
+        <p class="text-label" style="color: #4a9eff; margin-bottom: 4px;">单一来源多目标输出</p>
+        <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">
+          同一份 YAML 语义契约作为单一来源，编译为四种格式产物。每种产物都保留与源契约的映射关系——源契约更新时，所有消费格式同步迭代。<span style="color: #a855f7; font-weight: 700;">团队级扩展规则（紫色标记）仅在相关角色的产物中显化</span>，不影响其他角色的消费格式。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结卡 -->
+  <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(22,119,255,0.12), rgba(54,207,201,0.08)); border: 1px solid rgba(22,119,255,0.3);">
+    <div style="padding: 20px; text-align: center;">
+      <p class="text-h2" style="color: var(--text-primary); margin-bottom: 8px;">"同一份契约，四种消费格式"</p>
       <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">
-        手工维护只解决了"有产物"，编译管线解决了"产物一致"。10 条规则 × 4 份产物 × 5 条产品线 = <span style="color: var(--text-primary); font-weight: 700;">200 个需要人脑对齐的点</span>。单一来源不是工程洁癖，是一致性在规模化下的唯一解。
+        产物层差异演示完毕<br>
+        Schema-As-Code 三阶段流水线：Guard → Contract → Verify
       </p>
     </div>
   </div>
 
-  <div style="height: 40px;"></div>
 </div>
 
-<!-- 底部 Tab 导航 -->
+<!-- 底部导航 -->
 <div class="bottom-nav">
-  <div class="nav-item" onclick="window.location.href='./pipeline.html'">
-    <div class="nav-icon">📐</div>
+  <div class="nav-item active" onclick="location.href='./产物层差异演示mob.html'">
+    <div class="nav-icon">📘</div>
     <div class="nav-label">主题</div>
   </div>
-  <div class="nav-item active">
-    <div class="nav-icon">🧩</div>
+  <div class="nav-item" onclick="location.href='./case_contract_diff.html'">
+    <div class="nav-icon">🔍</div>
     <div class="nav-label">案例</div>
   </div>
-  <div class="nav-item" onclick="window.location.href='./consumption_tracking.html'">
-    <div class="nav-icon">🧪</div>
+  <div class="nav-item" onclick="location.href='./constraint_validation.html'">
+    <div class="nav-icon">✓</div>
     <div class="nav-label">验证</div>
   </div>
 </div>
@@ -398,23 +307,9 @@ error_severity:
 function toggleCollapse(id) {
   const content = document.getElementById('content-' + id);
   const chevron = document.getElementById('chevron-' + id);
-  const isOpen = content.classList.contains('open');
-  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
-  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+  content.classList.toggle('open');
+  chevron.classList.toggle('rotated');
 }
-function setupScrollIndicator(scrollId, hintId) {
-  const scroll = document.getElementById(scrollId); const hint = document.getElementById(hintId);
-  if (!scroll || !hint) return;
-  const dots = hint.querySelectorAll('.scroll-hint-dot'); const cards = scroll.children;
-  if (dots.length === 0 || cards.length === 0) return;
-  scroll.addEventListener('scroll', () => {
-    const scrollLeft = scroll.scrollLeft; const maxScroll = scroll.scrollWidth - scroll.clientWidth;
-    const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
-    const activeIndex = Math.min(Math.floor(progress * cards.length), dots.length - 1);
-    dots.forEach((dot, i) => { dot.classList.toggle('active', i === activeIndex); });
-  }, { passive: true });
-}
-document.addEventListener('DOMContentLoaded', () => { setupScrollIndicator('prop-scroll', 'prop-hint'); });
 document.addEventListener('touchstart', () => {}, { passive: true });
 </script>
 

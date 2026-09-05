@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Schema-As-Code · 编译管线</title>
+<title>Schema-As-Code · 编译管线演示</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   :root {
-    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12; --card-bg: #1a1a1e;
+    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
     --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
     --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
     --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
@@ -30,7 +30,7 @@
   .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s ease, border-color 0.2s ease; }
   .card:active { transform: scale(0.98); }
   .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; opacity: 0; }
-  .collapsible-content.open { max-height: 6000px; opacity: 1; }
+  .collapsible-content.open { max-height: 9000px; opacity: 1; }
   .chevron { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
   .chevron.rotated { transform: rotate(180deg); }
   .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
@@ -47,24 +47,19 @@
   .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
   .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
   .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
-  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 11px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .code-block pre { white-space: pre-wrap; margin: 0; }
-  .scroll-hint { display: flex; justify-content: center; gap: 4px; margin-top: 10px; }
-  .scroll-hint-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); transition: background 0.3s ease, transform 0.3s ease; }
-  .scroll-hint-dot.active { background: var(--primary); transform: scale(1.3); }
-  .h-scroll { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 2px 4px; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
-  .h-scroll::-webkit-scrollbar { display: none; }
-  .h-scroll > * { flex-shrink: 0; }
-  .h-card { width: 230px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: transform 0.15s ease, border-color 0.2s ease; }
-  .h-card:active { transform: scale(0.97); }
   .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
   .divider { height: 1px; background: var(--border); margin: 16px 0; }
-  .mobile-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .mobile-table th { text-align: left; padding: 8px 10px; color: var(--text-tertiary); font-weight: 700; border-bottom: 1px solid var(--border-light); white-space: nowrap; }
-  .mobile-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
-  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px; }
-  .version-declare { background: #0d0d0d; border: 1px dashed rgba(22,119,255,0.3); border-radius: 6px; padding: 8px 10px; font-size: 10px; font-family: 'SF Mono', monospace; color: var(--text-tertiary); margin-bottom: 10px; line-height: 1.7; }
+  .progress-track { height: 6px; background: #2a2a2e; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 3px; background: #52c41a; }
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before { content: ''; position: absolute; left: 2px; top: 6px; bottom: 6px; width: 1px; background: var(--border-light); }
+  .tl-item { position: relative; margin-bottom: 10px; }
+  .tl-item::before { content: ''; position: absolute; left: -22px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); border: 2px solid #4a9eff; }
+  .tl-purple::before { border-color: #a855f7; }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -73,456 +68,453 @@
   <div style="padding: 12px 16px;">
     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
       <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
-      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code 翻译层 · ④</span>
+      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 阶段二 · 编译管线</span>
     </div>
-    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">编译管线</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Compile Pipeline</span></h1>
-    <p class="text-caption" style="color: var(--text-tertiary);">一份 YAML 契约，编译出 Prompt / Schema / CI 规则</p>
+    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">编译管线演示</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Compilation Pipeline</span></h1>
+    <p class="text-caption" style="color: var(--text-tertiary);">单一来源多目标输出 · 组织级基线与团队级扩展合并编译</p>
   </div>
 </div>
 
 <div style="padding: 0 16px;">
 
-  <!-- 导语 -->
+  <!-- 导语 + 状态条 -->
   <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
     <div style="padding: 16px;">
-      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
-        一份 YAML 契约，机器自动编译为 4 种消费格式——不是人工复制粘贴，是<span style="color: var(--text-primary); font-weight: 700;">查字典编译</span>。验证三件事：四种格式是否承载同一语义？编译错误是否被拦截？同步是否持续？
+      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 10px;">
+        一份 YAML 语义契约，经编译管线输出为 <span style="color: var(--text-primary); font-weight: 700;">Prompt 前缀、JSON Schema、Checklist、CI 校验规则</span>。组织级基线与团队级扩展在编译前合并，消费状态实时追踪。
       </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <span class="badge badge-blue">组织级基线 v1.1.0</span>
+        <span class="badge badge-purple">前端团队扩展 v2.0.1</span>
+        <span class="badge badge-gray">上次对账 2 小时前</span>
+        <span class="badge badge-gray">3 个业务团队 · 12 个活跃消费者</span>
+        <span class="badge badge-green">✓ 已对齐</span>
+      </div>
     </div>
   </div>
 
-  <!-- 三个核心命题（横向滑动） -->
-  <div style="margin: 16px 0;">
-    <div class="h-scroll" id="prop-scroll">
-      <div class="h-card" style="width: 220px; border-left: 3px solid var(--primary);">
-        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 13px; font-weight: 800; margin-bottom: 10px;">1</div>
-        <h3 class="text-h3" style="margin-bottom: 6px;">四种格式承载同一语义</h3>
-        <p class="text-caption" style="color: var(--text-secondary);">同一契约编译为 Prompt / Schema / ESLint / Checklist，交叉比对语义等价，无分叉</p>
-      </div>
-      <div class="h-card" style="width: 220px; border-left: 3px solid #cf1322;">
-        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 13px; font-weight: 800; margin-bottom: 10px;">2</div>
-        <h3 class="text-h3" style="margin-bottom: 6px;">编译错误可被拦截</h3>
-        <p class="text-caption" style="color: var(--text-secondary);">字段缺失、字典引用非法、语义分叉 → 被四层编译验证阻断</p>
-      </div>
-      <div class="h-card" style="width: 220px; border-left: 3px solid #52c41a;">
-        <div style="width: 28px; height: 28px; border-radius: 7px; background: rgba(82,196,26,0.15); border: 1px solid rgba(82,196,26,0.3); display: flex; align-items: center; justify-content: center; color: #52c41a; font-size: 13px; font-weight: 800; margin-bottom: 10px;">3</div>
-        <h3 class="text-h3" style="margin-bottom: 6px;">同步持续一致</h3>
-        <p class="text-caption" style="color: var(--text-secondary);">契约升级后四种格式自动重编译，消费方版本对账，过期自动告警</p>
-      </div>
-    </div>
-    <div class="scroll-hint" id="prop-hint">
-      <div class="scroll-hint-dot active"></div>
-      <div class="scroll-hint-dot"></div>
-      <div class="scroll-hint-dot"></div>
-    </div>
-  </div>
-
-  <!-- Step 1: 编译输入 -->
+  <!-- 0 管线全景图 -->
   <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('input')">
+    <div style="padding: 16px;" onclick="toggleCollapse('overview')">
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">1</div>
-          <h2 class="text-h2">编译输入</h2>
+          <span class="badge badge-blue">全景</span>
+          <h2 class="text-h2">编译管线全景图</h2>
         </div>
-        <svg class="chevron" id="chevron-input" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <svg class="chevron" id="chevron-overview" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">ERR-001.yaml + 语义字典 → 进入编译管线 <span class="badge badge-green" style="margin-left: 4px;">前置校验通过</span></p>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">五个编译阶段，从源契约到版本对账</p>
     </div>
-    <div class="collapsible-content" id="content-input">
+    <div class="collapsible-content" id="content-overview">
       <div style="padding: 0 16px 16px;">
         <div class="divider"></div>
-        <div class="code-block" style="font-size: 11px; padding: 10px; margin-bottom: 12px;">
-<pre>intent_id: "ERR-001"
-semantic_domain: "transactional"
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">📄 源契约 · ERR-001.yaml</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">输入为合并后的 YAML 语义契约：组织级基线层（蓝）+ 前端团队扩展层（紫）。编译源选择器可切换视图，过滤不同来源的规则行。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🔀 团队隔离编译 · 基线 + 扩展合并</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">基线层优先加载，扩展层追加。冲突时基线自动胜出。对账通过后方可进入编译引擎。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">⚙️ 编译引擎 · 四格式并行生成</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">单一来源多目标输出：同一份合并后的契约，并行编译为 Prompt 前缀、JSON Schema、Checklist、CI 规则。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">📊 消费追踪 · 12 个活跃消费者</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">实时追踪每个契约被哪些 Prompt 前缀引用、被哪些组件校验规则消费。覆盖率低于阈值时触发规则迭代信号。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🔄 版本对账 · 双轨时间线管理</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">组织级基线由规范评审组维护，团队扩展由团队治理接口人维护。定期对账确保无冲突。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1 源契约 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('source')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-red">1</span>
+          <h2 class="text-h2">源契约：ERR-001.yaml</h2>
+        </div>
+        <svg class="chevron" id="chevron-source" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">组织级基线 + 团队级扩展合并视图</p>
+    </div>
+    <div class="collapsible-content" id="content-source">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+          <span class="badge badge-blue" style="font-size: 10px;">org-baseline 组织级基线</span>
+          <span class="badge badge-purple" style="font-size: 10px;">team-ext 前端团队扩展</span>
+        </div>
+        <div class="code-block" style="margin-bottom: 10px;"><pre># 组织级基线层 — 不可覆盖
+intent_id: "ERR-001"
+semantic_domain: "observational"
 version: "v1.1.0"
+baseline_author: "规范评审组"
 
 semantic_tokens:
   error_severity:
-    fatal:     { color: status.critical, motion: pulse.red.urgent, icon: alert.octagon }
-    transient: { color: status.neutral,  motion: spinner,          icon: loader }
-    retryable: { color: status.warning,  motion: none,             icon: clock }
-    degraded:  { color: status.info,     motion: none,             icon: info.circle }
+    fatal:     # 系统级故障，对话上下文可能丢失
+      visual_mapping: { color: "status.critical",
+        motion: "pulse.red.urgent", icon: "alert.octagon" }
+      user_action: [刷新页面, 导出历史]
+    transient: # 网络抖动，系统可自动恢复
+      visual_mapping: { color: "status.neutral",
+        motion: "spinner", icon: "loader" }
+      user_action: [等待自动恢复, 手动重试]
+    retryable: # 请求频率已达上限
+      visual_mapping: { color: "status.warning",
+        motion: "none", icon: "clock" }
+      user_action: [等待倒计时, 升级套餐]
+    degraded:  # 部分功能可用，可继续生成
+      visual_mapping: { color: "status.info",
+        motion: "none", icon: "info.circle" }
+      user_action: [继续生成, 简化问题重试]
+
+# === 团队级扩展层（前端团队 v2.0.1）===
+team: "frontend"
+extends: "ERR-001"
+team_interface: "王五"
+semantic_tokens:
+  error_severity:
+    degraded:
+      llm_constraints:
+        - "必须在降级提示中显式列出可用功能清单"
+        - "禁止使用'部分失败'等模糊表述"
 
 immutable_boundaries:
-  - rule: "禁止所有错误状态共用同一种红色视觉表达"
-    violation_action: "block"</pre>
+  - { type: "safety",  rule: "禁止所有错误状态共用同一种红色视觉表达", action: "block" }
+  - { type: "clarity", rule: "每个错误级别必须提供明确的用户行动指引", action: "warn" }</pre></div>
+
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;">
+          <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">治理信息 · 行 2（intent_id）</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <p class="text-micro" style="color: var(--text-secondary);">来源：<span style="color: var(--text-primary);">组织级基线</span></p>
+            <p class="text-micro" style="color: var(--text-secondary);">语义层级：<span style="color: #cf1322;">不可覆盖层</span></p>
+            <p class="text-micro" style="color: var(--text-secondary);">维护方：<span style="color: var(--text-primary);">规范评审组</span></p>
+            <p class="text-micro" style="color: var(--text-secondary);">可修改性：<span style="color: #cf1322;">不可本地修改</span></p>
+          </div>
+          <p class="text-micro" style="color: var(--text-tertiary); margin-top: 6px;">消费状态：被 12 个 Prompt 引用 · 3 个业务团队覆盖 · 变更须经规范评审组评审</p>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
-            <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">✓</span>
-            <span class="text-micro" style="color: #52c41a;">字段完整性：7 个字段全部存在</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
-            <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">✓</span>
-            <span class="text-micro" style="color: #52c41a;">结构合法性：符合 schema/intent-schema.json</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
-            <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">✓</span>
-            <span class="text-micro" style="color: #52c41a;">覆盖层存在性：transactional 已注册</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
-            <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">✓</span>
-            <span class="text-micro" style="color: #52c41a;">绑定存在性：4 个令牌全部在字典注册</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px;">
-            <span style="width: 16px; height: 16px; border-radius: 50%; background: #52c41a; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">✓</span>
-            <span class="text-micro" style="color: #52c41a;">场景一致性：fatal 绑定 status.critical ✓</span>
-          </div>
+
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">团队隔离编译可视化</p>
+        <div style="background: #0d0d0d; border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
+          <p class="text-micro" style="color: #4a9eff; font-weight: 700;">组织级基线层：fatal / transient / retryable / degraded · safety + clarity 边界</p>
+          <p class="text-micro" style="color: #a855f7; font-weight: 700; margin-top: 4px;">＋ 前端团队扩展层：degraded 文案约束 · 显式功能清单 · 禁止模糊表述</p>
+          <p class="text-micro" style="color: var(--text-tertiary); margin-top: 4px;">↓ 合并编译 ↓</p>
+          <p class="text-micro" style="color: var(--text-secondary); margin-top: 4px;">编译输出（合并后）：四级颜色映射 + 团队文案约束 · safety + clarity 边界</p>
+        </div>
+        <div style="background: rgba(82,196,26,0.08); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+          <p class="text-caption" style="color: #6abe4a; font-weight: 700;">✓ 对账通过：前端团队扩展 v2.0.1 与组织级基线 v1.1.0 无冲突，可合并编译</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Step 2: 四层编译验证 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('layers')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">2</div>
-          <h2 class="text-h2">四层编译验证</h2>
-        </div>
-        <svg class="chevron" id="chevron-layers" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">结构 → 语义 → 一致性 → 产物 <span class="badge badge-green" style="margin-left: 4px;">全部通过</span></p>
-    </div>
-    <div class="collapsible-content" id="content-layers">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
-          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">✓</span>
-              <p class="text-caption" style="color: #52c41a; font-weight: 700;">Layer 1 · 结构验证</p>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">YAML 语法、缩进、类型是否符合 schema — ✓ 语法合法 ✓ 缩进正确 ✓ 类型匹配</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">✓</span>
-              <p class="text-caption" style="color: #52c41a; font-weight: 700;">Layer 2 · 语义验证</p>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">引用是否在语义字典中注册 — status.critical / warning / info / neutral 全部已注册</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">✓</span>
-              <p class="text-caption" style="color: #52c41a; font-weight: 700;">Layer 3 · 一致性验证</p>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">四种格式交叉比对语义等价性 — Prompt ↔ Schema ↔ ESLint ↔ Checklist 全部等价，分叉率 0%</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;">✓</span>
-              <p class="text-caption" style="color: #52c41a; font-weight: 700;">Layer 4 · 产物验证</p>
-            </div>
-            <p class="text-micro" style="color: var(--text-secondary);">Prompt 可直接粘贴 · Schema 可直接校验 · ESLint 可直接接入 CI · Checklist 可直接走查</p>
-          </div>
-        </div>
-        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: var(--radius-sm); padding: 12px;">
-          <p class="text-label" style="color: var(--text-primary); margin-bottom: 8px;">编译错误拦截演示（假设场景）</p>
-          <div style="background: var(--surface); border: 1px solid rgba(207,19,34,0.3); border-radius: 6px; padding: 10px; margin-bottom: 8px;">
-            <p class="text-micro" style="color: #cf1322; font-weight: 700;">✕ 字段缺失：契约缺少 immutable_boundaries</p>
-            <div class="code-block" style="font-size: 10px; padding: 8px; margin-top: 6px; color: #cf1322;">
-<pre>[Layer 1 阻断] required_field_missing
-Path: intent.immutable_boundaries → Action: BLOCK</pre>
-            </div>
-          </div>
-          <div style="background: var(--surface); border: 1px solid rgba(207,19,34,0.3); border-radius: 6px; padding: 10px;">
-            <p class="text-micro" style="color: #cf1322; font-weight: 700;">✕ 字典引用非法：status.danger 未在字典注册</p>
-            <div class="code-block" style="font-size: 10px; padding: 8px; margin-top: 6px; color: #cf1322;">
-<pre>[Layer 2 阻断] dictionary-reference-not-found
-Token: status.danger → Action: BLOCK</pre>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Step 3: 编译输出（横向滑动） -->
+  <!-- 2 编译输出 -->
   <div class="card" style="margin-bottom: 12px;">
     <div style="padding: 16px;" onclick="toggleCollapse('output')">
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">3</div>
-          <h2 class="text-h2">编译输出 · 同一语义四种表达</h2>
+          <span class="badge badge-amber">2</span>
+          <h2 class="text-h2">编译输出：四格式并行生成</h2>
         </div>
         <svg class="chevron" id="chevron-output" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">4 种格式全部生成 · 左右滑动查看</p>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">一份 YAML → Prompt / Schema / Checklist / CI 规则（基线 vs 合并后）</p>
     </div>
     <div class="collapsible-content" id="content-output">
-      <div style="padding: 0 0 16px;">
-        <div class="divider" style="margin: 0 16px 16px;"></div>
-        <div class="h-scroll" id="fmt-scroll">
-          <div class="h-card" style="width: 260px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">Prompt 前缀</span>
-              <span class="badge badge-purple">AI 工程师</span>
-            </div>
-            <div class="version-declare"># source: ERR-001.yaml v1.1.0<br># compiled_at: 2026-07-12T13:40:00Z</div>
-            <div class="code-block" style="font-size: 10px; padding: 8px;">
-<pre>生成错误状态界面时必须遵守：
-- Fatal：红色脉冲 + 八边形警告，必须提供恢复路径
-- Transient：灰色加载 + 旋转图标，禁止红色背景
-- Retryable：黄色提示 + 时钟图标，必须显示倒计时
-- Degraded：蓝色提示 + 信息图标
-禁止：所有错误状态共用同一种红色。</pre>
-            </div>
-          </div>
-          <div class="h-card" style="width: 260px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">JSON Schema</span>
-              <span class="badge badge-blue">前端</span>
-            </div>
-            <div class="version-declare">// source: ERR-001.yaml v1.1.0<br>// compiled_at: 2026-07-12T13:40:00Z</div>
-            <div class="code-block" style="font-size: 10px; padding: 8px;">
-<pre>{
-  "error_severity": {
-    "enum": ["fatal","transient","retryable","degraded"],
-    "mapping": {
-      "fatal": { "color_token": "status.critical", ... },
-      "retryable": { "color_token": "status.warning", ... }
-    }
-  }
-}</pre>
-            </div>
-          </div>
-          <div class="h-card" style="width: 260px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">ESLint 规则</span>
-              <span class="badge badge-amber">CI / 效能</span>
-            </div>
-            <div class="version-declare">/* source: ERR-001.yaml v1.1.0 */<br>/* compiled_at: 2026-07-12T13:40:00Z */</div>
-            <div class="code-block" style="font-size: 10px; padding: 8px;">
-<pre>"error-severity-color": {
-  mapping: { fatal: "#cf1322", transient: "#a0a0a0",
-             retryable: "#f5a623", degraded: "#4a9eff" },
-  forbidden: { same_color_all: true },
-  message: "禁止所有错误使用同一种颜色"
-}</pre>
-            </div>
-          </div>
-          <div class="h-card" style="width: 260px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 700;">Checklist</span>
-              <span class="badge badge-green">DesignOps</span>
-            </div>
-            <div class="version-declare">&lt;!-- source: ERR-001.yaml v1.1.0 --&gt;<br>&lt;!-- compiled_at: 2026-07-12T13:40:00Z --&gt;</div>
-            <div class="code-block" style="font-size: 10px; padding: 8px;">
-<pre>ERR-001 错误状态走查清单
-- [ ] 是否区分 Fatal/Transient/Retryable/Degraded 四级？
-- [ ] 每级是否有不同颜色（红/灰/黄/蓝）？
-- [ ] Fatal 是否有恢复路径？
-- [ ] Retryable 是否有倒计时或升级入口？
-- [ ] 是否禁止所有错误共用同一种红色？</pre>
-            </div>
-          </div>
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+
+        <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">🤖 Prompt 前缀 <span style="color: var(--text-tertiary); font-weight: 500;">消费者：Error-State-Generator</span></p>
+        <div class="code-block" style="margin-bottom: 6px;"><pre># === 组织级不可突破红线 ===
+# 来源：规范评审组 · ERR-001 v1.1.0
+【安全类约束 — 强制执行】
+- 禁止所有错误状态共用同一种红色视觉表达
+- 必须区分 Fatal / Transient / Retryable / Degraded 四级
+- Fatal 必须提供恢复路径（刷新/导出历史）
+【清晰类约束 — 警告模式】
+- 每个错误级别必须提供明确的用户行动指引
+- 禁止仅显示"出错了"等模糊文案</pre></div>
+        <div class="code-block" style="margin-bottom: 12px;"><pre># === 前端团队扩展（v2.0.1）===
+# 来源：前端团队 · 团队治理接口人：王五
+【Degraded 状态补充约束】
+- 必须在降级提示中显式列出可用功能清单
+- 禁止使用"部分失败""服务异常"等模糊表述
+- 必须说明"已生成的内容仍然有效"</pre></div>
+
+        <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">📋 Checklist 走查清单 <span style="color: var(--text-tertiary); font-weight: 500;">消费者：设计师 / 前端设计团队</span></p>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 6px;">
+          <p class="text-micro" style="color: #4a9eff; font-weight: 700; margin-bottom: 4px;">【组织级基线层】安全类（不可突破）</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">□ 是否区分了 Fatal/Transient/Retryable/Degraded 四级？<br>□ 每级是否有不同的颜色（红/灰/黄/蓝）？<br>□ 是否禁止了所有错误共用同一种红色？</p>
+          <p class="text-micro" style="color: #4a9eff; font-weight: 700; margin: 6px 0 4px;">清晰类（建议遵守）</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">□ 每级是否有明确的用户行动指引？<br>□ Fatal 是否有恢复路径（刷新/导出）？<br>□ Retryable 是否有倒计时或升级入口？</p>
         </div>
-        <div class="scroll-hint" id="fmt-hint">
-          <div class="scroll-hint-dot active"></div>
-          <div class="scroll-hint-dot"></div>
-          <div class="scroll-hint-dot"></div>
-          <div class="scroll-hint-dot"></div>
+        <div style="background: var(--surface); border: 1px solid rgba(168,85,247,0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px;">
+          <p class="text-micro" style="color: #a855f7; font-weight: 700; margin-bottom: 4px;">【前端团队扩展层】</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">□ Degraded 状态是否显式列出可用功能清单？<br>□ 是否避免"部分失败"等模糊表述？<br>□ 是否说明"已生成内容仍然有效"？<br>□ 是否提供"继续生成"和"简化重试"双路径？</p>
         </div>
-        <div style="padding: 0 16px; margin-top: 12px;">
-          <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: #4a9eff; font-weight: 600; line-height: 1.7;">四种格式不是"各自为政"，而是同一语义的不同表达——共享同一信源（契约库）。契约升级时，四种格式全部自动重编译。</p>
-          </div>
-        </div>
+
+        <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">⚙️ CI 校验规则 <span style="color: var(--text-tertiary); font-weight: 500;">消费者：Stylelint / ESLint · 研发效能流水线</span></p>
+        <div class="code-block" style="margin-bottom: 6px;"><pre># CI 校验规则（组织级基线）
+# 来源：规范评审组 · ERR-001 v1.1.0
+rules:
+  error-severity-color:
+    selector: "[data-severity]"
+    mapping:
+      fatal:     { color: "#cf1322" }
+      transient: { color: "#a0a0a0" }
+      retryable: { color: "#f5a623" }
+      degraded:  { color: "#4a9eff" }
+    forbidden: { color: "#cf1322" }
+    message: "禁止全部错误使用同一种红色"
+  error-action-required:
+    required_children: [".user-action"]
+    message: "每个错误级别必须提供用户行动指引"</pre></div>
+        <div class="code-block" style="margin-bottom: 12px;"><pre># CI 校验规则（前端团队合并版）
+# === 前端团队扩展层 ===
+  degraded-clarity:
+    selector: "[data-severity='degraded']"
+    required_text: ["可用功能", "仍然有效"]
+    forbidden_text: ["部分失败", "服务异常"]
+    message: "Degraded 状态必须显式列出可用功能"
+  degraded-actions:
+    required_actions: ["continue", "retry_simplified"]
+    message: "必须提供继续生成和简化重试双路径"</pre></div>
+
+        <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 4px;">📄 合并后完整 YAML <span style="color: var(--text-tertiary); font-weight: 500;">消费者：全部编译目标</span></p>
+        <div class="code-block"><pre>intent_id: "ERR-001"
+semantic_domain: "observational"
+version: "v1.1.0+frontend-v2.0.1"
+semantic_tokens:
+  error_severity:
+    fatal:     { color: "#cf1322", motion: "pulse" }
+    transient: { color: "#a0a0a0", motion: "spinner" }
+    retryable: { color: "#f5a623", motion: "none" }
+    degraded:  { color: "#4a9eff", motion: "none" }
+llm_constraints:
+  - "必须显式列出可用功能清单"
+  - "禁止模糊表述"
+immutable_boundaries:
+  - safety:  "禁止统一红色" → block
+  - clarity: "必须提供行动指引" → warn</pre></div>
       </div>
     </div>
   </div>
 
-  <!-- Step 4: 一致性验证 -->
+  <!-- 3 消费状态看板 -->
   <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('cross')">
+    <div style="padding: 16px;" onclick="toggleCollapse('track')">
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">4</div>
-          <h2 class="text-h2">一致性验证 · 交叉比对</h2>
+          <span class="badge badge-green">3</span>
+          <h2 class="text-h2">消费状态看板</h2>
         </div>
-        <svg class="chevron" id="chevron-cross" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <svg class="chevron" id="chevron-track" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">同一语义绑定在四种格式中的表达 <span class="badge badge-green" style="margin-left: 4px;">分叉率 0%</span></p>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">从消费数据到规则迭代</p>
     </div>
-    <div class="collapsible-content" id="content-cross">
+    <div class="collapsible-content" id="content-track">
       <div style="padding: 0 16px 16px;">
         <div class="divider"></div>
-        <div class="table-scroll">
-          <table class="mobile-table" style="min-width: 620px;">
-            <thead>
-              <tr><th>语义绑定</th><th>Prompt</th><th>Schema</th><th>ESLint</th><th>Checklist</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="font-weight: 700; color: #cf1322; font-family: 'SF Mono', monospace;">status.critical</td>
-                <td>"红色脉冲+八边形"</td>
-                <td style="font-family: 'SF Mono', monospace;">"status.critical"</td>
-                <td style="font-family: 'SF Mono', monospace;">fatal: "#cf1322"</td>
-                <td>Fatal 是否为红色脉冲？</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: #a0a0a0; font-family: 'SF Mono', monospace;">status.neutral</td>
-                <td>"灰色加载+旋转"</td>
-                <td style="font-family: 'SF Mono', monospace;">"status.neutral"</td>
-                <td style="font-family: 'SF Mono', monospace;">transient: "#a0a0a0"</td>
-                <td>Transient 是否为灰色？</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: #f5a623; font-family: 'SF Mono', monospace;">status.warning</td>
-                <td>"黄色提示+时钟"</td>
-                <td style="font-family: 'SF Mono', monospace;">"status.warning"</td>
-                <td style="font-family: 'SF Mono', monospace;">retryable: "#f5a623"</td>
-                <td>Retryable 是否为黄色？</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: #4a9eff; font-family: 'SF Mono', monospace;">status.info</td>
-                <td>"蓝色提示+信息"</td>
-                <td style="font-family: 'SF Mono', monospace;">"status.info"</td>
-                <td style="font-family: 'SF Mono', monospace;">degraded: "#4a9eff"</td>
-                <td>Degraded 是否为蓝色？</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-primary);">不可变边界</td>
-                <td>"禁止共用红色"</td>
-                <td style="font-family: 'SF Mono', monospace;">same_color_all</td>
-                <td style="font-family: 'SF Mono', monospace;">same_color_all</td>
-                <td>是否禁止共用红色？</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div style="display: flex; gap: 8px; margin-top: 12px;">
-          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
-            <p class="text-h2" style="color: #52c41a;">4/4</p>
-            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">绑定全部对齐</p>
-          </div>
-          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
-            <p class="text-h2" style="color: #52c41a;">0%</p>
-            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">语义分叉率</p>
-          </div>
-          <div style="flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
-            <p class="text-h2" style="color: #52c41a;">6/6</p>
-            <p class="text-micro" style="color: var(--text-tertiary); margin-top: 2px;">约束对匹配</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Step 5: 同步机制 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('sync')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">5</div>
-          <h2 class="text-h2">同步机制</h2>
-        </div>
-        <svg class="chevron" id="chevron-sync" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">不是一次性翻译，是持续同步 <span class="badge badge-green" style="margin-left: 4px;">全部同步</span></p>
-    </div>
-    <div class="collapsible-content" id="content-sync">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 10px;">Git 钩子触发链路</p>
-        <div style="position: relative; padding-left: 20px; margin-bottom: 16px;">
-          <div style="position: absolute; left: 5px; top: 4px; bottom: 4px; width: 2px; background: var(--border);"></div>
-          <div style="position: relative; padding-bottom: 14px;">
-            <div style="position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #52c41a; border: 2px solid var(--bg); box-shadow: 0 0 0 3px rgba(82,196,26,0.2);"></div>
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">契约提交到 Git</p>
-            <p class="text-micro" style="color: var(--text-tertiary);">ERR-001.yaml v1.1.0 → main branch</p>
-          </div>
-          <div style="position: relative; padding-bottom: 14px;">
-            <div style="position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #52c41a; border: 2px solid var(--bg); box-shadow: 0 0 0 3px rgba(82,196,26,0.2);"></div>
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Git 钩子触发编译管线</p>
-            <p class="text-micro" style="color: var(--text-tertiary);">自动执行四层编译验证</p>
-          </div>
-          <div style="position: relative; padding-bottom: 14px;">
-            <div style="position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #52c41a; border: 2px solid var(--bg); box-shadow: 0 0 0 3px rgba(82,196,26,0.2);"></div>
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">四种格式全部重编译</p>
-            <p class="text-micro" style="color: var(--text-tertiary);">Prompt / Schema / ESLint / Checklist</p>
-          </div>
-          <div style="position: relative; padding-bottom: 14px;">
-            <div style="position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #52c41a; border: 2px solid var(--bg); box-shadow: 0 0 0 3px rgba(82,196,26,0.2);"></div>
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">产物写入 compiled/ 目录</p>
-            <p class="text-micro" style="color: var(--text-tertiary);">头部嵌入版本声明</p>
-          </div>
-          <div style="position: relative;">
-            <div style="position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #f5a623; border: 2px solid var(--bg);"></div>
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">消费方加载时版本对账</p>
-            <p class="text-micro" style="color: var(--text-tertiary);">核对源契约版本与编译时间</p>
-          </div>
-        </div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 10px;">四份产物对账状态</p>
         <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">Prompt 前缀</span>
-              <span class="badge badge-green" style="font-size: 10px;">✓ 同步</span>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Prompt 前缀 · Error-State-Generator</p>
+              <span class="badge badge-green" style="font-size: 9px;">✓ 已消费</span>
             </div>
-            <p class="text-micro" style="color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">引用 error_severity 4/4 tokens · 组织级基线<br>消费时间：2026-07-12 12:30 · Prompt 前缀注入 · 覆盖全组织错误状态生成</p>
           </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">JSON Schema</span>
-              <span class="badge badge-green" style="font-size: 10px;">✓ 同步</span>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Prompt 前缀 · Frontend-Degraded-Optimizer</p>
+              <span class="badge badge-green" style="font-size: 9px;">✓ 已消费</span>
             </div>
-            <p class="text-micro" style="color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">追加 degraded 级别 LLM 约束（1/1 team-ext · 前端团队）<br>消费时间：2026-07-12 13:15 · 基线 Prompt 后追加团队扩展约束</p>
           </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">ESLint 规则</span>
-              <span class="badge badge-green" style="font-size: 10px;">✓ 同步</span>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">组件校验 · Alert-Validator</p>
+              <span class="badge badge-green" style="font-size: 9px;">✓ 已消费</span>
             </div>
-            <p class="text-micro" style="color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">校验 color_token 与 motion_token 匹配 · immutable_boundary.safety<br>消费时间：2026-07-12 11:00 · Alert 渲染时运行时语义快照匹配</p>
           </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span class="text-caption" style="color: var(--text-primary); font-weight: 600;">Checklist</span>
-              <span class="badge badge-green" style="font-size: 10px;">✓ 同步</span>
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">CI 规则 · error-severity-color</p>
+              <span class="badge badge-green" style="font-size: 9px;">✓ 已消费</span>
             </div>
-            <p class="text-micro" style="color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">Stylelint 规则，禁止全部错误使用 #cf1322 · 2/2 boundaries<br>消费时间：2026-07-12 10:00 · safety 违反阻断合并；clarity 违反警告</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
+              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">Prompt 前缀 · Boundary-Action-Generator</p>
+              <span class="badge badge-amber" style="font-size: 9px;">⏳ 待消费</span>
+            </div>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">BND-001 契约尚未被该生成器引用 · 规则变更申请流程中<br>申请：2026-07-11 16:00 · 规范评审组评审中 · 预计 2026-07-15</p>
           </div>
         </div>
-        <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius-sm); padding: 12px;">
-          <p class="text-caption" style="color: #f5a623; font-weight: 700; margin-bottom: 6px;">⏳ 假设场景：消费方版本过期</p>
-          <div class="code-block" style="font-size: 10px; padding: 8px; color: #f5a623;">
-<pre>[ALERT] version_mismatch
-Consumer: frontend-team
-Loaded: ERR-001 v1.0.0 | Current: v1.1.0
-Action: 请更新 compiled/ERR-001.schema.json</pre>
+
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">覆盖率统计与规则迭代</p>
+        <div style="margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span class="text-micro" style="color: var(--text-secondary);">Semantic Tokens 消费率（4/4 tokens）</span><span class="text-micro" style="color: #6abe4a; font-weight: 700;">100%</span></div>
+          <div class="progress-track" style="margin-bottom: 8px;"><div class="progress-fill" style="width: 100%;"></div></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span class="text-micro" style="color: var(--text-secondary);">Immutable Boundaries 执行率（2/2 boundaries）</span><span class="text-micro" style="color: #6abe4a; font-weight: 700;">100%</span></div>
+          <div class="progress-track" style="margin-bottom: 8px;"><div class="progress-fill" style="width: 100%;"></div></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span class="text-micro" style="color: var(--text-secondary);">Prompt 前缀覆盖率（3/4 生成器）</span><span class="text-micro" style="color: #f5a623; font-weight: 700;">75%</span></div>
+          <div class="progress-track"><div class="progress-fill" style="width: 75%; background: #f5a623;"></div></div>
+        </div>
+        <div style="background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.25); border-radius: var(--radius-sm); padding: 10px;">
+          <p class="text-micro" style="color: #4a9eff; font-weight: 700; margin-bottom: 3px;">规则迭代信号</p>
+          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">Boundary-Action-Generator 待接入 → 触发规则变更申请流程 → 规范评审组评审 → 纳入下一版本基线</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 版本对账 -->
+  <div class="card" style="margin-bottom: 12px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('recon')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-purple">4</span>
+          <h2 class="text-h2">版本对账与全生命周期</h2>
+        </div>
+        <svg class="chevron" id="chevron-recon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">双轨版本时间线 · 语义规则负责人视角</p>
+    </div>
+    <div class="collapsible-content" id="content-recon">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <p class="text-label" style="color: #4a9eff; margin-bottom: 6px;">组织级基线</p>
+        <div class="timeline" style="margin-bottom: 12px;">
+          <div class="tl-item">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">v1.1.0 <span class="text-micro" style="color: var(--text-tertiary);">2026-06-20 · 规范评审组</span></p>
+            <p class="text-micro" style="color: var(--text-secondary);">增加 "degraded" 级别；优化同义词防火墙匹配逻辑</p>
+          </div>
+          <div class="tl-item">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">v1.0.0 <span class="text-micro" style="color: var(--text-tertiary);">2026-06-01 · 规范评审组</span></p>
+            <p class="text-micro" style="color: var(--text-secondary);">初始版本：fatal / transient / retryable 三级错误状态语义分级</p>
+          </div>
+        </div>
+        <p class="text-label" style="color: #a855f7; margin-bottom: 6px;">前端团队扩展</p>
+        <div class="timeline" style="margin-bottom: 12px;">
+          <div class="tl-item tl-purple">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">v2.0.1 <span class="text-micro" style="color: var(--text-tertiary);">2026-07-10 · 团队治理接口人：王五</span></p>
+            <p class="text-micro" style="color: var(--text-secondary);">追加 degraded 级别 LLM 约束：显式列出可用功能清单</p>
+          </div>
+          <div class="tl-item tl-purple">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">v2.0.0 <span class="text-micro" style="color: var(--text-tertiary);">2026-07-01 · 团队治理接口人：王五</span></p>
+            <p class="text-micro" style="color: var(--text-secondary);">初始化前端团队扩展规则仓库目录结构</p>
+          </div>
+        </div>
+        <div style="background: rgba(82,196,26,0.08); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 12px;">
+          <p class="text-caption" style="color: #6abe4a; font-weight: 700;">✓ 上次对账：2026-07-12 13:40 · 无冲突 · 可合并编译</p>
+        </div>
+
+        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">规则全生命周期管理</p>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px;">
+          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h2" style="color: #52c41a;">94%</p><p class="text-micro" style="color: var(--text-tertiary);">规则健康度</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h2" style="color: var(--text-primary);">12</p><p class="text-micro" style="color: var(--text-tertiary);">活跃消费者</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h2" style="color: var(--text-primary);">3</p><p class="text-micro" style="color: var(--text-tertiary);">覆盖业务团队</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
+            <p class="text-h2" style="color: var(--text-primary);">2h</p><p class="text-micro" style="color: var(--text-tertiary);">最近消费</p>
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div><p class="text-micro" style="color: var(--text-tertiary);">基线规则负责人</p><p class="text-caption" style="color: var(--text-primary); font-weight: 700;">张三 · 规范评审组</p></div>
+            <div><p class="text-micro" style="color: var(--text-tertiary);">团队治理接口人</p><p class="text-caption" style="color: var(--text-primary); font-weight: 700;">王五 · 前端团队</p></div>
+          </div>
+          <p class="text-micro" style="color: var(--text-tertiary); margin-top: 8px;">下次评审日期：2026-09-15 · 规范评审组例会</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 解耦标记系统 -->
+  <div class="card" style="margin-bottom: 16px;">
+    <div style="padding: 16px;" onclick="toggleCollapse('legend')">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="badge badge-blue">5</span>
+          <h2 class="text-h2">解耦标记系统说明</h2>
+        </div>
+        <svg class="chevron" id="chevron-legend" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">组织级语义治理的信息层嵌入规范</p>
+    </div>
+    <div class="collapsible-content" id="content-legend">
+      <div style="padding: 0 16px 16px;">
+        <div class="divider"></div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+          <span class="badge badge-blue">org-baseline 组织级基线 · 不可本地修改</span>
+          <span class="badge badge-purple">team-ext 团队级扩展 · 可迭代</span>
+          <span class="badge badge-green">已对齐 · 无冲突</span>
+          <span class="badge badge-amber">待对账 · 存在待评审差异</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 3px;">各团队自治但遵守统一规范</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">团队可在团队自定义空间内追加约束，但不可覆盖组织级不可突破红线。冲突时基线层自动胜出。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 3px;">前置校验的组织意义</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">前置校验不是阻断发布，而是设定自治门槛。基线通过即可发布，扩展建议记录为技术债，由团队自行排期优化。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 3px;">规则制定流程</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">基线变更须经规范评审组评审；团队扩展由团队治理接口人审核；实验环境可先行验证，成熟后通过规则变更申请流程升格为基线。</p>
+          </div>
+          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
+            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 3px;">从消费数据到规则迭代</p>
+            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">消费状态看板追踪每条规则的引用方与覆盖率。低覆盖率规则触发评审组复审，高需求场景驱动新规则纳入规则仓库。</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 总结 -->
-  <div class="card" style="margin-bottom: 12px; border-left: 3px solid var(--primary);">
-    <div style="padding: 16px;">
-      <p class="text-h3" style="margin-bottom: 4px;">契约不是"写好了就完事"，机器要自动翻译并验证</p>
-      <p class="text-caption" style="color: var(--text-secondary);">YAML 契约（高级语言）→ 语义字典（IR）→ 四种消费格式（目标代码）</p>
+  <!-- 总结卡 -->
+  <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(22,119,255,0.12), rgba(54,207,201,0.08)); border: 1px solid rgba(22,119,255,0.3);">
+    <div style="padding: 20px; text-align: center;">
+      <p class="text-h2" style="color: var(--text-primary); margin-bottom: 8px;">"单一来源，多目标输出"</p>
+      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">
+        编译管线演示完毕<br>
+        Schema-As-Code 三阶段流水线：Guard → Contract → Verify
+      </p>
     </div>
   </div>
 
-  <div style="height: 40px;"></div>
 </div>
 
-<!-- 底部 Tab 导航 -->
+<!-- 底部导航 -->
 <div class="bottom-nav">
-  <div class="nav-item active">
-    <div class="nav-icon">📐</div>
+  <div class="nav-item active" onclick="location.href='./编译管线演示_交互显化版mob.html'">
+    <div class="nav-icon">📘</div>
     <div class="nav-label">主题</div>
   </div>
-  <div class="nav-item" onclick="window.location.href='./case_artifact_diff.html'">
-    <div class="nav-icon">🧩</div>
+  <div class="nav-item" onclick="location.href='./case_contract_diff.html'">
+    <div class="nav-icon">🔍</div>
     <div class="nav-label">案例</div>
   </div>
-  <div class="nav-item" onclick="window.location.href='./consumption_tracking.html'">
-    <div class="nav-icon">🧪</div>
+  <div class="nav-item" onclick="location.href='./constraint_validation.html'">
+    <div class="nav-icon">✓</div>
     <div class="nav-label">验证</div>
   </div>
 </div>
@@ -531,26 +523,9 @@ Action: 请更新 compiled/ERR-001.schema.json</pre>
 function toggleCollapse(id) {
   const content = document.getElementById('content-' + id);
   const chevron = document.getElementById('chevron-' + id);
-  const isOpen = content.classList.contains('open');
-  if (isOpen) { content.classList.remove('open'); if (chevron) chevron.classList.remove('rotated'); }
-  else { content.classList.add('open'); if (chevron) chevron.classList.add('rotated'); }
+  content.classList.toggle('open');
+  chevron.classList.toggle('rotated');
 }
-function setupScrollIndicator(scrollId, hintId) {
-  const scroll = document.getElementById(scrollId); const hint = document.getElementById(hintId);
-  if (!scroll || !hint) return;
-  const dots = hint.querySelectorAll('.scroll-hint-dot'); const cards = scroll.children;
-  if (dots.length === 0 || cards.length === 0) return;
-  scroll.addEventListener('scroll', () => {
-    const scrollLeft = scroll.scrollLeft; const maxScroll = scroll.scrollWidth - scroll.clientWidth;
-    const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
-    const activeIndex = Math.min(Math.floor(progress * cards.length), dots.length - 1);
-    dots.forEach((dot, i) => { dot.classList.toggle('active', i === activeIndex); });
-  }, { passive: true });
-}
-document.addEventListener('DOMContentLoaded', () => {
-  setupScrollIndicator('prop-scroll', 'prop-hint');
-  setupScrollIndicator('fmt-scroll', 'fmt-hint');
-});
 document.addEventListener('touchstart', () => {}, { passive: true });
 </script>
 

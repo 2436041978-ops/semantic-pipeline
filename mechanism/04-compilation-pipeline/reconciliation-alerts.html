@@ -3,65 +3,571 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Schema-As-Code · 对账与告警</title>
+<title>Schema-As-Code · 契约消费追踪演示</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   :root {
-    --primary: #1677ff; --primary-hover: #4096ff; --bg: #0f0f12;
-    --card-bg: #1a1a1e; --text-primary: rgba(255,255,255,0.92);
-    --text-secondary: rgba(255,255,255,0.65); --text-tertiary: rgba(255,255,255,0.45);
-    --border: #2a2a2e; --radius: 12px;
+    --primary: #1677ff;
+    --primary-hover: #4096ff;
+    --bg: #0f0f12;
+    --card-bg: #1a1a1e;
+    --text-primary: rgba(255,255,255,0.92);
+    --text-secondary: rgba(255,255,255,0.65);
+    --text-tertiary: rgba(255,255,255,0.45);
+    --border: #2a2a2e;
+    --radius: 12px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text-primary); line-height: 1.6; font-size: 14px; -webkit-font-smoothing: antialiased; }
-  .top-nav { background: rgba(15,15,18,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; height: 64px; }
-  .top-nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 100%; }
-  .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--text-primary); cursor: pointer; }
-  .nav-brand-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #1677ff, #36cfc9); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800; }
-  .nav-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 0; }
-  .nav-center a { padding: 0 16px; height: 64px; display: flex; align-items: center; color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 600; transition: color 0.3s; position: relative; cursor: pointer; white-space: nowrap; }
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+    background: var(--bg); 
+    color: var(--text-primary); 
+    line-height: 1.6;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .top-nav {
+    background: rgba(15,15,18,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    height: 64px;
+  }
+  .top-nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+  .nav-brand-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0;
+  }
+  .nav-center a {
+    padding: 0 16px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    transition: color 0.3s;
+    position: relative;
+    cursor: pointer;
+    white-space: nowrap;
+  }
   .nav-center a:hover { color: var(--primary); }
-  .nav-center a.active { color: var(--primary); font-weight: 700; }
-  .nav-center a.active::after { content: ''; position: absolute; bottom: 0; left: 16px; right: 16px; height: 2px; background: var(--primary); border-radius: 2px 2px 0 0; }
-  .nav-right { display: flex; align-items: center; gap: 12px; }
-  .nav-github { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 600; transition: all 0.3s; }
-  .nav-github:hover { border-color: var(--primary); color: var(--primary); }
-  .cards-section { max-width: 1200px; margin: 0 auto; padding: 100px 24px 60px; }
-  .yaml-block { background: #0d0d0d; border-radius: 8px; padding: 16px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; }
-  .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 600; }
-  .status-active { background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3); }
-  .status-pending { background: rgba(212,136,6,0.15); color: #f5a623; border: 1px solid rgba(212,136,6,0.3); }
-  .status-alert { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
-  .trace-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; background: #16161a; border: 1px solid var(--border); margin-bottom: 8px; }
-  .trace-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
-  .trace-dot.consumed { background: #52c41a; box-shadow: 0 0 0 3px rgba(82,196,26,0.2); }
-  .trace-dot.pending { background: #f5a623; }
-  .trace-dot.alert { background: #cf1322; box-shadow: 0 0 0 3px rgba(207,19,34,0.2); }
-  .trace-label { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-  .trace-desc { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
-  .footer { border-top: 1px solid var(--border); padding: 40px 24px; text-align: center; background: var(--bg); }
-  .footer-links { display: flex; gap: 28px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
-  .footer-links a { color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.3s; cursor: pointer; font-weight: 600; }
+  .nav-center a.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .nav-center a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px; right: 16px;
+    height: 2px;
+    background: var(--primary);
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .nav-github:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .cards-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 100px 24px 60px;
+  }
+  .yaml-block {
+    background: #0d0d0d;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    overflow-x: auto;
+  }
+  .yaml-block pre { margin: 0; white-space: pre-wrap; }
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+    font-weight: 600;
+  }
   .footer-links a:hover { color: var(--primary); }
-  .footer-copy { font-size: 14px; color: var(--text-tertiary); font-weight: 500; }
-  @media (max-width: 1024px) { .nav-center { display: none; } }
+  .footer-copy {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+  @media (max-width: 1024px) {
+    .nav-center { display: none; }
+  }
+
+  /* ===== Stage Card ===== */
+  .stage {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stage-num {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    font-size: 64px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.03);
+    line-height: 1;
+    user-select: none;
+  }
+  .stage-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(22,119,255,0.12);
+    border: 1px solid rgba(22,119,255,0.25);
+    color: var(--primary);
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+  .stage-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .stage-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: 24px;
+    max-width: 700px;
+  }
+
+  /* ===== Action Button ===== */
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .action-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(22,119,255,0.3);
+  }
+  .action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .action-btn.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .action-btn.secondary:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(22,119,255,0.05);
+  }
+
+  /* ===== Split Screen ===== */
+  .split-screen {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: 400px;
+  }
+  .split-pane {
+    background: var(--card-bg);
+    padding: 24px;
+    position: relative;
+    transition: all 0.4s ease;
+  }
+  .split-pane.dim {
+    opacity: 0.4;
+    filter: grayscale(0.6);
+  }
+  .split-pane-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .split-pane-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .split-pane-icon.frontend { background: rgba(22,119,255,0.15); }
+  .split-pane-icon.payment { background: rgba(82,196,26,0.15); }
+  .split-pane-icon.internal { background: rgba(212,136,6,0.15); }
+  .split-pane-icon.design { background: rgba(236,72,153,0.15); }
+  .split-pane-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .split-pane-subtitle {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+  .split-divider {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: var(--border);
+    z-index: 2;
+  }
+  .split-divider::after {
+    content: '🔒';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  /* ===== Consumption Item ===== */
+  .cp-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+  }
+  .cp-item:hover {
+    border-color: rgba(255,255,255,0.1);
+  }
+  .cp-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .cp-dot.synced { background: #52c41a; box-shadow: 0 0 0 3px rgba(82,196,26,0.2); }
+  .cp-dot.lagged { background: #f5a623; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
+  .cp-dot.broken { background: #cf1322; box-shadow: 0 0 0 3px rgba(207,19,34,0.2); }
+  .cp-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+  }
+  .cp-meta {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+  .cp-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+  .cp-badge.ok {
+    background: rgba(82,196,26,0.12);
+    color: #52c41a;
+  }
+  .cp-badge.warn {
+    background: rgba(212,136,6,0.12);
+    color: #f5a623;
+  }
+
+  /* ===== Alert Animation ===== */
+  .alert-bubble {
+    position: absolute;
+    background: #cf1322;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.5s ease;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(207,19,34,0.3);
+  }
+  .alert-bubble.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .alert-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 20px;
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #cf1322;
+  }
+
+  /* ===== Matrix ===== */
+  .matrix-simple {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .matrix-cell {
+    background: var(--card-bg);
+    padding: 12px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+  }
+  .matrix-cell.header {
+    background: #16161a;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .matrix-cell.my-col {
+    background: rgba(22,119,255,0.04);
+  }
+  .matrix-cell .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  /* ===== Stat Card ===== */
+  .stat-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+  }
+
+  /* ===== Org Panel ===== */
+  .org-panel {
+    background: linear-gradient(135deg, rgba(22,119,255,0.05), rgba(54,207,201,0.03));
+    border: 1px dashed rgba(22,119,255,0.3);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    display: none;
+  }
+  .org-panel.show {
+    display: block;
+    animation: slideDown 0.4s ease;
+  }
+
+  /* ===== Principle Card ===== */
+  .principle-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .principle-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 3px;
+  }
+  .principle-card.p1::before { background: #4a9eff; }
+  .principle-card.p2::before { background: #a855f7; }
+  .principle-card.p3::before { background: #52c41a; }
+  .principle-num {
+    font-size: 48px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.04);
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    line-height: 1;
+  }
+  .principle-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+  .principle-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    line-height: 1.7;
+  }
+
+  /* ===== Animations ===== */
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .animate-pulse {
+    animation: pulse 2s infinite;
+  }
+
+  /* ===== Hidden states ===== */
+  .hidden { display: none !important; }
+  .fade-in {
+    animation: fadeIn 0.5s ease;
+  }
+
+  @media (max-width: 768px) {
+    .split-screen {
+      grid-template-columns: 1fr;
+    }
+    .split-divider {
+      display: none;
+    }
+    .matrix-simple {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
 </style>
+<base target="_blank">
 </head>
 <body>
 
 <!-- ==================== NAV ==================== -->
 <div class="top-nav">
   <div class="top-nav-inner">
-    <div class="nav-brand" onclick="window.location.href='https://2436041978-ops.github.io/semantic-pipeline/'">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" class="nav-brand">
       <div class="nav-brand-icon">S</div>
       <span>Schema-As-Code</span>
-    </div>
+    </a>
     <div class="nav-center">
       <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="overview">Overview</a>
       <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="semantic-pipeline">Semantic Pipeline</a>
       <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="contract">Contract Library</a>
-      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify" class="active">Validation Toolkit</a>
+      <a href="https://2436041978-ops.github.io/semantic-pipeline/" data-nav="verify">Validation Toolkit</a>
     </div>
     <div class="nav-right">
       <a href="https://api.semantic-pipeline.io" class="nav-github" target="_blank">
@@ -76,403 +582,510 @@
   </div>
 </div>
 
-<!-- ==================== PAGE: 2.2 对账与告警 ==================== -->
-<div class="page active">
-  <div class="cards-section">
-    <!-- Breadcrumb -->
-    <div style="margin-bottom: 24px;">
-      <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
-        <span>←</span> Schema-As-Code
-      </a>
-      <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
-      <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">对账与告警</span>
+<!-- ==================== PAGE ==================== -->
+<div class="cards-section">
+
+  <!-- Breadcrumb -->
+  <div style="margin-bottom: 24px;">
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="color: var(--primary); font-size: 14px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+      <span>←</span> Schema-As-Code
+    </a>
+    <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
+    <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">契约消费追踪演示</span>
+  </div>
+
+  <!-- Hero -->
+  <div style="margin-bottom: 40px;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
+      <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
+      <span>阶段二 · 契约消费追踪 · 版本与下游消费面自动对齐</span>
     </div>
+    <h1 style="font-size: 36px; font-weight: 800; color: var(--text-primary); margin-bottom: 10px; letter-spacing: -0.02em;">契约消费追踪演示</h1>
+    <p style="font-size: 16px; color: var(--text-secondary); max-width: 700px; line-height: 1.8; margin-bottom: 24px; font-weight: 500;">
+      消费点按团队身份注册、分别追踪、分别对账、分别告警。<br>
+      团队间数据不互通，组织级视角由系统自动聚合。
+    </p>
+  </div>
 
-    <div style="margin-bottom: 32px;">
-      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
-        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
-        <span>契约消费追踪 · 2.2 对账与告警</span>
-      </div>
-      <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">对账与告警 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Reconciliation & Alerting</span></h1>
-      <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; font-weight: 500;">
-        消费滞后与断点，能不能在"没人发现约束缺席"之前被抓住？<br>
-        不是等 DesignOps 人工排查，而是机器自动对账：版本滞后告警、零消费告警、超时断点告警。
-      </p>
-    </div>
+  <!-- ==================== STAGE 1: Registration ==================== -->
+  <div class="stage" id="stage-1">
+    <div class="stage-num">01</div>
+    <div class="stage-label">Step 1 · 消费点注册</div>
+    <div class="stage-title">单团队 → 多团队，消费点如何分裂？</div>
+    <div class="stage-desc">单团队时消费点清单只有一份。当组织里多个团队同时消费同一份契约库时，每条记录强制携带 team 字段，分别注册、分别追踪。</div>
 
-    <!-- 三个核心命题 -->
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
-      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(207,19,34,0.15); border: 1px solid rgba(207,19,34,0.3); display: flex; align-items: center; justify-content: center; color: #cf1322; font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
-        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">版本滞后告警</h3>
-        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">契约已到 v1.1.0，某消费点仍加载 v1.0.0 → 自动标记"消费版本滞后"，通知具体消费点负责人</p>
-      </div>
-      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); display: flex; align-items: center; justify-content: center; color: #f5a623; font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
-        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">零消费告警</h3>
-        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">Prompt 前缀发布 30 天无注入记录 → 标记"零消费"，触发接入排查，防止"写了没人用"</p>
-      </div>
-      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
-        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">超时断点告警</h3>
-        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">契约提交后 5 分钟未触发 CI → 按超时阈值告警，定位断点环节（编译失败/分发失败/消费点未加载）</p>
-      </div>
-    </div>
-
-    <!-- Step 1: 版本滞后告警 -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">1</div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">版本滞后告警</h3>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Version Lag Alert · 消费点版本与字典当前版本不一致</p>
+    <div id="stage1-single">
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px; max-width: 500px; margin: 0 auto 20px;">
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">单团队消费点注册表</p>
+        <div class="cp-item">
+          <div class="cp-dot synced"></div>
+          <span class="cp-name">service-prompt</span>
+          <span class="cp-meta">Prompt前缀</span>
+          <span class="cp-badge ok">v1.1.0</span>
+        </div>
+        <div class="cp-item">
+          <div class="cp-dot synced"></div>
+          <span class="cp-name">alert-validator</span>
+          <span class="cp-meta">组件校验</span>
+          <span class="cp-badge ok">v1.1.0</span>
+        </div>
+        <div class="cp-item">
+          <div class="cp-dot synced"></div>
+          <span class="cp-name">ci-stylelint</span>
+          <span class="cp-meta">CI规则</span>
+          <span class="cp-badge ok">v1.1.0</span>
+        </div>
+        <div class="cp-item">
+          <div class="cp-dot synced"></div>
+          <span class="cp-name">schema-check</span>
+          <span class="cp-meta">JSON Schema</span>
+          <span class="cp-badge ok">v1.1.0</span>
         </div>
       </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">对账引擎检测逻辑</p>
-          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
-<pre style="white-space: pre-wrap; margin: 0;"># reconciliation.yaml
-rules:
-  version_lag:
-    description: "消费点加载版本与字典当前版本不一致"
-    check_interval: "5m"
-    threshold:
-      warning: "1d"    # 滞后 1 天 → 警告
-      critical: "7d"   # 滞后 7 天 → 严重
-    action:
-      warning: "notify_consumer_owner"
-      critical: "block_pr + notify_team_lead"
-
-  zero_consumption:
-    description: "注册后 N 天无消费上报"
-    check_interval: "1d"
-    threshold:
-      warning: "7d"     # 7 天无消费 → 警告
-      critical: "30d"   # 30 天无消费 → 严重
-    action:
-      warning: "notify_consumer_owner"
-      critical: "archive_consumer + notify_designops"
-
-  pipeline_timeout:
-    description: "契约提交后未在阈值内触发消费"
-    check_interval: "1m"
-    threshold:
-      ci_trigger: "5m"   # 提交后 5 分钟未触发 CI
-      prompt_inject: "10m"  # 编译后 10 分钟未注入 Prompt
-    action:
-      timeout: "alert_pipeline_owner + auto_rollback_check"</pre>
-          </div>
-        </div>
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">告警示例：版本滞后</p>
-          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-              <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3);">WARNING</span>
-              <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">2026-07-12 13:45:00</span>
-            </div>
-            <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 6px;">消费版本滞后：DesignOps-Checklist</p>
-            <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
-              <div>契约：ERR-001</div>
-              <div>字典当前版本：v1.1.0</div>
-              <div>消费点加载版本：v1.0.0</div>
-              <div>滞后天数：32 天</div>
-              <div>消费点负责人：@designops-team</div>
-            </div>
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(245,158,11,0.15);">
-              <p style="font-size: 12px; color: #f5a623; font-weight: 600;">建议操作：更新 compiled/checklist/err-001.checklist.md 至 v1.1.0</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 版本对账时间线 -->
-      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">ERR-001 版本演进与消费点对账</p>
-      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
-        <div style="position: relative; padding-left: 24px;">
-          <div style="position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: var(--border);"></div>
-
-          <div style="position: relative; padding-bottom: 20px;">
-            <div style="position: absolute; left: -22px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #52c41a; border: 2px solid var(--bg);"></div>
-            <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">v1.0.0 发布 — 2026-06-01</div>
-            <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 4px;">初始版本：fatal / transient / retryable 三级</div>
-            <div style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ 4 个消费点全部对齐 v1.0.0</div>
-          </div>
-
-          <div style="position: relative; padding-bottom: 20px;">
-            <div style="position: absolute; left: -22px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); border: 2px solid var(--bg);"></div>
-            <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px;">v1.1.0 发布 — 2026-06-20</div>
-            <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 4px;">新增 degraded 级别；优化同义词防火墙</div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ prompt-err-gen → v1.1.0（6/20）</span>
-              <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ ci-stylelint → v1.1.0（6/21）</span>
-              <span style="font-size: 12px; color: #52c41a; font-weight: 600;">✓ comp-alert-val → v1.1.0（6/22）</span>
-              <span style="font-size: 12px; color: #f5a623; font-weight: 600;">⚠ designops-check → 仍 v1.0.0（滞后 32 天）</span>
-            </div>
-          </div>
-
-          <div style="position: relative;">
-            <div style="position: absolute; left: -22px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #f5a623; border: 2px solid var(--bg); box-shadow: 0 0 0 3px rgba(245,158,11,0.2);"></div>
-            <div style="font-size: 13px; font-weight: 700; color: #f5a623; margin-bottom: 2px;">当前 — 2026-07-12</div>
-            <div style="font-size: 13px; color: var(--text-tertiary); margin-bottom: 4px;">对账结果：3/4 消费点已对齐 v1.1.0</div>
-            <div style="font-size: 12px; color: #f5a623; font-weight: 600;">⚠ 告警：designops-check 版本滞后，已通知 @designops-team</div>
-          </div>
-        </div>
+      <div style="text-align: center;">
+        <button class="action-btn" onclick="showMultiTeam()">
+          <span>⚡</span> 加入更多团队 →
+        </button>
       </div>
     </div>
 
-    <!-- Step 2: 零消费告警 -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">2</div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">零消费告警</h3>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Zero Consumption Alert · 契约写了，但没人用</p>
+    <div id="stage1-multi" class="hidden">
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+        <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 10px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(22,119,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟦</div>
+            <span style="font-size: 14px; font-weight: 700; color: #4a9eff;">前端团队</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(22,119,255,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">frontend-service-prompt</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(22,119,255,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">frontend-alert-validator</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(22,119,255,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">frontend-ci-stylelint</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(22,119,255,0.15);">
+            <div class="cp-dot lagged"></div>
+            <span class="cp-name" style="font-size: 12px;">frontend-schema-check</span>
+          </div>
+        </div>
+        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 10px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(82,196,26,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟩</div>
+            <span style="font-size: 14px; font-weight: 700; color: #52c41a;">支付团队</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(82,196,26,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">payment-service-prompt</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(82,196,26,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">payment-alert-validator</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(82,196,26,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">payment-ci-rule</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(82,196,26,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">payment-schema-check</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(82,196,26,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">payment-checklist</span>
+          </div>
+        </div>
+        <div style="background: rgba(212,136,6,0.05); border: 1px solid rgba(212,136,6,0.2); border-radius: 10px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(212,136,6,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟨</div>
+            <span style="font-size: 14px; font-weight: 700; color: #f5a623;">内部工具</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(212,136,6,0.15);">
+            <div class="cp-dot lagged"></div>
+            <span class="cp-name" style="font-size: 12px;">internal-service-prompt</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(212,136,6,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">internal-alert-validator</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(212,136,6,0.15);">
+            <div class="cp-dot lagged"></div>
+            <span class="cp-name" style="font-size: 12px;">internal-ci-rule</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(212,136,6,0.15);">
+            <div class="cp-dot lagged"></div>
+            <span class="cp-name" style="font-size: 12px;">internal-schema-check</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(212,136,6,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">internal-checklist</span>
+          </div>
+        </div>
+        <div style="background: rgba(236,72,153,0.05); border: 1px solid rgba(236,72,153,0.2); border-radius: 10px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(236,72,153,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟪</div>
+            <span style="font-size: 14px; font-weight: 700; color: #ec4899;">设计团队</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(236,72,153,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">design-service-prompt</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(236,72,153,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">design-alert-validator</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(236,72,153,0.15);">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name" style="font-size: 12px;">design-checklist</span>
+          </div>
+          <div class="cp-item" style="background: transparent; border-color: rgba(236,72,153,0.15);">
+            <div class="cp-dot lagged"></div>
+            <span class="cp-name" style="font-size: 12px;">design-schema-check</span>
+          </div>
+        </div>
+      </div>
+      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 14px 18px;">
+        <p style="font-size: 13px; color: var(--primary); font-weight: 600; line-height: 1.7;">
+          <span style="font-size: 16px;">💡</span> 关键变化：同一份契约 ERR-001.yaml，被 4 个团队分别消费。每个团队的消费点是独立记录，即使消费的是同一格式（如 Prompt 前缀），也分别追踪、分别对账。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STAGE 2: Team Isolation ==================== -->
+  <div class="stage" id="stage-2">
+    <div class="stage-num">02</div>
+    <div class="stage-label">Step 2 · 团队隔离追踪</div>
+    <div class="stage-title">前端团队登录后，能看到内部工具团队的消费点吗？</div>
+    <div class="stage-desc">点击"切换团队视角"，体验团队间数据不互通。每个团队只能看到自己的消费点清单，其他团队的数据完全不可见。</div>
+
+    <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;">
+      <button class="action-btn" id="btn-frontend" onclick="switchTeamView('frontend')">
+        <span>🟦</span> 前端团队视角
+      </button>
+      <button class="action-btn secondary" id="btn-internal" onclick="switchTeamView('internal')">
+        <span>🟨</span> 内部工具团队视角
+      </button>
+    </div>
+
+    <div class="split-screen" id="split-view">
+      <!-- Left Pane -->
+      <div class="split-pane" id="pane-left">
+        <div class="split-pane-header">
+          <div class="split-pane-icon frontend" id="left-icon">🟦</div>
+          <div>
+            <div class="split-pane-title" id="left-title">前端团队</div>
+            <div class="split-pane-subtitle" id="left-subtitle">4 个消费点 · 覆盖率 92%</div>
+          </div>
+        </div>
+        <div id="left-content">
+          <div class="cp-item">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name">frontend-service-prompt</span>
+            <span class="cp-badge ok">v1.1.0</span>
+          </div>
+          <div class="cp-item">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name">frontend-alert-validator</span>
+            <span class="cp-badge ok">v1.1.0</span>
+          </div>
+          <div class="cp-item">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name">frontend-ci-stylelint</span>
+            <span class="cp-badge ok">v1.1.0</span>
+          </div>
+          <div class="cp-item">
+            <div class="cp-dot lagged"></div>
+            <span class="cp-name">frontend-schema-check</span>
+            <span class="cp-badge warn">v1.0.0 滞后</span>
+          </div>
+        </div>
+        <div style="margin-top: 16px; padding: 12px; background: rgba(22,119,255,0.05); border-radius: 8px;">
+          <p style="font-size: 12px; color: #4a9eff; font-weight: 600;">🟦 这是你的团队。你只能看到这 4 个消费点。</p>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-        <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-            <span style="font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3);">CRITICAL</span>
-            <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">2026-07-12 14:00:00</span>
-          </div>
-          <p style="font-size: 14px; color: var(--text-primary); font-weight: 700; margin-bottom: 6px;">零消费：Boundary-Action-Generator</p>
-          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
-            <div>契约：BND-001</div>
-            <div>消费格式：prompt_prefix</div>
-            <div>注册时间：2026-06-01（42 天前）</div>
-            <div>最后消费上报：无</div>
-            <div>零消费天数：42 天</div>
-          </div>
-          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(207,19,34,0.15);">
-            <p style="font-size: 12px; color: #cf1322; font-weight: 600; margin-bottom: 4px;">DesignOps 反馈："Prompt 前缀发布 30 天了，没有任何 AI 会话注入记录"</p>
-            <p style="font-size: 12px; color: #f5a623; font-weight: 600;">自动操作：归档消费点 + 通知 @designops + 标记契约"待接入"</p>
+      <div class="split-divider"></div>
+
+      <!-- Right Pane -->
+      <div class="split-pane dim" id="pane-right">
+        <div class="split-pane-header">
+          <div class="split-pane-icon internal" id="right-icon">🟨</div>
+          <div>
+            <div class="split-pane-title" id="right-title">内部工具团队</div>
+            <div class="split-pane-subtitle" id="right-subtitle">5 个消费点 · 覆盖率 40%</div>
           </div>
         </div>
-
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">零消费检测逻辑</p>
-          <div class="yaml-block" style="font-size: 11px; padding: 12px;">
-<pre style="white-space: pre-wrap; margin: 0;"># zero_consumption_detector.yaml
-interval: "1d"
-rules:
-  - name: "new_consumer_grace_period"
-    condition: "registered_within 7d"
-    action: "skip"
-    reason: "新消费点 7 天宽限期"
-
-  - name: "warning_threshold"
-    condition: "no_consumption_report > 7d"
-    action: "notify_owner"
-    message: "消费点已 7 天无上报，请检查接入状态"
-
-  - name: "critical_threshold"
-    condition: "no_consumption_report > 30d"
-    action:
-      - "archive_consumer"
-      - "notify_designops"
-      - "mark_contract_pending"
-    message: "消费点 30 天零消费，已自动归档"
-
-  - name: "contract_abandonment"
-    condition: "all_consumers_zero > 30d"
-    action:
-      - "mark_contract_deprecated"
-      - "notify_contract_owner"
-      - "suggest_archive"
-    message: "契约全部消费点零消费，建议归档"</pre>
+        <div id="right-content" style="filter: blur(4px); opacity: 0.5;">
+          <div class="cp-item">
+            <div class="cp-dot lagged"></div>
+            <span class="cp-name">internal-service-prompt</span>
+            <span class="cp-badge warn">v1.0.0</span>
+          </div>
+          <div class="cp-item">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name">internal-alert-validator</span>
+            <span class="cp-badge ok">v1.1.0</span>
+          </div>
+          <div class="cp-item">
+            <div class="cp-dot lagged"></div>
+            <span class="cp-name">internal-ci-rule</span>
+            <span class="cp-badge warn">v1.0.0</span>
+          </div>
+          <div class="cp-item">
+            <div class="cp-dot lagged"></div>
+            <span class="cp-name">internal-schema-check</span>
+            <span class="cp-badge warn">v1.0.0</span>
+          </div>
+          <div class="cp-item">
+            <div class="cp-dot synced"></div>
+            <span class="cp-name">internal-checklist</span>
+            <span class="cp-badge ok">v1.1.0</span>
           </div>
         </div>
-      </div>
-
-      <!-- 消费活跃度矩阵 -->
-      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">消费活跃度矩阵（最近 30 天）</p>
-      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
-        <div style="display: grid; grid-template-columns: 180px 100px 100px 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
-          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">消费点</div>
-          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">契约</div>
-          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">版本</div>
-          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); border-right: 1px solid var(--border);">上报次数</div>
-          <div style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--text-tertiary);">状态</div>
-        </div>
-        <div style="display: grid; grid-template-columns: 180px 100px 100px 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-primary); font-weight: 600; border-right: 1px solid var(--border);">Error-State-Generator</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">ERR-001</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 600; border-right: 1px solid var(--border);">v1.1.0</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">1,247</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 600;">✓ 活跃</div>
-        </div>
-        <div style="display: grid; grid-template-columns: 180px 100px 100px 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-primary); font-weight: 600; border-right: 1px solid var(--border);">Stylelint-Semantic-Plugin</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">ERR-001</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 600; border-right: 1px solid var(--border);">v1.1.0</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">892</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 600;">✓ 活跃</div>
-        </div>
-        <div style="display: grid; grid-template-columns: 180px 100px 100px 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-primary); font-weight: 600; border-right: 1px solid var(--border);">Alert-Validator</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">ERR-001</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 600; border-right: 1px solid var(--border);">v1.1.0</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">456</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: #52c41a; font-weight: 600;">✓ 活跃</div>
-        </div>
-        <div style="display: grid; grid-template-columns: 180px 100px 100px 100px 1fr; gap: 0; border-bottom: 1px solid var(--border);">
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-primary); font-weight: 600; border-right: 1px solid var(--border);">DesignOps-Checklist</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">ERR-001</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: #f5a623; font-weight: 600; border-right: 1px solid var(--border);">v1.0.0</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">0</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: #f5a623; font-weight: 600;">⚠ 零消费 32 天</div>
-        </div>
-        <div style="display: grid; grid-template-columns: 180px 100px 100px 100px 1fr; gap: 0;">
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-primary); font-weight: 600; border-right: 1px solid var(--border);">Boundary-Action-Generator</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">BND-001</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: #666; font-weight: 600; border-right: 1px solid var(--border);">—</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: var(--text-secondary); font-weight: 500; border-right: 1px solid var(--border);">0</div>
-          <div style="padding: 10px 12px; font-size: 12px; color: #cf1322; font-weight: 600;">✕ 零消费 42 天 · 已归档</div>
+        <div style="margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">🔒 其他团队数据已隔离，你无法查看</p>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Step 3: 超时断点告警 -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 800;">3</div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">超时断点告警</h3>
-          <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500;">Pipeline Timeout Alert · 定位断点环节</p>
-        </div>
-      </div>
+  <!-- ==================== STAGE 3: Reconciliation & Alert ==================== -->
+  <div class="stage" id="stage-3">
+    <div class="stage-num">03</div>
+    <div class="stage-label">Step 3 · 对账与告警</div>
+    <div class="stage-title">内部工具团队滞后了，告警发给谁？</div>
+    <div class="stage-desc">系统执行对账，发现内部工具团队 3 个消费点仍使用 v1.0.0。点击"执行对账"，观察告警如何定向路由——只发给滞后团队，不广播。</div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">正常链路（对照）</p>
-          <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">契约提交</span>
-                  <span style="font-size: 12px; color: #52c41a; font-weight: 600;">T+0s</span>
-                </div>
-              </div>
-            </div>
-            <div style="width: 2px; height: 16px; background: #2a2a2e; margin-left: 3px; margin-bottom: 12px;"></div>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">编译管线触发</span>
-                  <span style="font-size: 12px; color: #52c41a; font-weight: 600;">T+30s</span>
-                </div>
-              </div>
-            </div>
-            <div style="width: 2px; height: 16px; background: #2a2a2e; margin-left: 3px; margin-bottom: 12px;"></div>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">4 种格式编译完成</span>
-                  <span style="font-size: 12px; color: #52c41a; font-weight: 600;">T+2min</span>
-                </div>
-              </div>
-            </div>
-            <div style="width: 2px; height: 16px; background: #2a2a2e; margin-left: 3px; margin-bottom: 12px;"></div>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">分发至消费点</span>
-                  <span style="font-size: 12px; color: #52c41a; font-weight: 600;">T+3min</span>
-                </div>
-              </div>
-            </div>
-            <div style="width: 2px; height: 16px; background: #2a2a2e; margin-left: 3px; margin-bottom: 12px;"></div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">消费点加载并上报</span>
-                  <span style="font-size: 12px; color: #52c41a; font-weight: 600;">T+5min</span>
-                </div>
-              </div>
-            </div>
+    <div style="text-align: center; margin-bottom: 20px;">
+      <button class="action-btn" id="btn-reconcile" onclick="runReconcile()">
+        <span>🔍</span> 执行对账
+      </button>
+    </div>
+
+    <div id="reconcile-result" style="display: none;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <!-- Left: Frontend sees nothing -->
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(22,119,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟦</div>
+            <span style="font-size: 14px; font-weight: 700; color: #4a9eff;">前端团队通知中心</span>
           </div>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px; text-align: center;">
+            <p style="font-size: 32px; margin-bottom: 8px;">✓</p>
+            <p style="font-size: 14px; font-weight: 700; color: #52c41a;">无新告警</p>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">你的团队消费点全部正常</p>
+          </div>
+          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 12px; text-align: center;">
+            内部工具团队的滞后告警不会出现在这里
+          </p>
         </div>
 
-        <div>
-          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">断点链路（告警）</p>
-          <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 16px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">契约提交</span>
-                  <span style="font-size: 12px; color: #52c41a; font-weight: 600;">T+0s</span>
-                </div>
-              </div>
+        <!-- Right: Internal Tools gets alert -->
+        <div style="background: #16161a; border: 1px solid rgba(245,158,11,0.3); border-radius: 10px; padding: 20px; position: relative;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(212,136,6,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟨</div>
+            <span style="font-size: 14px; font-weight: 700; color: #f5a623;">内部工具团队通知中心</span>
+            <span style="margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(245,158,11,0.15); color: #f5a623; font-weight: 700;">3条新告警</span>
+          </div>
+          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span style="font-size: 16px;">⚠</span>
+              <span style="font-size: 13px; font-weight: 700; color: #f5a623;">消费版本滞后</span>
             </div>
-            <div style="width: 2px; height: 16px; background: #2a2a2e; margin-left: 3px; margin-bottom: 12px;"></div>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">编译管线触发</span>
-                  <span style="font-size: 12px; color: #52c41a; font-weight: 600;">T+30s</span>
-                </div>
-              </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+              消费点 <strong style="color:var(--text-primary);">internal-service-prompt</strong> 仍使用 v1.0.0<br>
+              组织级基线已升级至 v1.1.0<br>
+              责任人：李四（团队治理接口人）
+            </p>
+          </div>
+          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 14px; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span style="font-size: 16px;">⚠</span>
+              <span style="font-size: 13px; font-weight: 700; color: #f5a623;">消费版本滞后</span>
             </div>
-            <div style="width: 2px; height: 16px; background: #2a2a2e; margin-left: 3px; margin-bottom: 12px;"></div>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: #52c41a;"></div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">4 种格式编译完成</span>
-                  <span style="font-size: 12px; color: #52c41a; font-weight: 600;">T+2min</span>
-                </div>
-              </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+              消费点 <strong style="color:var(--text-primary);">internal-ci-rule</strong> 仍使用 v1.0.0<br>
+              组织级基线已升级至 v1.1.0<br>
+              责任人：李四（团队治理接口人）
+            </p>
+          </div>
+          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span style="font-size: 16px;">⚠</span>
+              <span style="font-size: 13px; font-weight: 700; color: #f5a623;">消费版本滞后</span>
             </div>
-            <div style="width: 2px; height: 16px; background: #2a2a2e; margin-left: 3px; margin-bottom: 12px;"></div>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: #f5a623;"></div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">分发至消费点</span>
-                  <span style="font-size: 12px; color: #f5a623; font-weight: 600;">T+3min</span>
-                </div>
-              </div>
-            </div>
-            <div style="width: 2px; height: 16px; background: #2a2a2e; margin-left: 3px; margin-bottom: 12px;"></div>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-              <div style="width: 8px; height: 8px; border-radius: 50%; background: #cf1322; box-shadow: 0 0 0 3px rgba(207,19,34,0.2);"></div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="font-size: 13px; font-weight: 600; color: #cf1322;">消费点加载并上报</span>
-                  <span style="font-size: 12px; color: #cf1322; font-weight: 600;">T+15min · 超时</span>
-                </div>
-              </div>
-            </div>
-            <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; padding: 10px 12px;">
-              <p style="font-size: 12px; color: #cf1322; font-weight: 700; margin-bottom: 4px;">[ALERT] pipeline-timeout</p>
-              <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">消费点 designops-check 在编译完成后 12 分钟仍未上报加载记录</p>
-              <p style="font-size: 12px; color: #f5a623; font-weight: 600; margin-top: 4px;">可能断点：分发失败 / 消费点未重启 / 加载逻辑异常</p>
-            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
+              消费点 <strong style="color:var(--text-primary);">internal-schema-check</strong> 仍使用 v1.0.0<br>
+              组织级基线已升级至 v1.1.0<br>
+              责任人：李四（团队治理接口人）
+            </p>
           </div>
         </div>
       </div>
+      <div style="margin-top: 16px; background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 14px 18px;">
+        <p style="font-size: 13px; color: var(--primary); font-weight: 600; line-height: 1.7;">
+          <span style="font-size: 16px;">🔒</span> 告警路由原则：版本滞后、链路断点、沉默规则的告警，一律发给该消费点所属团队的消费点管理员（owner 字段），不广播。支付团队的消费断点，5分钟内只有支付团队的管理员收到通知。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STAGE 4: Attribution ==================== -->
+  <div class="stage" id="stage-4">
+    <div class="stage-num">04</div>
+    <div class="stage-label">Step 4 · 拦截归因</div>
+    <div class="stage-title">每个团队只看到自己的拦截和收益</div>
+    <div class="stage-desc">组织级视角由系统自动聚合各团队数据，消费覆盖率按团队分列、滞后清单按团队分组、拦截归因可按团队切片。汇总只读、不可回写。</div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 10px; padding: 20px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+          <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(22,119,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟦</div>
+          <span style="font-size: 14px; font-weight: 700; color: #4a9eff;">前端团队归因</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+          <div class="stat-card">
+            <div class="stat-value" style="color: #4a9eff;">18</div>
+            <div class="stat-label">本月拦截</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color: #52c41a;">15h</div>
+            <div class="stat-label">避免返工</div>
+          </div>
+        </div>
+        <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+          ERR-001: 10次 · PRO-001: 5次 · ACT-001: 3次<br>
+          Prompt前缀: 10次 · CI规则: 8次
+        </p>
+      </div>
+      <div style="background: rgba(212,136,6,0.05); border: 1px solid rgba(212,136,6,0.2); border-radius: 10px; padding: 20px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+          <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(212,136,6,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟨</div>
+          <span style="font-size: 14px; font-weight: 700; color: #f5a623;">内部工具团队归因</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+          <div class="stat-card">
+            <div class="stat-value" style="color: #f5a623;">5</div>
+            <div class="stat-label">本月拦截</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color: #52c41a;">4h</div>
+            <div class="stat-label">避免返工</div>
+          </div>
+        </div>
+        <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
+          ERR-001: 3次 · PRO-001: 2次<br>
+          组件校验: 3次 · CI规则: 2次
+        </p>
+      </div>
     </div>
 
-    <!-- 底部 CTA -->
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
-      <div>
-        <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">发现了滞后和断点，下一步：量化拦截价值</p>
-        <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">契约消费追踪 · 2.3 拦截统计与收益归因</p>
-      </div>
-      <a href="./2.3-拦截统计与收益归因.html" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block;">
-        进入拦截统计与收益归因 →
-      </a>
+    <div style="text-align: center; margin-bottom: 16px;">
+      <button class="action-btn secondary" id="btn-org-view" onclick="toggleOrgView()">
+        <span>🔧</span> DesignOps 登录 · 查看组织级汇总
+      </button>
     </div>
+
+    <div class="org-panel" id="org-panel">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+        <span style="font-size: 18px;">🔧</span>
+        <span style="font-size: 15px; font-weight: 700; color: var(--primary);">组织级汇总视图（只读 · 不可回写）</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+        <div class="stat-card">
+          <div class="stat-value" style="color: #4a9eff;">18</div>
+          <div class="stat-label">前端团队</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color: #52c41a;">25</div>
+          <div class="stat-label">支付团队</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color: #f5a623;">5</div>
+          <div class="stat-label">内部工具</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color: #ec4899;">10</div>
+          <div class="stat-label">设计团队</div>
+        </div>
+      </div>
+      <div class="matrix-simple">
+        <div class="matrix-cell header">消费点</div>
+        <div class="matrix-cell header my-col">🟦 前端</div>
+        <div class="matrix-cell header">🟩 支付</div>
+        <div class="matrix-cell header">🟨 内部工具</div>
+        <div class="matrix-cell header">🟪 设计</div>
+
+        <div class="matrix-cell">service-prompt</div>
+        <div class="matrix-cell my-col"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
+        <div class="matrix-cell"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
+        <div class="matrix-cell"><span class="dot" style="background:#f5a623;"></span>v1.0.0</div>
+        <div class="matrix-cell"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
+
+        <div class="matrix-cell">ci-stylelint</div>
+        <div class="matrix-cell my-col"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
+        <div class="matrix-cell"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
+        <div class="matrix-cell"><span class="dot" style="background:#f5a623;"></span>v1.0.0</div>
+        <div class="matrix-cell"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
+
+        <div class="matrix-cell">schema-check</div>
+        <div class="matrix-cell my-col"><span class="dot" style="background:#f5a623;"></span>v1.0.0</div>
+        <div class="matrix-cell"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
+        <div class="matrix-cell"><span class="dot" style="background:#f5a623;"></span>v1.0.0</div>
+        <div class="matrix-cell"><span class="dot" style="background:#f5a623;"></span>v1.0.0</div>
+      </div>
+      <div style="margin-top: 12px; background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 6px; padding: 10px 14px;">
+        <p style="font-size: 12px; color: #f5a623; font-weight: 600;">⚠ 汇总只读、不可回写 · 用于判断"哪个团队需要支持" · 不用于跨团队改数据</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STAGE 5: Principles ==================== -->
+  <div class="stage" id="stage-5">
+    <div class="stage-num">05</div>
+    <div class="stage-label">Step 5 · 治理原则</div>
+    <div class="stage-title">团队隔离的三层信息架构</div>
+    <div class="stage-desc">组织级语义治理不是独立模块，而是像水印一样渗透在现有工作流中。每层信息架构各司其职，互不干扰。</div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+      <div class="principle-card p1">
+        <div class="principle-num">01</div>
+        <div class="principle-title">本团队视角（默认）</div>
+        <div class="principle-desc">
+          所有用户默认只看到本团队消费点。其他团队消费数据完全不可见。告警只显示本团队定向通知。按 SSO 身份自动识别，无需手动选择团队。
+        </div>
+      </div>
+      <div class="principle-card p2">
+        <div class="principle-num">02</div>
+        <div class="principle-title">组织级汇总（DesignOps）</div>
+        <div class="principle-desc">
+          仅 DesignOps / 规范评审组可查看组织级汇总。团队分列展示，不平均、不掩盖。汇总用于判断"哪个团队需要支持"，不用于跨团队改数据。
+        </div>
+      </div>
+      <div class="principle-card p3">
+        <div class="principle-num">03</div>
+        <div class="principle-title">告警路由（定向通知）</div>
+        <div class="principle-desc">
+          每条告警自带路由路径，明确显示"发给谁"。版本滞后、链路断点、沉默规则的告警一律发给该消费点所属团队的管理员。5分钟内只有对应团队收到通知。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom CTA -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">契约消费追踪演示完毕</p>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</p>
+    </div>
+    <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block;">
+      返回主站 →
+    </a>
   </div>
 </div>
 
@@ -486,6 +1099,139 @@ rules:
     Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束
   </div>
 </div>
+
+<script>
+// Stage 1: Show multi-team
+function showMultiTeam() {
+  document.getElementById('stage1-single').classList.add('hidden');
+  document.getElementById('stage1-multi').classList.remove('hidden');
+  document.getElementById('stage1-multi').classList.add('fade-in');
+}
+
+// Stage 2: Switch team view
+const teamData = {
+  frontend: {
+    left: { icon: '🟦', title: '前端团队', subtitle: '4 个消费点 · 覆盖率 92%', iconClass: 'frontend',
+      items: [
+        { dot: 'synced', name: 'frontend-service-prompt', badge: 'ok', badgeText: 'v1.1.0' },
+        { dot: 'synced', name: 'frontend-alert-validator', badge: 'ok', badgeText: 'v1.1.0' },
+        { dot: 'synced', name: 'frontend-ci-stylelint', badge: 'ok', badgeText: 'v1.1.0' },
+        { dot: 'lagged', name: 'frontend-schema-check', badge: 'warn', badgeText: 'v1.0.0 滞后' }
+      ],
+      msg: '🟦 这是你的团队。你只能看到这 4 个消费点。',
+      msgColor: '#4a9eff', msgBg: 'rgba(22,119,255,0.05)'
+    },
+    right: { icon: '🟨', title: '内部工具团队', subtitle: '5 个消费点 · 覆盖率 40%', iconClass: 'internal',
+      items: [
+        { dot: 'lagged', name: 'internal-service-prompt', badge: 'warn', badgeText: 'v1.0.0' },
+        { dot: 'synced', name: 'internal-alert-validator', badge: 'ok', badgeText: 'v1.1.0' },
+        { dot: 'lagged', name: 'internal-ci-rule', badge: 'warn', badgeText: 'v1.0.0' },
+        { dot: 'lagged', name: 'internal-schema-check', badge: 'warn', badgeText: 'v1.0.0' },
+        { dot: 'synced', name: 'internal-checklist', badge: 'ok', badgeText: 'v1.1.0' }
+      ],
+      msg: '🔒 其他团队数据已隔离，你无法查看',
+      msgColor: 'var(--text-tertiary)', msgBg: 'rgba(255,255,255,0.03)'
+    }
+  },
+  internal: {
+    left: { icon: '🟨', title: '内部工具团队', subtitle: '5 个消费点 · 覆盖率 40%', iconClass: 'internal',
+      items: [
+        { dot: 'lagged', name: 'internal-service-prompt', badge: 'warn', badgeText: 'v1.0.0' },
+        { dot: 'synced', name: 'internal-alert-validator', badge: 'ok', badgeText: 'v1.1.0' },
+        { dot: 'lagged', name: 'internal-ci-rule', badge: 'warn', badgeText: 'v1.0.0' },
+        { dot: 'lagged', name: 'internal-schema-check', badge: 'warn', badgeText: 'v1.0.0' },
+        { dot: 'synced', name: 'internal-checklist', badge: 'ok', badgeText: 'v1.1.0' }
+      ],
+      msg: '🟨 这是你的团队。你只能看到这 5 个消费点。',
+      msgColor: '#f5a623', msgBg: 'rgba(212,136,6,0.05)'
+    },
+    right: { icon: '🟦', title: '前端团队', subtitle: '4 个消费点 · 覆盖率 92%', iconClass: 'frontend',
+      items: [
+        { dot: 'synced', name: 'frontend-service-prompt', badge: 'ok', badgeText: 'v1.1.0' },
+        { dot: 'synced', name: 'frontend-alert-validator', badge: 'ok', badgeText: 'v1.1.0' },
+        { dot: 'synced', name: 'frontend-ci-stylelint', badge: 'ok', badgeText: 'v1.1.0' },
+        { dot: 'lagged', name: 'frontend-schema-check', badge: 'warn', badgeText: 'v1.0.0 滞后' }
+      ],
+      msg: '🔒 其他团队数据已隔离，你无法查看',
+      msgColor: 'var(--text-tertiary)', msgBg: 'rgba(255,255,255,0.03)'
+    }
+  }
+};
+
+function switchTeamView(team) {
+  const data = teamData[team];
+  const leftPane = document.getElementById('pane-left');
+  const rightPane = document.getElementById('pane-right');
+
+  // Update buttons
+  document.getElementById('btn-frontend').className = team === 'frontend' ? 'action-btn' : 'action-btn secondary';
+  document.getElementById('btn-internal').className = team === 'internal' ? 'action-btn' : 'action-btn secondary';
+
+  // Update left pane (active)
+  leftPane.classList.remove('dim');
+  document.getElementById('left-icon').textContent = data.left.icon;
+  document.getElementById('left-icon').className = 'split-pane-icon ' + data.left.iconClass;
+  document.getElementById('left-title').textContent = data.left.title;
+  document.getElementById('left-subtitle').textContent = data.left.subtitle;
+  document.getElementById('left-content').innerHTML = data.left.items.map(item => `
+    <div class="cp-item">
+      <div class="cp-dot ${item.dot}"></div>
+      <span class="cp-name">${item.name}</span>
+      <span class="cp-badge ${item.badge}">${item.badgeText}</span>
+    </div>
+  `).join('');
+  leftPane.querySelector('.split-pane-header').nextElementSibling.nextElementSibling.innerHTML = `
+    <p style="font-size: 12px; color: ${data.left.msgColor}; font-weight: 600;">${data.left.msg}</p>
+  `;
+  leftPane.querySelector('.split-pane-header').nextElementSibling.nextElementSibling.style.background = data.left.msgBg;
+
+  // Update right pane (dimmed/blurred)
+  rightPane.classList.add('dim');
+  document.getElementById('right-icon').textContent = data.right.icon;
+  document.getElementById('right-icon').className = 'split-pane-icon ' + data.right.iconClass;
+  document.getElementById('right-title').textContent = data.right.title;
+  document.getElementById('right-subtitle').textContent = data.right.subtitle;
+  document.getElementById('right-content').innerHTML = data.right.items.map(item => `
+    <div class="cp-item">
+      <div class="cp-dot ${item.dot}"></div>
+      <span class="cp-name">${item.name}</span>
+      <span class="cp-badge ${item.badge}">${item.badgeText}</span>
+    </div>
+  `).join('');
+  rightPane.querySelector('.split-pane-header').nextElementSibling.nextElementSibling.innerHTML = `
+    <p style="font-size: 12px; color: ${data.right.msgColor}; font-weight: 600;">${data.right.msg}</p>
+  `;
+  rightPane.querySelector('.split-pane-header').nextElementSibling.nextElementSibling.style.background = data.right.msgBg;
+}
+
+// Stage 3: Run reconcile
+function runReconcile() {
+  const btn = document.getElementById('btn-reconcile');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="animate-pulse">🔍</span> 对账中...';
+
+  setTimeout(() => {
+    btn.innerHTML = '<span>✓</span> 对账完成';
+    document.getElementById('reconcile-result').style.display = 'block';
+    document.getElementById('reconcile-result').classList.add('fade-in');
+  }, 1200);
+}
+
+// Stage 4: Toggle org view
+function toggleOrgView() {
+  const panel = document.getElementById('org-panel');
+  const btn = document.getElementById('btn-org-view');
+
+  if (panel.classList.contains('show')) {
+    panel.classList.remove('show');
+    btn.innerHTML = '<span>🔧</span> DesignOps 登录 · 查看组织级汇总';
+    btn.classList.remove('active');
+  } else {
+    panel.classList.add('show');
+    btn.innerHTML = '<span>✓</span> 已登录 · 隐藏组织级汇总';
+  }
+}
+</script>
 
 </body>
 </html>

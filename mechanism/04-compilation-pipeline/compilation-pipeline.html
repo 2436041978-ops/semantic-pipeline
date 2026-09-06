@@ -1031,7 +1031,107 @@
     opacity: 1;
   }
 
+  /* === Verify Badge (merged from ④) === */
+  .verify-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .verify-pass {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+
+  /* === Cross-Check Table (merged from ④) === */
+  .cross-check-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 1fr 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .cross-check-header {
+    background: #16161a;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    border-right: 1px solid var(--border);
+  }
+  .cross-check-cell {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    border-right: 1px solid var(--border);
+  }
+
+  /* === Sync Timeline (merged from ④) === */
+  .sync-timeline {
+    position: relative;
+    padding-left: 24px;
+  }
+  .sync-timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .sync-item {
+    position: relative;
+    padding-bottom: 20px;
+  }
+  .sync-item::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 2px solid var(--bg);
+  }
+  .sync-item.done::before {
+    background: #52c41a;
+    box-shadow: 0 0 0 3px rgba(82,196,26,0.2);
+  }
+  .sync-item.pending::before {
+    background: #f5a623;
+  }
+  .sync-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+  .sync-meta {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  /* === Version Declare (merged from ④) === */
+  .version-declare {
+    background: #0d0d0d;
+    border: 1px dashed rgba(22,119,255,0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-family: 'SF Mono', monospace;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+  }
+
   @media (max-width: 768px) {
+    .cross-check-row { grid-template-columns: 100px 1fr 1fr; }
     .legend-grid, .lifecycle-grid {
       grid-template-columns: 1fr;
     }
@@ -1046,7 +1146,6 @@
     }
   }
 </style>
-<base target="_blank">
 </head>
 <body>
 
@@ -1120,6 +1219,25 @@
           已对齐
         </span>
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== 三个核心命题（合并自 ④） ==================== -->
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">1</div>
+      <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">四种格式承载同一语义</h3>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">同一契约编译为 Prompt / Schema / ESLint / Checklist，交叉比对语义等价性，无分叉</p>
+    </div>
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">2</div>
+      <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">编译错误可被拦截</h3>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">字段缺失、字典引用非法、语义分叉 → 被四层编译验证阻断</p>
+    </div>
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 14px; font-weight: 800; margin-bottom: 12px;">3</div>
+      <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">同步持续一致</h3>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">契约升级后四种格式自动重编译，消费方版本声明对账，过期自动告警</p>
     </div>
   </div>
 
@@ -1662,10 +1780,164 @@
     </div>
   </div>
 
-  <!-- ==================== STEP 2: Compilation Output ==================== -->
+  <!-- ==================== STEP 2: Pre-Compile Validation (merged from ④) ==================== -->
   <div class="step-card">
     <div class="step-header">
       <div class="step-num">2</div>
+      <div>
+        <div class="step-title">编译输入与前置校验</div>
+        <div class="step-subtitle">Pre-Compile Validation · YAML 契约 + 语义字典 → 进入编译管线前的五道闸门</div>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="verify-badge verify-pass">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+          前置校验通过
+        </span>
+      </div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;">
+      <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px;">
+        <span style="width: 18px; height: 18px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0;">✓</span>
+        <div>
+          <p style="font-size: 13px; color: #52c41a; font-weight: 700; margin-bottom: 2px;">字段完整性</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">7 个必需字段全部存在</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px;">
+        <span style="width: 18px; height: 18px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0;">✓</span>
+        <div>
+          <p style="font-size: 13px; color: #52c41a; font-weight: 700; margin-bottom: 2px;">结构合法性</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">符合 schema/intent-schema.json</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px;">
+        <span style="width: 18px; height: 18px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0;">✓</span>
+        <div>
+          <p style="font-size: 13px; color: #52c41a; font-weight: 700; margin-bottom: 2px;">覆盖层存在性</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">semantic_domain 已注册覆盖层</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px;">
+        <span style="width: 18px; height: 18px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0;">✓</span>
+        <div>
+          <p style="font-size: 13px; color: #52c41a; font-weight: 700; margin-bottom: 2px;">绑定存在性</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">4 个令牌全部在语义字典注册</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px;">
+        <span style="width: 18px; height: 18px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0;">✓</span>
+        <div>
+          <p style="font-size: 13px; color: #52c41a; font-weight: 700; margin-bottom: 2px;">场景一致性</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">fatal 绑定 status.critical ✓</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 3: Four-Layer Compile Verification (merged from ④) ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">四层编译验证</div>
+        <div class="step-subtitle">Compile Process · 结构 → 语义 → 一致性 → 产物</div>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="verify-badge verify-pass">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+          全部通过
+        </span>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+      <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
+          <span style="font-size: 13px; font-weight: 700; color: #52c41a;">Layer 1</span>
+        </div>
+        <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">结构验证</p>
+        <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">YAML 语法、缩进、类型是否符合 schema</p>
+        <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+          <div>✓ 语法合法</div>
+          <div>✓ 缩进正确</div>
+          <div>✓ 类型匹配</div>
+        </div>
+      </div>
+      <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
+          <span style="font-size: 13px; font-weight: 700; color: #52c41a;">Layer 2</span>
+        </div>
+        <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">语义验证</p>
+        <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">引用是否在语义字典中注册</p>
+        <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+          <div>✓ status.critical 已注册</div>
+          <div>✓ status.warning 已注册</div>
+          <div>✓ status.info 已注册</div>
+          <div>✓ status.neutral 已注册</div>
+        </div>
+      </div>
+      <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
+          <span style="font-size: 13px; font-weight: 700; color: #52c41a;">Layer 3</span>
+        </div>
+        <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">一致性验证</p>
+        <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">四种格式交叉比对语义等价性</p>
+        <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+          <div>✓ Prompt ↔ Schema 等价</div>
+          <div>✓ Schema ↔ ESLint 等价</div>
+          <div>✓ ESLint ↔ Checklist 等价</div>
+          <div>✓ 语义分叉率：0%</div>
+        </div>
+      </div>
+      <div style="background: #16161a; border: 1px solid rgba(82,196,26,0.3); border-radius: 8px; padding: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <span style="width: 20px; height: 20px; border-radius: 50%; background: #52c41a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700;">✓</span>
+          <span style="font-size: 13px; font-weight: 700; color: #52c41a;">Layer 4</span>
+        </div>
+        <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">产物验证</p>
+        <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 8px;">输出是否可被对应角色直接消费</p>
+        <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; line-height: 1.8;">
+          <div>✓ Prompt 可直接粘贴</div>
+          <div>✓ Schema 可直接校验</div>
+          <div>✓ ESLint 可直接接入 CI</div>
+          <div>✓ Checklist 可直接走查</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 错误拦截演示 -->
+    <div style="background: rgba(207,19,34,0.05); border: 1px solid rgba(207,19,34,0.2); border-radius: 8px; padding: 16px;">
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">编译错误拦截演示（假设场景）</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 12px;">
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 6px;">✕ 字段缺失</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px;">契约缺少 immutable_boundaries 字段</p>
+          <div style="background: #0d0d0d; border-radius: 6px; padding: 8px; font-family: 'SF Mono', monospace; font-size: 11px; color: #cf1322;">
+            [Layer 1 阻断] required_field_missing<br>
+            Path: intent.immutable_boundaries<br>
+            Action: BLOCK
+          </div>
+        </div>
+        <div style="background: #16161a; border: 1px solid rgba(207,19,34,0.3); border-radius: 8px; padding: 12px;">
+          <p style="font-size: 12px; font-weight: 700; color: #cf1322; margin-bottom: 6px;">✕ 字典引用非法</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px;">color_token: "status.danger" 未在字典注册</p>
+          <div style="background: #0d0d0d; border-radius: 6px; padding: 8px; font-family: 'SF Mono', monospace; font-size: 11px; color: #cf1322;">
+            [Layer 2 阻断] dictionary-reference-not-found<br>
+            Token: status.danger<br>
+            Action: BLOCK
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 4: Compilation Output ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">4</div>
       <div>
         <div class="step-title">编译输出：四格式并行生成</div>
         <div class="step-subtitle">Compilation Output · 一份 YAML 契约 → Prompt / Schema / Checklist / CI 规则</div>
@@ -1905,12 +2177,99 @@ rules:
         </div>
       </div>
     </div>
+
+    <!-- 关键设计说明（合并自 ④） -->
+    <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 16px; margin-top: 16px;">
+      <p style="font-size: 13px; color: var(--primary); font-weight: 600; margin-bottom: 8px;">关键设计：四种格式不是"各自为政"，而是"同一语义的不同表达"</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+        Prompt 前缀里的 "status.critical" 和 JSON Schema 里的 "status.critical" 指向语义字典中的同一个绑定。<br>
+        ESLint 规则里的 "禁止所有错误使用同一种颜色" 和 Checklist 里的 "是否禁止所有错误共用同一种红色" 是同一约束的不同表达。<br>
+        四种格式共享同一信源——契约库。契约升级时，四种格式全部自动重编译。
+      </p>
+    </div>
   </div>
 
-  <!-- ==================== STEP 3: Consumption Tracking ==================== -->
+  <!-- ==================== STEP 5: Cross-Check Consistency (merged from ④) ==================== -->
   <div class="step-card">
     <div class="step-header">
-      <div class="step-num">3</div>
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">一致性验证：四格式语义交叉比对</div>
+        <div class="step-subtitle">Cross-Check · 同一语义绑定在四种消费格式中的表达对照</div>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="verify-badge verify-pass">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+          语义分叉率 0%
+        </span>
+      </div>
+    </div>
+
+    <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px;">
+      <div class="cross-check-row" style="background: #1a1a1e;">
+        <div class="cross-check-header">语义绑定</div>
+        <div class="cross-check-header">Prompt 前缀</div>
+        <div class="cross-check-header">JSON Schema</div>
+        <div class="cross-check-header">ESLint 规则</div>
+        <div class="cross-check-header" style="border-right: none;">Checklist</div>
+      </div>
+      <div class="cross-check-row">
+        <div class="cross-check-cell" style="font-weight: 700; color: #cf1322;">status.critical</div>
+        <div class="cross-check-cell">"红色脉冲 + 八边形警告"</div>
+        <div class="cross-check-cell">"color_token": "status.critical"</div>
+        <div class="cross-check-cell">fatal: { color: "#cf1322" }</div>
+        <div class="cross-check-cell" style="border-right: none;">Fatal 是否为红色脉冲？</div>
+      </div>
+      <div class="cross-check-row">
+        <div class="cross-check-cell" style="font-weight: 700; color: #a0a0a0;">status.neutral</div>
+        <div class="cross-check-cell">"灰色加载 + 旋转图标"</div>
+        <div class="cross-check-cell">"color_token": "status.neutral"</div>
+        <div class="cross-check-cell">transient: { color: "#a0a0a0" }</div>
+        <div class="cross-check-cell" style="border-right: none;">Transient 是否为灰色？</div>
+      </div>
+      <div class="cross-check-row">
+        <div class="cross-check-cell" style="font-weight: 700; color: #f5a623;">status.warning</div>
+        <div class="cross-check-cell">"黄色提示 + 时钟图标"</div>
+        <div class="cross-check-cell">"color_token": "status.warning"</div>
+        <div class="cross-check-cell">retryable: { color: "#f5a623" }</div>
+        <div class="cross-check-cell" style="border-right: none;">Retryable 是否为黄色？</div>
+      </div>
+      <div class="cross-check-row">
+        <div class="cross-check-cell" style="font-weight: 700; color: #4a9eff;">status.info</div>
+        <div class="cross-check-cell">"蓝色提示 + 信息图标"</div>
+        <div class="cross-check-cell">"color_token": "status.info"</div>
+        <div class="cross-check-cell">degraded: { color: "#4a9eff" }</div>
+        <div class="cross-check-cell" style="border-right: none;">Degraded 是否为蓝色？</div>
+      </div>
+      <div class="cross-check-row" style="border-bottom: none;">
+        <div class="cross-check-cell" style="font-weight: 700; color: var(--text-primary);">不可变边界</div>
+        <div class="cross-check-cell">"禁止所有错误共用同一种红色"</div>
+        <div class="cross-check-cell">forbidden: { same_color_all: true }</div>
+        <div class="cross-check-cell">forbidden: { same_color_all: true }</div>
+        <div class="cross-check-cell" style="border-right: none;">是否禁止所有错误共用同一种红色？</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+        <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">4/4</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">语义绑定全部对齐</div>
+      </div>
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+        <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">0%</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">语义分叉率</div>
+      </div>
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+        <div style="font-size: 32px; font-weight: 800; color: #52c41a; margin-bottom: 4px;">6/6</div>
+        <div style="font-size: 13px; color: var(--text-tertiary); font-weight: 600;">约束对全部匹配</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 6: Consumption Tracking ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">6</div>
       <div>
         <div class="step-title">消费状态看板</div>
         <div class="step-subtitle">Consumption Tracking · 从消费数据到规则迭代</div>
@@ -1996,10 +2355,10 @@ rules:
     </div>
   </div>
 
-  <!-- ==================== STEP 4: Version Reconciliation ==================== -->
+  <!-- ==================== STEP 7: Version Reconciliation ==================== -->
   <div class="step-card">
     <div class="step-header">
-      <div class="step-num">4</div>
+      <div class="step-num">7</div>
       <div>
         <div class="step-title">版本对账与规则全生命周期管理</div>
         <div class="step-subtitle">Version Reconciliation · 语义规则负责人视角</div>
@@ -2090,10 +2449,103 @@ rules:
     </div>
   </div>
 
-  <!-- ==================== STEP 5: Governance Legend ==================== -->
+  <!-- ==================== STEP 8: Sync Mechanism (merged from ④) ==================== -->
   <div class="step-card">
     <div class="step-header">
-      <div class="step-num">5</div>
+      <div class="step-num">8</div>
+      <div>
+        <div class="step-title">同步机制：不是一次性翻译，是持续同步</div>
+        <div class="step-subtitle">Sync · Git 钩子触发重编译 · 产物版本声明 · 消费方对账告警</div>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="verify-badge verify-pass">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+          全部同步
+        </span>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <!-- 同步时间线 -->
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Git 钩子触发链路</p>
+        <div class="sync-timeline">
+          <div class="sync-item done">
+            <div class="sync-label">契约提交到 Git</div>
+            <div class="sync-meta">ERR-001.yaml v1.1.0 → main branch</div>
+          </div>
+          <div class="sync-item done">
+            <div class="sync-label">Git 钩子触发编译管线</div>
+            <div class="sync-meta">自动执行四层编译验证</div>
+          </div>
+          <div class="sync-item done">
+            <div class="sync-label">四种格式全部重编译</div>
+            <div class="sync-meta">Prompt / Schema / ESLint / Checklist</div>
+          </div>
+          <div class="sync-item done">
+            <div class="sync-label">产物写入 compiled/ 目录</div>
+            <div class="sync-meta">头部嵌入版本声明</div>
+          </div>
+          <div class="sync-item pending">
+            <div class="sync-label">消费方加载时版本对账</div>
+            <div class="sync-meta">核对源契约版本与编译时间</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 版本声明与对账 -->
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">版本声明与消费方对账</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Prompt 前缀</span>
+              <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 同步</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0 | compiled: 2026-07-12T13:40:00Z</div>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">JSON Schema</span>
+              <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 同步</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0 | compiled: 2026-07-12T13:40:00Z</div>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">ESLint 规则</span>
+              <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 同步</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0 | compiled: 2026-07-12T13:40:00Z</div>
+          </div>
+          <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">Checklist</span>
+              <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: rgba(82,196,26,0.15); color: #52c41a; border: 1px solid rgba(82,196,26,0.3);">✓ 同步</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-tertiary); font-family: 'SF Mono', monospace;">source: ERR-001.yaml v1.1.0 | compiled: 2026-07-12T13:40:00Z</div>
+          </div>
+        </div>
+
+        <!-- 过期告警演示 -->
+        <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 12px; margin-top: 12px;">
+          <p style="font-size: 12px; font-weight: 700; color: #f5a623; margin-bottom: 6px;">⏳ 假设场景：消费方版本过期</p>
+          <div style="background: #0d0d0d; border-radius: 6px; padding: 8px; font-family: 'SF Mono', monospace; font-size: 11px; color: #f5a623;">
+            [ALERT] version_mismatch<br>
+            Consumer: frontend-team<br>
+            Loaded: ERR-001 v1.0.0<br>
+            Current: ERR-001 v1.1.0<br>
+            Action: 请更新 compiled/ERR-001.schema.json
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 9: Governance Legend ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">9</div>
       <div>
         <div class="step-title">解耦标记系统说明</div>
         <div class="step-subtitle">Governance Annotation Legend · 组织级语义治理的信息层嵌入规范</div>
@@ -2160,8 +2612,8 @@ rules:
   <!-- Bottom CTA -->
   <div class="cta-bar">
     <div>
-      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">编译管线演示完毕</p>
-      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</p>
+      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">契约不是"写好了就完事"，机器要自动翻译并验证</p>
+      <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">YAML 契约（高级语言）→ 语义字典（IR）→ 四种消费格式（目标代码）· Schema-As-Code 三阶段流水线：Guard → Contract → Verify</p>
     </div>
     <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block;">
       返回主站 →

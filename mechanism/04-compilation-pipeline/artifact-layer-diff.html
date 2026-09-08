@@ -251,6 +251,32 @@
     display: block;
   }
 
+  /* STEP 0 总览图：上下结构 */
+  .pipeline-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .p-arrow-v {
+    padding: 8px 0;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .p-consumers-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    width: 100%;
+  }
+  .p-consumers-row .p-node.output {
+    min-width: 0;
+    width: 100%;
+  }
+  @media (max-width: 768px) {
+    .p-consumers-row { grid-template-columns: 1fr 1fr; }
+  }
+
   /* STEP 0 总览图：生产者节点 + 可点击消费者节点 */
   .p-node.producer {
     background: rgba(245,166,35,0.08);
@@ -1340,41 +1366,33 @@
     </div>
     <div class="pipeline-viz">
       <div class="pipeline-viz-header">语义翻译设计师（生产者） → 唯一事实来源 YAML → 编译管线 → 四种产物 → 四个消费者角色</div>
-      <div class="pipeline-row">
+      <div class="pipeline-col">
         <div class="p-node producer">
           🎨 语义翻译设计师
           <div class="p-sub">规则生产者 · 产出：唯一事实来源 ERR-001.yaml</div>
         </div>
-        <div class="p-arrow">→</div>
+        <div class="p-arrow-v">⬇️</div>
         <div class="p-node compiler">
           ⚙️ 编译管线
           <div class="p-consumer">结构 / 语义 / 一致性 / 产物 · 四层验证</div>
         </div>
-        <div class="p-arrow branch">→</div>
-        <div class="p-branch-wrap">
-          <div class="p-branch-line">
-            <div class="p-node output design clickable" onclick="gotoRole('designops')">
-              ✅ Checklist（审计）
-              <div class="p-consumer">→ 📋 DesignOps · 消费者</div>
-            </div>
+        <div class="p-arrow-v">⬇️</div>
+        <div class="p-consumers-row">
+          <div class="p-node output design clickable" onclick="gotoRole('designops')">
+            ✅ Checklist（审计）
+            <div class="p-consumer">→ 📋 DesignOps · 消费者</div>
           </div>
-          <div class="p-branch-line">
-            <div class="p-node output ai clickable" onclick="gotoRole('ai')">
-              💬 Prompt 前缀
-              <div class="p-consumer">→ ✨ AI 工程师 · 消费者</div>
-            </div>
+          <div class="p-node output ai clickable" onclick="gotoRole('ai')">
+            💬 Prompt 前缀
+            <div class="p-consumer">→ ✨ AI 工程师 · 消费者</div>
           </div>
-          <div class="p-branch-line">
-            <div class="p-node output frontend clickable" onclick="gotoRole('frontend')">
-              📋 JSON Schema
-              <div class="p-consumer">→ 💻 前端 · 消费者</div>
-            </div>
+          <div class="p-node output frontend clickable" onclick="gotoRole('frontend')">
+            📋 JSON Schema
+            <div class="p-consumer">→ 💻 前端 · 消费者</div>
           </div>
-          <div class="p-branch-line">
-            <div class="p-node output ci clickable" onclick="gotoRole('efficiency')">
-              🔍 CI 规则
-              <div class="p-consumer">→ ⚙️ 研发效能 · 消费者</div>
-            </div>
+          <div class="p-node output ci clickable" onclick="gotoRole('efficiency')">
+            🔍 CI 规则
+            <div class="p-consumer">→ ⚙️ 研发效能 · 消费者</div>
           </div>
         </div>
       </div>

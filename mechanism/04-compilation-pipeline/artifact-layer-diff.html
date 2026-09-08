@@ -652,7 +652,109 @@
     .legend-grid { grid-template-columns: 1fr 1fr; }
     .mapping-col { display: none; }
   }
+/* v2.0 新增：AI 工程师角色按钮 */
+.role-btn.ai.active {
+  background: linear-gradient(135deg, #1677ff, #36cfc9);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* v2.0 新增：AI 工程师产物栏 */
+.product-col.ai::before { background: #36cfc9; }
+.product-role-tag.ai {
+  background: rgba(54,207,201,0.15);
+  color: #36cfc9;
+  border: 1px solid rgba(54,207,201,0.3);
+}
+
+/* v2.0 新增：AI 工程师映射箭头高亮 */
+.mapping-arrow.ai-highlight .arrow-line {
+  background: #36cfc9;
+  height: 2px;
+}
+.mapping-arrow.ai-highlight .arrow-line::after {
+  border-left-color: #36cfc9;
+}
+.mapping-arrow.ai-highlight .mapping-label {
+  color: #36cfc9;
+}
+
+/* v2.0 新增：审计标记样式 */
+.audit-mark {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 700;
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.audit-mark.org {
+  background: rgba(22,119,255,0.12);
+  color: #4a9eff;
+  border: 1px solid rgba(22,119,255,0.2);
+}
+.audit-mark.team {
+  background: rgba(168,85,247,0.12);
+  color: #a855f7;
+  border: 1px solid rgba(168,85,247,0.2);
+}
+
+/* v2.0 新增：审计记录区域 */
+.audit-record {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.audit-record-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.audit-record-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+/* v2.0 新增：Prompt 前缀样式 */
+.prompt-line {
+  padding: 2px 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.prompt-line .prompt-heading {
+  color: #36cfc9;
+  font-weight: 700;
+}
+.prompt-line .prompt-bullet {
+  color: var(--text-secondary);
+}
+.prompt-line .prompt-keyword {
+  color: #f5a623;
+  font-weight: 600;
+}
+.prompt-line .prompt-forbidden {
+  color: #cf1322;
+  font-weight: 600;
+}
+
+/* v2.0 新增：5格图例响应式 */
+@media (max-width: 768px) {
+  .legend-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  .legend-grid { grid-template-columns: repeat(3, 1fr); }
+}
 </style>
+<base target="_blank">
 <base target="_blank">
 </head>
 <body>
@@ -699,12 +801,12 @@
   <div style="margin-bottom: 32px;">
     <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
       <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
-      <span>阶段二 · 产物层差异 · 同一份契约的四角色消费格式</span>
+      <span>阶段二 · 产物层差异 · 同一份契约的五角色消费格式</span>
     </div>
     <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">产物层差异演示 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Four-Role Consumption</span></h1>
     <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; margin-bottom: 20px; font-weight: 500;">
       同一份 YAML 语义契约，经编译管线后，不同角色消费不同格式的产物。<br>
-      设计师看 Checklist，DesignOps 看 YAML，前端看 JSON Schema，研发效能看 CI 规则。
+      设计师看 Checklist，DesignOps 审计 Checklist，AI 工程师看 Prompt 前缀，前端看 JSON Schema，研发效能看 CI 规则。
     </p>
     <div class="governance-bar">
       <div class="governance-item">
@@ -743,6 +845,10 @@
       <button class="role-btn" onclick="switchRole('designops', this)" data-role="designops">
         <span class="role-icon">📋</span> DesignOps
       </button>
+      <!-- v2.0 新增：AI 工程师角色 -->
+      <button class="role-btn" onclick="switchRole('ai', this)" data-role="ai">
+        <span class="role-icon">✨</span> AI 工程师
+      </button>
       <button class="role-btn" onclick="switchRole('frontend', this)" data-role="frontend">
         <span class="role-icon">💻</span> 前端
       </button>
@@ -762,7 +868,7 @@
     <div class="step-header">
       <div class="step-num">2</div>
       <div>
-        <div class="step-title">四角色消费视图</div>
+        <div class="step-title">五角色消费视图</div>
         <div class="step-subtitle">Consumption View · 左栏：同一份源契约 · 中栏：编译映射 · 右栏：角色产物</div>
       </div>
     </div>
@@ -940,45 +1046,89 @@
           </div>
         </div>
 
-        <!-- DesignOps Product -->
+        <!-- v2.0 修改：DesignOps 产物 → Checklist（审计视角） -->
         <div class="product-col designops" id="product-designops" style="display: none;">
           <div class="product-header">
-            <span class="product-title">YAML 语义契约</span>
-            <span class="source-pill org">org-baseline</span>
+            <span class="product-title">Checklist 审计清单</span>
+            <div><span class="source-pill org">org</span><span class="source-pill team">team</span></div>
           </div>
           <div class="product-content">
-            <div class="yaml-block" style="font-size: 12px; line-height: 1.5;">
-<pre>intent_id: "ERR-001"
-semantic_domain: "observational"
-version: "v1.1.0"
-
-semantic_tokens:
-  error_severity:
-    fatal:
-      color_token: "status.critical"
-      motion_token: "pulse.red.urgent"
-      icon_token: "alert.octagon"
-      user_action: ["refresh", "export_history"]
-    transient:
-      color_token: "status.neutral"
-      motion_token: "spinner"
-      icon_token: "loader"
-      user_action: ["wait", "retry"]
-    retryable:
-      color_token: "status.warning"
-      motion_token: "none"
-      icon_token: "clock"
-      user_action: ["wait_countdown", "upgrade"]
-    degraded:
-      color_token: "status.info"
-      motion_token: "none"
-      icon_token: "info.circle"
-      user_action: ["continue", "retry_simplified"]
-
-immutable_boundaries:
-  - safety: "禁止统一红色" → block
-  - clarity: "必须提供行动指引" → warn</pre>
+            <div class="checklist-item">
+              <div class="checklist-box checked"></div>
+              <span class="checklist-text">是否区分 Fatal / Transient / Retryable / Degraded 四级？<span class="audit-mark org">组织基线</span></span>
             </div>
+            <div class="checklist-item">
+              <div class="checklist-box checked"></div>
+              <span class="checklist-text">Fatal 是否为红色脉冲 + 八边形警告图标？<span class="audit-mark org">组织基线</span></span>
+            </div>
+            <div class="checklist-item">
+              <div class="checklist-box checked"></div>
+              <span class="checklist-text">Transient 是否为灰色加载 + 旋转图标？<span class="audit-mark org">组织基线</span></span>
+            </div>
+            <div class="checklist-item">
+              <div class="checklist-box checked"></div>
+              <span class="checklist-text">Retryable 是否为黄色 + 时钟图标？<span class="audit-mark org">组织基线</span></span>
+            </div>
+            <div class="checklist-item">
+              <div class="checklist-box checked"></div>
+              <span class="checklist-text">Degraded 是否为蓝色 + 信息图标？<span class="audit-mark org">组织基线</span></span>
+            </div>
+            <div class="checklist-item">
+              <div class="checklist-box"></div>
+              <span class="checklist-text">Degraded 是否显式列出可用功能清单？<span class="audit-mark team">团队扩展</span></span>
+            </div>
+            <div class="checklist-item">
+              <div class="checklist-box"></div>
+              <span class="checklist-text">是否避免"部分失败"等模糊表述？<span class="audit-mark team">团队扩展</span></span>
+            </div>
+            <div class="checklist-item">
+              <div class="checklist-box checked"></div>
+              <span class="checklist-text">每级是否提供明确的用户行动指引？<span class="audit-mark org">组织基线</span></span>
+            </div>
+            <div class="checklist-item">
+              <div class="checklist-box checked"></div>
+              <span class="checklist-text">是否禁止所有错误共用同一种红色？<span class="audit-mark org">组织基线</span></span>
+            </div>
+            <div class="audit-record">
+              <p class="audit-record-title">审计记录</p>
+              <div class="audit-record-row">📅 审计日期：2026-07-12 14:00</div>
+              <div class="audit-record-row">👤 审计人：李四（DesignOps）</div>
+              <div class="audit-record-row">📋 审计版本：ERR-001 v1.1.0 + frontend v2.0.1</div>
+              <div class="audit-record-row">✅ 通过项：7/9 · 待确认项：2/9（团队扩展）</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- v2.0 新增：AI 工程师产物 — Prompt 前缀 -->
+        <div class="product-col ai" id="product-ai" style="display: none;">
+          <div class="product-header">
+            <span class="product-title">Prompt 前缀（AI 生成约束模板）</span>
+            <div><span class="source-pill org">org</span><span class="source-pill team">team</span></div>
+          </div>
+          <div class="product-content">
+            <div class="prompt-line"><span class="prompt-heading"># 基于 ERR-001 v1.1.0 的语义约束</span></div>
+            <div class="prompt-line">在生成错误状态界面时，必须遵守以下规则：</div>
+            <div class="prompt-line"></div>
+            <div class="prompt-line"><span class="prompt-heading">## 错误级别与视觉映射</span></div>
+            <div class="prompt-line"><span class="prompt-bullet">-</span> <span class="prompt-keyword">致命错误（Fatal）</span>：红色脉冲 + 八边形警告 + 刷新/导出按钮</div>
+            <div class="prompt-line"><span class="prompt-bullet">-</span> <span class="prompt-keyword">网络抖动（Transient）</span>：灰色加载 + 旋转图标 + 等待/重试按钮</div>
+            <div class="prompt-line"><span class="prompt-bullet">-</span> <span class="prompt-keyword">限流提示（Retryable）</span>：黄色提示 + 时钟图标 + 倒计时/升级按钮</div>
+            <div class="prompt-line"><span class="prompt-bullet">-</span> <span class="prompt-keyword">降级错误（Degraded）</span>：蓝色提示 + 信息图标 + 继续/简化按钮</div>
+            <div class="prompt-line"></div>
+            <div class="prompt-line"><span class="prompt-heading">## 不可突破的红线</span></div>
+            <div class="prompt-line"><span class="prompt-bullet">-</span> <span class="prompt-forbidden">绝对不能</span>：所有错误共用同一种红色</div>
+            <div class="prompt-line"><span class="prompt-bullet">-</span> <span class="prompt-forbidden">绝对不能</span>：致命错误只显示普通文字</div>
+            <div class="prompt-line"><span class="prompt-bullet">-</span> <span class="prompt-forbidden">绝对不能</span>：降级错误显示纯技术错误码</div>
+            <div class="prompt-line"></div>
+            <div class="prompt-line"><span class="prompt-heading">## 对 AI 的强制要求</span></div>
+            <div class="prompt-line"><span class="prompt-bullet">-</span> <span class="prompt-keyword">必须</span>：在致命错误中说明"对话上下文可能已丢失"</div>
+            <div class="prompt-line"><span class="prompt-bullet">-</span> <span class="prompt-keyword">必须</span>：在限流提示中显示具体倒计时</div>
+            <div class="prompt-line"><span class="prompt-bullet">-</span> <span class="prompt-forbidden">禁止</span>：仅显示"出错了"等模糊文案</div>
+            <div class="prompt-line"></div>
+            <div class="prompt-line" style="color: #a855f7; font-weight: 600;"># === 前端团队扩展（v2.0.1）===</div>
+            <div class="prompt-line" style="color: #a855f7;"><span class="prompt-bullet">-</span> <span class="prompt-keyword">必须</span>：在降级提示中显式列出可用功能清单</div>
+            <div class="prompt-line" style="color: #a855f7;"><span class="prompt-bullet">-</span> <span class="prompt-forbidden">禁止</span>：使用"部分失败""服务异常"等模糊表述</div>
+            <div class="prompt-line" style="color: #a855f7;"><span class="prompt-bullet">-</span> <span class="prompt-keyword">必须</span>：说明"已生成的内容仍然有效"</div>
           </div>
         </div>
 
@@ -1059,10 +1209,11 @@ immutable_boundaries:
     <div class="step-header">
       <div class="step-num">3</div>
       <div>
-        <div class="step-title">四角色产物说明</div>
-        <div class="step-subtitle">Role Legend · 同一份契约，四种消费格式，各取所需</div>
+        <div class="step-title">五角色产物说明</div>
+        <div class="step-subtitle">Role Legend · 同一份契约，五种消费格式，各取所需</div>
       </div>
     </div>
+    <!-- v2.0 修改：4格 → 5格图例 -->
     <div class="legend-grid">
       <div class="legend-card">
         <div class="legend-icon">🎨</div>
@@ -1073,8 +1224,15 @@ immutable_boundaries:
       <div class="legend-card">
         <div class="legend-icon">📋</div>
         <div class="legend-title">DesignOps</div>
-        <div class="legend-desc">原始语义契约，规则仓库管理</div>
-        <div class="legend-format">YAML</div>
+        <div class="legend-desc">审计清单，标注来源与记录</div>
+        <div class="legend-format">Checklist（审计）</div>
+      </div>
+      <!-- v2.0 新增：AI 工程师图例 -->
+      <div class="legend-card">
+        <div class="legend-icon">✨</div>
+        <div class="legend-title">AI 工程师</div>
+        <div class="legend-desc">Prompt 前缀，注入 AI 系统消息</div>
+        <div class="legend-format">Prompt 前缀</div>
       </div>
       <div class="legend-card">
         <div class="legend-icon">💻</div>
@@ -1094,7 +1252,9 @@ immutable_boundaries:
       <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
         编译管线的核心设计：同一份 YAML 语义契约作为单一来源，经编译后输出为四种不同格式的产物。<br>
         每种产物都保留了与源契约的映射关系（中栏箭头），确保当源契约更新时，所有消费格式的产物都能同步迭代。<br>
-        团队级扩展规则（紫色标记）仅在相关角色的产物中显化，不影响其他角色的消费格式。
+        团队级扩展规则（紫色标记）仅在相关角色的产物中显化，不影响其他角色的消费格式。<br>
+        <!-- v2.0 新增：AI 工程师角色说明 -->
+        <strong style="color: #36cfc9;">AI 工程师</strong>消费的 Prompt 前缀直接注入 AI 工具的 system message，让 AI 在生成界面前自动遵守语义约束。
       </p>
     </div>
   </div>
@@ -1132,13 +1292,23 @@ const roleData = {
     productTagClass: 'designer',
     productId: 'product-designer'
   },
+  /* v2.0 修改：DesignOps 从 YAML 管理视角改为 Checklist 审计视角 */
   designops: {
     contextBg: 'rgba(22,119,255,0.05)',
     contextBorder: 'rgba(22,119,255,0.15)',
-    contextText: '<strong style="color: #4a9eff;">DesignOps 视角：</strong>管理原始语义契约，存储于规则仓库目录结构中，作为所有编译输出的单一来源。<br>负责版本对账、规则迭代、规范评审组对接。',
+    contextText: '<strong style="color: #4a9eff;">DesignOps 视角：</strong>审计 Checklist 走查结果，标注每条规则的来源（组织基线/团队扩展），记录审计日志。<br>负责版本对账、规则迭代、规范评审组对接，确保语义约束在全组织范围内被正确消费。',
     productTag: 'DesignOps',
     productTagClass: 'designops',
     productId: 'product-designops'
+  },
+  /* v2.0 新增：AI 工程师角色数据 */
+  ai: {
+    contextBg: 'rgba(54,207,201,0.05)',
+    contextBorder: 'rgba(54,207,201,0.15)',
+    contextText: '<strong style="color: #36cfc9;">AI 工程师视角：</strong>将语义契约编译为 Prompt 前缀，注入 Cursor / Claude Code 的 system message，让 AI 在生成界面前自动遵守语义约束。<br>团队扩展项（紫色标记）自动追加到 Prompt 末尾。',
+    productTag: 'AI 工程师',
+    productTagClass: 'ai',
+    productId: 'product-ai'
   },
   frontend: {
     contextBg: 'rgba(82,196,26,0.05)',
@@ -1182,25 +1352,34 @@ function switchRole(role, btn) {
 
   // Update mapping arrows
   document.querySelectorAll('.mapping-arrow').forEach(arrow => {
-    arrow.classList.remove('highlight', 'team-highlight');
+    arrow.classList.remove('highlight', 'team-highlight', 'ai-highlight');
     const label = arrow.querySelector('.mapping-label');
     if (label) {
+      const map = arrow.dataset.map;
       if (role === 'designer') {
-        const map = arrow.dataset.map;
         if (map && ['fatal','transient','retryable','degraded','boundary'].includes(map)) {
           arrow.classList.add('highlight');
         }
         if (map === 'team-ext') arrow.classList.add('team-highlight');
       } else if (role === 'designops') {
-        arrow.classList.add('highlight');
+        /* v2.0：DesignOps 审计视角高亮全部映射 */
+        if (map && ['fatal','transient','retryable','degraded','boundary'].includes(map)) {
+          arrow.classList.add('highlight');
+        }
+        if (map === 'team-ext') arrow.classList.add('team-highlight');
+      } else if (role === 'ai') {
+        /* v2.0 新增：AI 工程师视角高亮语义约束映射 */
+        if (map && ['fatal','transient','retryable','degraded'].includes(map)) {
+          arrow.classList.add('ai-highlight');
+        }
+        if (map === 'team-ext') arrow.classList.add('team-highlight');
+        if (map === 'boundary') arrow.classList.add('ai-highlight');
       } else if (role === 'frontend') {
-        const map = arrow.dataset.map;
         if (map && ['fatal','transient','retryable','degraded'].includes(map)) {
           arrow.classList.add('highlight');
         }
         if (map === 'team-ext') arrow.classList.add('team-highlight');
       } else if (role === 'efficiency') {
-        const map = arrow.dataset.map;
         if (map && ['fatal','transient','retryable','degraded','boundary','team-ext'].includes(map)) {
           arrow.classList.add(map === 'team-ext' ? 'team-highlight' : 'highlight');
         }

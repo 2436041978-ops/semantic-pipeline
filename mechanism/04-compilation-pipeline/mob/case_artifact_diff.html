@@ -2,421 +2,467 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Schema-As-Code · 产物层差异演示 v3</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>产物层差异演示 · Schema-As-Code</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  :root {
-    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
-    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
-    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
-    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
-  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
-  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
-  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
-  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
-  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
-  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
-  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
-  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
-  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease; opacity: 0; }
-  .collapsible-content.open { max-height: 12000px; opacity: 1; }
-  .chevron { transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
-  .chevron.rotated { transform: rotate(180deg); }
-  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
-  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; color: var(--text-tertiary); cursor: pointer; user-select: none; }
-  .nav-item.active { color: var(--primary); }
-  .nav-item .nav-icon { font-size: 18px; font-weight: 700; }
-  .nav-item .nav-label { font-size: 10px; font-weight: 600; }
-  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
-  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
-  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
-  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
-  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
-  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
-  .code-block { background: #0d0d0d; border-radius: var(--radius-sm); padding: 14px; font-family: 'SF Mono', 'Courier New', monospace; font-size: 11px; line-height: 1.6; color: #e5e5e5; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .code-block pre { white-space: pre-wrap; margin: 0; }
-  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .divider { height: 1px; background: var(--border); margin: 16px 0; }
-  .role-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; user-select: none; }
-  .role-tab:active { transform: scale(0.96); }
-  .role-tab .r-ico { font-size: 18px; }
-  .role-tab .r-name { font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
-  .role-tab.on-ai { border-color: rgba(74,158,255,0.5); background: rgba(22,119,255,0.1); } .role-tab.on-ai .r-name { color: #4a9eff; }
-  .role-tab.on-fe { border-color: rgba(82,196,26,0.5); background: rgba(82,196,26,0.1); } .role-tab.on-fe .r-name { color: #6abe4a; }
-  .role-tab.on-ops { border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.1); } .role-tab.on-ops .r-name { color: #f5a623; }
-  .role-tab.on-ci { border-color: rgba(168,85,247,0.5); background: rgba(168,85,247,0.1); } .role-tab.on-ci .r-name { color: #a855f7; }
-  .map-row { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; cursor: pointer; transition: all 0.2s; user-select: none; }
-  .map-row:active { transform: scale(0.98); }
-  .map-row.hl { border-color: rgba(22,119,255,0.5); background: rgba(22,119,255,0.08); }
-  .fade { animation: fadeIn 0.3s ease; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+:root{
+  --bg:#0f0f12; --card-bg:#1a1a1e; --surface:#16161a;
+  --primary:#1677ff; --success:#52c41a; --success2:#6abe4a; --warn:#f5a623; --error:#cf1322;
+  --info:#4a9eff; --purple:#a855f7; --cyan:#36cfc9;
+  --radius:12px; --radius-sm:8px;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:#e8e8ea;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;font-size:15px;line-height:1.6;padding-bottom:calc(80px + var(--safe-bottom));}
+.wrap{padding:0 16px;}
+.text-display{font-size:24px;font-weight:800;line-height:1.3;}
+.text-h1{font-size:20px;font-weight:700;}
+.text-h2{font-size:17px;font-weight:700;}
+.text-h3{font-size:15px;font-weight:700;}
+.text-body{font-size:15px;}
+.text-caption{font-size:13px;color:#9a9aa2;}
+.text-label{font-size:12px;color:#8b8b93;}
+.text-micro{font-size:11px;color:#6d6d75;}
+.gradient-text{background:linear-gradient(90deg,#1677ff,#36cfc9);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.sticky-header{position:sticky;top:0;z-index:50;background:rgba(15,15,18,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:calc(10px + var(--safe-top)) 16px 10px;border-bottom:1px solid #26262c;}
+.card{background:var(--card-bg);border:1px solid #26262c;border-radius:var(--radius);padding:14px;margin:14px 0;}
+.surface{background:var(--surface);border:1px solid #232329;border-radius:var(--radius-sm);padding:12px;}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;line-height:1.6;}
+.b-red{background:rgba(207,19,34,.15);color:#ff6b74;border:1px solid rgba(207,19,34,.35);}
+.b-amber{background:rgba(245,166,35,.15);color:#f5a623;border:1px solid rgba(245,166,35,.35);}
+.b-blue{background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.35);}
+.b-green{background:rgba(82,196,26,.15);color:#6abe4a;border:1px solid rgba(82,196,26,.35);}
+.b-purple{background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.35);}
+.b-gray{background:rgba(255,255,255,.06);color:#9a9aa2;border:1px solid #33333a;}
+.code-block{background:#0d0d0d;border:1px solid #26262c;border-radius:var(--radius-sm);padding:12px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11px;line-height:1.65;white-space:pre-wrap;word-break:break-all;color:#c9d1d9;margin:10px 0;}
+.code-block .k{color:#4a9eff;} .code-block .s{color:#6abe4a;} .code-block .c{color:#6d6d75;} .code-block .p{color:#c084fc;} .code-block .w{color:#f5a623;} .code-block .r{color:#ff6b74;}
+.collapse-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:14px;}
+.chevron{transition:transform .3s;color:#6d6d75;font-size:12px;}
+.collapsible-content{max-height:0;overflow:hidden;opacity:0;transition:max-height .5s ease,opacity .4s ease;}
+.collapsible-content.open{max-height:12000px;opacity:1;}
+.collapsible-content.open .chevron{transform:rotate(180deg);}
+.open>.collapse-head .chevron{transform:rotate(180deg);}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;height:calc(64px + var(--safe-bottom));padding-bottom:var(--safe-bottom);background:rgba(22,22,26,.92);backdrop-filter:blur(14px);border-top:1px solid #26262c;display:flex;z-index:60;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#8b8b93;text-decoration:none;font-size:11px;}
+.nav-item.active{color:var(--primary);}
+.nav-item .ni{font-size:18px;}
+.quote{border-left:3px solid var(--primary);background:rgba(22,119,255,.06);padding:10px 12px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin:10px 0;font-size:13px;color:#c9c9cf;}
+/* 角色映射卡 */
+.map-row{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid #232329;border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;cursor:pointer;transition:border-color .25s,background .25s;}
+.map-row .mi{font-size:22px;line-height:1.2;}
+.map-row.hl{border-color:var(--primary);background:rgba(22,119,255,.08);}
+.map-row .trap{display:none;margin-top:8px;font-size:12px;color:#f5a623;background:rgba(245,166,35,.08);border:1px dashed rgba(245,166,35,.35);border-radius:8px;padding:8px;}
+.map-row.hl .trap{display:block;}
+/* 角色 tab */
+.role-tab{flex:1;text-align:center;padding:10px 4px;border-radius:99px;border:1px solid #33333a;background:var(--surface);font-size:12px;font-weight:600;color:#9a9aa2;cursor:pointer;transition:all .25s;}
+.role-tab.on-prod{background:rgba(107,230,190,.12);border-color:rgba(107,230,190,.5);color:#7ee8c7;}
+.role-tab.on-ops{background:rgba(82,196,26,.12);border-color:rgba(82,196,26,.5);color:#6abe4a;}
+.role-tab.on-ai{background:rgba(168,85,247,.14);border-color:rgba(168,85,247,.5);color:#c084fc;}
+.role-tab.on-fe{background:rgba(74,158,255,.12);border-color:rgba(74,158,255,.5);color:#4a9eff;}
+.role-tab.on-ci{background:rgba(245,166,35,.12);border-color:rgba(245,166,35,.5);color:#f5a623;}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;}
+.tabs .role-tab{flex:1 1 30%;}
+.pv{display:none;}
+.pv.show{display:block;animation:fade .35s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.flow-node{background:var(--surface);border:1px solid #2c2c34;border-radius:var(--radius-sm);padding:12px;text-align:center;}
+.flow-arrow{text-align:center;color:#4a9eff;font-size:14px;margin:6px 0;}
+.chain{display:flex;flex-direction:column;gap:6px;}
+.chain .chip{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid #2c2c34;border-radius:8px;padding:8px 10px;font-size:12px;}
+.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid #26262c;border-radius:8px;margin-bottom:8px;background:var(--surface);font-size:13px;}
+.chk .qn{color:#4a9eff;font-weight:700;font-family:Menlo,monospace;font-size:12px;}
 </style>
 <base target="_blank">
 </head>
 <body>
 
-<!-- 粘性头部 -->
-<div class="sticky-header">
-  <div style="padding: 12px 16px;">
-    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
-      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 阶段二 · 产物层差异</span>
-    </div>
-    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">产物层差异演示</span> <span class="text-caption" style="color: var(--text-tertiary); -webkit-text-fill-color: var(--text-tertiary);">Four-Role Consumption</span></h1>
-    <p class="text-caption" style="color: var(--text-tertiary);">同一份契约的四角色消费格式 · 点击角色实时切换</p>
-  </div>
-</div>
+<header class="sticky-header">
+  <div class="text-label">← Schema-As-Code / 产物层差异演示</div>
+  <div class="text-h2" style="margin-top:4px;">产物层差异演示 <span class="badge b-purple" style="vertical-align:2px;">Four-Role Consumption</span></div>
+</header>
 
-<div style="padding: 0 16px;">
+<div class="wrap">
 
-  <!-- 导语 + 状态条 -->
-  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
-    <div style="padding: 16px;">
-      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8; margin-bottom: 10px;">
-        同一份 YAML 语义契约，经编译管线后，不同角色消费不同格式的产物：<span style="color: var(--text-primary); font-weight: 700;">AI 工程师看 Prompt 前缀，前端看 JSON Schema，DesignOps 看 Checklist，研发效能看 CI 规则</span>。
-      </p>
-      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-        <span class="badge badge-blue">组织级基线 v1.1.0</span>
-        <span class="badge badge-purple">前端团队扩展 v2.0.1</span>
-        <span class="badge badge-gray">契约：ERR-001</span>
-        <span class="badge badge-green">✓ 已对齐</span>
-      </div>
+  <!-- 导语 -->
+  <div class="card">
+    <div class="text-caption" style="margin-bottom:8px;">阶段二 · 产物层差异 · 同一份契约的五角色消费格式</div>
+    <div class="text-display gradient-text" style="font-size:22px;">同一份 YAML 契约，<br>五种消费格式</div>
+    <p class="text-body" style="margin-top:10px;color:#c9c9cf;">语义翻译设计师设计唯一事实来源 YAML 契约，经编译管线分发为 4 种角色产物：<b style="color:#6abe4a;">DesignOps 审计 Checklist</b>、<b style="color:#c084fc;">AI 工程师注入 Prompt 前缀</b>、<b style="color:#4a9eff;">前端消费 JSON Schema</b>、<b style="color:#f5a623;">研发效能执行 CI 规则</b>。</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+      <span class="badge b-blue">组织级基线 v1.1.0</span>
+      <span class="badge b-purple">前端团队扩展 v2.0.1</span>
+      <span class="badge b-gray">契约：ERR-001 · 错误状态后果差异未分级</span>
+      <span class="badge b-green">✓ 已对齐</span>
     </div>
   </div>
 
-  <!-- 0 全链路 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;" onclick="toggleCollapse('chain')">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span class="badge badge-blue">0</span>
-          <h2 class="text-h2">编译管线全链路</h2>
-        </div>
-        <svg class="chevron" id="chevron-chain" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-tertiary);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+  <!-- ★ 角色-产物对应关系 -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-map')">
+      <div>
+        <div class="text-label">Role-Product Mapping · 4 个消费者角色 × 4 种产物格式</div>
+        <div class="text-h2" style="margin-top:2px;">★ 角色-产物对应关系</div>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-top: 4px;">Producer → Compiler → Consumer · 从唯一事实来源到四角色消费</p>
+      <span class="chevron">▼</span>
     </div>
-    <div class="collapsible-content" id="content-chain">
-      <div style="padding: 0 16px 16px;">
-        <div class="divider"></div>
-        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
-          <div style="background: var(--surface); border: 1px solid rgba(22,119,255,0.3); border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 3px;">上游 · 规则生产者 ✍️ 语义翻译设计师</p>
-            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">编写唯一事实来源：YAML 语义契约。手写或表单工具生成，经编译前置校验后入库。<br>产出物：YAML 契约（唯一事实来源）</p>
-          </div>
-          <p class="text-micro" style="color: var(--text-tertiary); text-align: center;">↓</p>
-          <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 3px;">中游 · 自动翻译中枢 ⚙️ 编译管线</p>
-            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">自动将 YAML 翻译为 4 种消费格式。团队隔离编译：组织级基线 + 团队级扩展合并后输出。<br>编译动作：YAML → 4 种消费格式</p>
-          </div>
-          <p class="text-micro" style="color: var(--text-tertiary); text-align: center;">↓</p>
-          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 3px;">下游 · 四角色消费者</p>
-            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">🤖 AI 工程师 · 💻 前端工程师 · 📋 DesignOps · 🔧 CI / 研发效能<br>消费原则：<span style="color: #6abe4a; font-weight: 700;">只消费编译产物，不直接消费 YAML 契约</span></p>
+    <div id="sec-map" class="collapsible-content open">
+      <div style="padding:0 14px 14px;">
+        <div class="text-micro" style="margin-bottom:10px;">点击卡片查看踩坑场景，并高亮对应产物（联动下方演示）</div>
+        <div class="map-row" id="mr-ai" onclick="switchRole('ai');hlMap('ai')">
+          <div class="mi">🤖</div>
+          <div style="flex:1;">
+            <div class="text-h3">AI 工程师 → Prompt 前缀</div>
+            <div class="text-caption">紫色 · AI 主题</div>
+            <div class="trap">⚠️ 踩坑场景：自己写 Prompt 前缀，写成「用红色表示严重」，导致所有错误状态共用同一种红色，违反组织级不可突破红线</div>
           </div>
         </div>
-        <div style="background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.25); border-radius: var(--radius-sm); padding: 12px;">
-          <p class="text-label" style="color: #4a9eff; margin-bottom: 4px;">核心设计</p>
-          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">语义翻译设计师编写唯一事实来源，编译管线自动翻译为 4 种格式分发给下游。四角色只消费编译产物——源契约更新时，所有消费格式通过编译管线同步迭代。</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 1 角色-产物对应关系（点击高亮 + 联动切换） -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-        <span class="badge badge-purple">1</span>
-        <h2 class="text-h2">角色-产物对应关系</h2>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-bottom: 10px;">点击任意行高亮，并切换下方消费视图</p>
-      <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
-        <div class="map-row hl" id="mr-ai" onclick="switchRole('ai')">
-          <span style="font-size: 16px;">🤖</span>
-          <div style="flex: 1;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">AI 工程师 → Prompt 前缀</p>
-            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.6;">踩坑：自己写 Prompt 前缀，写成"用红色表示严重"，没区分四级语义</p>
+        <div class="map-row" id="mr-fe" onclick="switchRole('fe');hlMap('fe')">
+          <div class="mi">💻</div>
+          <div style="flex:1;">
+            <div class="text-h3">前端工程师 → JSON Schema</div>
+            <div class="text-caption">蓝色 · 代码主题</div>
+            <div class="trap">⚠️ 踩坑场景：组件 Props 没有约束 severity 枚举值，导致前端传入非法的错误级别字符串，运行时无法正确映射视觉样式</div>
           </div>
         </div>
-        <div class="map-row" id="mr-fe" onclick="switchRole('fe')">
-          <span style="font-size: 16px;">💻</span>
-          <div style="flex: 1;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">前端工程师 → JSON Schema</p>
-            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.6;">踩坑：Props 没约束 severity 枚举值，传了非法值 "error" 而非 "fatal"</p>
+        <div class="map-row" id="mr-ops" onclick="switchRole('ops');hlMap('ops')">
+          <div class="mi">📋</div>
+          <div style="flex:1;">
+            <div class="text-h3">DesignOps → Checklist（审计）</div>
+            <div class="text-caption">绿色 · 设计主题</div>
+            <div class="trap">⚠️ 踩坑场景：审计走查时只关注视觉美观，忽略「每个错误级别必须提供明确的用户行动指引」这一语义约束</div>
           </div>
         </div>
-        <div class="map-row" id="mr-ops" onclick="switchRole('ops')">
-          <span style="font-size: 16px;">📋</span>
-          <div style="flex: 1;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">DesignOps → Checklist</p>
-            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.6;">踩坑：走查只检查颜色对不对，没检查每级是否有用户行动指引</p>
+        <div class="map-row" id="mr-ci" onclick="switchRole('ci');hlMap('ci')">
+          <div class="mi">🔧</div>
+          <div style="flex:1;">
+            <div class="text-h3">CI / 研发效能 → CI 规则</div>
+            <div class="text-caption">橙色 · 工程主题</div>
+            <div class="trap">⚠️ 踩坑场景：CI 规则只校验颜色值，不校验 motion_token 和 icon_token，导致动画和图标与语义级别不匹配</div>
           </div>
         </div>
-        <div class="map-row" id="mr-ci" onclick="switchRole('ci')">
-          <span style="font-size: 16px;">🔧</span>
-          <div style="flex: 1;">
-            <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">CI / 研发效能 → CI 规则</p>
-            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.6;">踩坑：CI 只校验颜色，没校验 motion_token 和 icon_token 的匹配关系</p>
-          </div>
-        </div>
-      </div>
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px;">
-        <p class="text-micro" style="color: var(--text-tertiary); line-height: 1.7;">非消费者角色：✍️ 语义翻译设计师（规则生产者，见专题④）· 📊 管理层（效果评估者）</p>
       </div>
     </div>
   </div>
 
-  <!-- 2+3 角色视角与消费视图（交互核心） -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-        <span class="badge badge-blue">2</span>
-        <h2 class="text-h2">选择角色视角</h2>
+  <!-- 0 生产者 → 编译管线 → 消费者 -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-flow')">
+      <div>
+        <div class="text-label">Relationship Overview · 1 个规则生产者 × 唯一事实来源 × 4 个消费者角色</div>
+        <div class="text-h2" style="margin-top:2px;">0 生产者 → 编译管线 → 消费者</div>
       </div>
-      <div style="display: flex; gap: 6px; margin-bottom: 12px;">
-        <div class="role-tab on-ai" id="rt-ai" onclick="switchRole('ai')"><span class="r-ico">🤖</span><span class="r-name">AI 工程师</span></div>
-        <div class="role-tab" id="rt-fe" onclick="switchRole('fe')"><span class="r-ico">💻</span><span class="r-name">前端</span></div>
-        <div class="role-tab" id="rt-ops" onclick="switchRole('ops')"><span class="r-ico">📋</span><span class="r-name">DesignOps</span></div>
-        <div class="role-tab" id="rt-ci" onclick="switchRole('ci')"><span class="r-ico">🔧</span><span class="r-name">研发效能</span></div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-flow" class="collapsible-content">
+      <div style="padding:0 14px 14px;">
+        <div class="flow-node">
+          <div style="font-size:20px;">🎨</div>
+          <div class="text-h3" style="color:#7ee8c7;">语义翻译设计师</div>
+          <div class="text-micro">规则生产者 · 产出：唯一事实来源 ERR-001.yaml</div>
+        </div>
+        <div class="flow-arrow">⬇️</div>
+        <div class="flow-node">
+          <div style="font-size:20px;">⚙️</div>
+          <div class="text-h3">编译管线</div>
+          <div class="text-micro">结构 / 语义 / 一致性 / 产物 · 四层验证</div>
+        </div>
+        <div class="flow-arrow">⬇️</div>
+        <div class="chain">
+          <div class="chip" onclick="switchRole('ops');hlMap('ops');document.getElementById('sec-consume').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;"><span class="legend-dot" style="background:#52c41a;"></span>✅ Checklist（审计） → 📋 DesignOps · 消费者</div>
+          <div class="chip" onclick="switchRole('ai');hlMap('ai');document.getElementById('sec-consume').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;"><span class="legend-dot" style="background:#a855f7;"></span>💬 Prompt 前缀 → ✨ AI 工程师 · 消费者</div>
+          <div class="chip" onclick="switchRole('fe');hlMap('fe');document.getElementById('sec-consume').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;"><span class="legend-dot" style="background:#4a9eff;"></span>📋 JSON Schema → 💻 前端 · 消费者</div>
+          <div class="chip" onclick="switchRole('ci');hlMap('ci');document.getElementById('sec-consume').scrollIntoView({behavior:'smooth'})" style="cursor:pointer;"><span class="legend-dot" style="background:#f5a623;"></span>🔍 CI 规则 → ⚙️ 研发效能 · 消费者</div>
+        </div>
+        <div class="quote" style="margin-top:10px;">输入端只有 1 个生产者（语义翻译设计师），输出端是 4 个消费者角色。消费者<b>不读 YAML 原文</b>，只消费各自的编译产物；产物变更只能由修改源契约后重新编译产生，<b>禁止直接改产物</b>。</div>
       </div>
+    </div>
+  </div>
 
-      <div id="role-scene" style="border-radius: var(--radius-sm); padding: 10px; margin-bottom: 12px; background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.3);">
-        <p class="text-caption" id="role-scene-text" style="color: var(--text-secondary); line-height: 1.7;"><span style="color: #4a9eff; font-weight: 700;">AI 工程师视角：</span>Prompt 前缀注入 Cursor / Claude Code 的 system message，让 AI 在生成错误状态界面前自动遵守语义约束。团队扩展项自动追加到 Prompt 末尾。</p>
+  <!-- 1 选择角色视角 -->
+  <div class="card" id="sec-consume" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-role')">
+      <div>
+        <div class="text-label">Role Selector · 点击切换角色，观察同一份契约的不同消费格式</div>
+        <div class="text-h2" style="margin-top:2px;">1 选择角色视角</div>
       </div>
-
-      <!-- 源契约（恒定） -->
-      <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">源契约（唯一事实来源 · 恒定）<span class="badge badge-blue" style="font-size: 9px; margin-left: 4px;">org-baseline</span><span class="badge badge-purple" style="font-size: 9px; margin-left: 4px;">team-ext</span></p>
-      <div class="code-block" style="margin-bottom: 8px;"><pre>intent_id: "ERR-001"
-version: "v1.1.0"
-semantic_tokens:
-  error_severity:
-    fatal:     { color: "status.critical", motion: "pulse.red.urgent",
-                 icon: "alert.octagon", action: [refresh, export_history] }
-    transient: { color: "status.neutral",  motion: "spinner",
-                 icon: "loader",      action: [wait, retry] }
-    retryable: { color: "status.warning",  motion: "none",
-                 icon: "clock",       action: [wait_countdown, upgrade] }
-    degraded:  { color: "status.info",     motion: "none",
-                 icon: "info.circle", action: [continue, retry_simplified] }
-  llm_constraints:  # 团队扩展
-    - "显式列出可用功能清单"
-    - "禁止模糊表述"
-immutable_boundaries:
-  - safety:  "禁止统一红色" → block
-  - clarity: "必须提供行动指引" → warn</pre></div>
-      <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px;">
-        <span class="text-micro" style="color: var(--text-tertiary);">↓ 编译映射 →</span>
-        <span class="badge badge-red" style="font-size: 9px;">fatal</span>
-        <span class="badge badge-gray" style="font-size: 9px;">transient</span>
-        <span class="badge badge-amber" style="font-size: 9px;">retryable</span>
-        <span class="badge badge-blue" style="font-size: 9px;">degraded</span>
-        <span class="badge badge-purple" style="font-size: 9px;">team-ext</span>
-        <span class="badge badge-green" style="font-size: 9px;">boundary</span>
-      </div>
-
-      <!-- AI 工程师产物 -->
-      <div id="pv-ai" class="fade">
-        <div style="background: var(--surface); border: 1px solid rgba(22,119,255,0.35); border-radius: var(--radius-sm); padding: 12px;">
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-            <span class="badge badge-blue" style="font-size: 10px;">🤖 Prompt 前缀（AI 生成约束模板）</span>
-            <span class="badge badge-blue" style="font-size: 9px;">org</span><span class="badge badge-purple" style="font-size: 9px;">team</span>
-          </div>
-          <div class="code-block"><pre># 基于 ERR-001 v1.1.0 的语义约束
-## 错误级别与视觉映射
-- 致命错误（Fatal）：红色脉冲 + 八边形警告 + 刷新/导出
-- 网络抖动（Transient）：灰色加载 + 旋转图标 + 等待/重试
-- 限流提示（Retryable）：黄色 + 时钟图标 + 倒计时/升级
-- 降级错误（Degraded）：蓝色 + 信息图标 + 继续/简化
-## 不可突破的红线
-- 绝对不能：所有错误共用同一种红色
-- 绝对不能：致命错误只显示普通文字
-- 绝对不能：降级错误显示纯技术错误码
-## 对 AI 的强制要求
-- 必须：致命错误中说明"对话上下文可能已丢失"
-- 必须：限流提示中显示具体倒计时
-- 禁止：仅显示"出错了"等模糊文案
-<span style="color:#a855f7;"># === 前端团队扩展（v2.0.1）===</span>
-- 必须：降级提示中显式列出可用功能清单
-- 禁止："部分失败""服务异常"等模糊表述
-- 必须：说明"已生成的内容仍然有效"</pre></div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-role" class="collapsible-content open">
+      <div style="padding:0 14px 14px;">
+        <div class="tabs">
+          <div class="role-tab on-prod" id="rt-prod" onclick="switchRole('prod')">🎨 生产者<br><span class="text-micro">→ 源契约</span></div>
+          <div class="role-tab" id="rt-ops" onclick="switchRole('ops')">📋 DesignOps<br><span class="text-micro">→ Checklist</span></div>
+          <div class="role-tab" id="rt-ai" onclick="switchRole('ai')">✨ AI 工程师<br><span class="text-micro">→ Prompt</span></div>
+          <div class="role-tab" id="rt-fe" onclick="switchRole('fe')">💻 前端<br><span class="text-micro">→ Schema</span></div>
+          <div class="role-tab" id="rt-ci" onclick="switchRole('ci')">⚙️ 研发效能<br><span class="text-micro">→ CI 规则</span></div>
+        </div>
+        <div id="role-scene" style="margin-top:12px;border:1px dashed;border-radius:8px;padding:10px;font-size:13px;background:rgba(107,230,190,.08);border-color:rgba(107,230,190,.3);">
+          <span id="role-scene-text"><span style="color:#7ee8c7;font-weight:700;">语义翻译设计师视角：</span>不消费任何编译产物——ta 设计的是唯一事实来源 ERR-001.yaml 本身</span>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- 前端产物 -->
-      <div id="pv-fe" style="display:none;" class="fade">
-        <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.35); border-radius: var(--radius-sm); padding: 12px;">
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-            <span class="badge badge-green" style="font-size: 10px;">💻 JSON Schema 组件约束</span>
-            <span class="badge badge-blue" style="font-size: 9px;">org-baseline</span>
+  <!-- 2 五角色消费视图 -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-view')">
+      <div>
+        <div class="text-label">Consumption View · 唯一事实来源恒定 · 右栏产物随角色切换</div>
+        <div class="text-h2" style="margin-top:2px;">2 五角色消费视图</div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-view" class="collapsible-content open">
+      <div style="padding:0 14px 14px;">
+
+        <!-- 唯一事实来源（恒定） -->
+        <div class="surface" style="margin-bottom:12px;">
+          <div class="text-h3" style="margin-bottom:4px;">📜 唯一事实来源 · ERR-001.yaml <span class="badge b-blue">v1.1.0</span></div>
+          <div style="display:flex;gap:6px;margin:6px 0;">
+            <span class="badge b-blue">org-baseline</span><span class="badge b-purple">team-ext</span>
           </div>
-          <div class="code-block"><pre>{
-  "type": "object",
-  "properties": {
-    "severity": { "enum": ["fatal","transient","retryable","degraded"] },
-    "color": {
-      "mapping": {
-        "fatal": "#cf1322", "transient": "#a0a0a0",
-        "retryable": "#f5a623", "degraded": "#4a9eff"
+          <div class="text-micro" style="margin-bottom:8px;">Single Source of Truth · 由语义翻译设计师维护</div>
+          <div class="code-block"><span class="k">intent_id</span>: <span class="s">"ERR-001"</span>
+<span class="k">version</span>: <span class="s">"v1.1.0"</span>
+
+<span class="k">semantic_tokens</span>:
+  <span class="k">error_severity</span>:
+    <span class="k">fatal</span>:      <span class="c"># → 映射到角色产物</span>
+      <span class="k">color_token</span>: <span class="s">"status.critical"</span>
+      <span class="k">motion_token</span>: <span class="s">"pulse.red.urgent"</span>
+      <span class="k">icon_token</span>: <span class="s">"alert.octagon"</span>
+      <span class="k">user_action</span>: [<span class="s">"refresh"</span>, <span class="s">"export_history"</span>]
+    <span class="k">transient</span>:  <span class="c"># → 映射到角色产物</span>
+      <span class="k">color_token</span>: <span class="s">"status.neutral"</span>
+      <span class="k">motion_token</span>: <span class="s">"spinner"</span>
+      <span class="k">icon_token</span>: <span class="s">"loader"</span>
+      <span class="k">user_action</span>: [<span class="s">"wait"</span>, <span class="s">"retry"</span>]
+    <span class="k">retryable</span>:  <span class="c"># → 映射到角色产物</span>
+      <span class="k">color_token</span>: <span class="s">"status.warning"</span>
+      <span class="k">motion_token</span>: <span class="s">"none"</span>
+      <span class="k">icon_token</span>: <span class="s">"clock"</span>
+      <span class="k">user_action</span>: [<span class="s">"wait_countdown"</span>, <span class="s">"upgrade"</span>]
+    <span class="k">degraded</span>:   <span class="c"># → 映射到角色产物</span>
+      <span class="k">color_token</span>: <span class="s">"status.info"</span>
+      <span class="k">motion_token</span>: <span class="s">"none"</span>
+      <span class="k">icon_token</span>: <span class="s">"info.circle"</span>
+      <span class="k">user_action</span>: [<span class="s">"continue"</span>, <span class="s">"retry_simplified"</span>]
+<span class="p">llm_constraints</span>: <span class="c"># 团队扩展</span>
+  - <span class="p">"显式列出可用功能清单"</span>
+  - <span class="p">"禁止模糊表述"</span>
+
+<span class="r">immutable_boundaries</span>:
+  - <span class="r">safety</span>: <span class="s">"禁止统一红色"</span> → <span class="r">block</span>
+  - <span class="w">clarity</span>: <span class="s">"必须提供行动指引"</span> → <span class="w">warn</span></div>
+          <div class="text-micro">⚙️ 编译管线映射：<span style="color:#ff6b74;">fatal</span> · <span style="color:#9a9aa2;">transient</span> · <span style="color:#f5a623;">retryable</span> · <span style="color:#4a9eff;">degraded</span> · <span style="color:#c084fc;">team-ext</span> · <span style="color:#f5a623;">boundary</span></div>
+        </div>
+
+        <!-- 角色产物面板（随角色切换） -->
+        <div class="text-h3" style="margin-bottom:8px;">角色产物 <span class="text-micro">（随角色切换）</span></div>
+
+        <!-- 生产者 -->
+        <div class="pv show" id="pv-prod">
+          <div class="text-caption" style="margin-bottom:6px;"><b style="color:#7ee8c7;">语义翻译设计师</b> · this IS the source · 此视图即事实来源本身</div>
+          <div class="code-block"><span class="c"># 唯一事实来源 · YAML 契约设计视图 [org-baseline]</span>
+<span class="k">intent_id</span>: <span class="s">"ERR-001"</span>
+<span class="k">version</span>: <span class="s">"v1.1.0"</span>
+<span class="k">designed_by</span>: <span class="s">"语义翻译设计师"</span>
+<span class="k">status</span>: <span class="s">"唯一事实来源 · Single Source of Truth"</span>
+
+<span class="k">semantic_tokens</span>:
+  <span class="k">error_severity</span>: [<span class="s">fatal</span>, <span class="s">transient</span>, <span class="s">retryable</span>, <span class="s">degraded</span>]
+  <span class="c"># 每一级的 color / motion / icon / user_action</span>
+  <span class="c"># 均由语义翻译设计师定义并评审入库</span>
+
+<span class="r">immutable_boundaries</span>:
+  - <span class="r">safety</span>: <span class="s">"禁止统一红色"</span> → <span class="r">block</span>
+  - <span class="w">clarity</span>: <span class="s">"必须提供行动指引"</span> → <span class="w">warn</span></div>
+          <div class="quote" style="border-color:#34d399;background:rgba(52,211,153,.06);">🎨 <b style="color:#7ee8c7;">生产者说明：</b>语义翻译设计师不消费任何编译产物。下游 4 个角色消费的 Checklist / Prompt / Schema / CI 规则，全部是这份 YAML 经编译管线分发的<b>投影</b>。修改产物必须回到此源契约修改后重新编译。</div>
+        </div>
+
+        <!-- DesignOps -->
+        <div class="pv" id="pv-ops">
+          <div class="text-caption" style="margin-bottom:6px;"><b style="color:#6abe4a;">📋 DesignOps</b> · Checklist 审计清单 <span class="badge b-blue">org</span> <span class="badge b-purple">team</span></div>
+          <div class="chk"><span class="qn">Q1</span><span style="flex:1;">是否区分 Fatal / Transient / Retryable / Degraded 四级？<span class="badge b-blue" style="float:right;">组织基线</span></span></div>
+          <div class="chk"><span class="qn">Q2</span><span style="flex:1;">Fatal 是否为红色脉冲 + 八边形警告图标？<span class="badge b-blue" style="float:right;">组织基线</span></span></div>
+          <div class="chk"><span class="qn">Q3</span><span style="flex:1;">Transient 是否为灰色加载 + 旋转图标？<span class="badge b-blue" style="float:right;">组织基线</span></span></div>
+          <div class="chk"><span class="qn">Q4</span><span style="flex:1;">Retryable 是否为黄色 + 时钟图标？<span class="badge b-blue" style="float:right;">组织基线</span></span></div>
+          <div class="chk"><span class="qn">Q5</span><span style="flex:1;">Degraded 是否为蓝色 + 信息图标？<span class="badge b-blue" style="float:right;">组织基线</span></span></div>
+          <div class="chk" style="border-color:rgba(168,85,247,.35);"><span class="qn" style="color:#c084fc;">Q6</span><span style="flex:1;">Degraded 是否显式列出可用功能清单？<span class="badge b-purple" style="float:right;">团队扩展</span></span></div>
+          <div class="chk" style="border-color:rgba(168,85,247,.35);"><span class="qn" style="color:#c084fc;">Q7</span><span style="flex:1;">是否避免「部分失败」等模糊表述？<span class="badge b-purple" style="float:right;">团队扩展</span></span></div>
+          <div class="chk"><span class="qn">Q8</span><span style="flex:1;">每级是否提供明确的用户行动指引？<span class="badge b-blue" style="float:right;">组织基线</span></span></div>
+          <div class="chk"><span class="qn">Q9</span><span style="flex:1;">是否禁止所有错误共用同一种红色？<span class="badge b-blue" style="float:right;">组织基线</span></span></div>
+          <div class="surface" style="margin-top:10px;">
+            <div class="text-h3" style="color:#6abe4a;margin-bottom:6px;">🗂 审计记录</div>
+            <div class="text-caption">📅 审计日期：2026-07-12 14:00<br>👤 审计人：李四（DesignOps）<br>📋 审计版本：ERR-001 v1.1.0 + frontend v2.0.1</div>
+            <div style="margin-top:6px;"><span class="badge b-green">✅ 通过项：7/9</span> <span class="badge b-amber">待确认项：2/9（团队扩展）</span></div>
+          </div>
+        </div>
+
+        <!-- AI 工程师 -->
+        <div class="pv" id="pv-ai">
+          <div class="text-caption" style="margin-bottom:6px;"><b style="color:#c084fc;">✨ AI 工程师</b> · Prompt 前缀（AI 生成约束模板） <span class="badge b-blue">org</span> <span class="badge b-purple">team</span></div>
+          <div class="code-block"><span class="c"># 基于 ERR-001 v1.1.0 的语义约束</span>
+在生成错误状态界面时，必须遵守以下规则：
+
+<span class="k">## 错误级别与视觉映射</span>
+- <b>致命错误（Fatal）</b>：红色脉冲 + 八边形警告 + 刷新/导出按钮
+- <b>网络抖动（Transient）</b>：灰色加载 + 旋转图标 + 等待/重试按钮
+- <b>限流提示（Retryable）</b>：黄色提示 + 时钟图标 + 倒计时/升级按钮
+- <b>降级错误（Degraded）</b>：蓝色提示 + 信息图标 + 继续/简化按钮
+
+<span class="r">## 不可突破的红线</span>
+- <span class="r">绝对不能</span>：所有错误共用同一种红色
+- <span class="r">绝对不能</span>：致命错误只显示普通文字
+- <span class="r">绝对不能</span>：降级错误显示纯技术错误码
+
+<span class="w">## 对 AI 的强制要求</span>
+- <span class="s">必须</span>：在致命错误中说明"对话上下文可能已丢失"
+- <span class="s">必须</span>：在限流提示中显示具体倒计时
+- <span class="r">禁止</span>：仅显示"出错了"等模糊文案
+
+<span class="p"># === 前端团队扩展（v2.0.1）===</span>
+- <span class="p">必须</span>：在降级提示中显式列出可用功能清单
+- <span class="p">禁止</span>：使用"部分失败""服务异常"等模糊表述
+- <span class="p">必须</span>：说明"已生成的内容仍然有效"</div>
+        </div>
+
+        <!-- 前端 -->
+        <div class="pv" id="pv-fe">
+          <div class="text-caption" style="margin-bottom:6px;"><b style="color:#4a9eff;">💻 前端</b> · JSON Schema 组件约束 <span class="badge b-blue">org-baseline</span></div>
+          <div class="code-block">{
+  <span class="k">"type"</span>: <span class="s">"object"</span>,
+  <span class="k">"properties"</span>: {
+    <span class="k">"severity"</span>: {
+      <span class="k">"type"</span>: <span class="s">"string"</span>,
+      <span class="k">"enum"</span>: [<span class="s">"fatal"</span>, <span class="s">"transient"</span>, <span class="s">"retryable"</span>, <span class="s">"degraded"</span>]
+    },
+    <span class="k">"color"</span>: {
+      <span class="k">"type"</span>: <span class="s">"string"</span>,
+      <span class="k">"mapping"</span>: {
+        <span class="k">"fatal"</span>: <span class="r">"#cf1322"</span>,
+        <span class="k">"transient"</span>: <span class="s">"#a0a0a0"</span>,
+        <span class="k">"retryable"</span>: <span class="w">"#f5a623"</span>,
+        <span class="k">"degraded"</span>: <span class="k">"#4a9eff"</span>
       }
     },
-    "actions": { "type": "array", "minItems": 1 }
+    <span class="k">"actions"</span>: { <span class="k">"type"</span>: <span class="s">"array"</span>, <span class="k">"minItems"</span>: <span class="w">1</span> }
   },
-  "required": ["severity", "color", "actions"]
-}</pre></div>
+  <span class="k">"required"</span>: [<span class="s">"severity"</span>, <span class="s">"color"</span>, <span class="s">"actions"</span>]
+}</div>
         </div>
-      </div>
 
-      <!-- DesignOps 产物 -->
-      <div id="pv-ops" style="display:none;" class="fade">
-        <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.35); border-radius: var(--radius-sm); padding: 12px;">
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-            <span class="badge badge-amber" style="font-size: 10px;">📋 Checklist 审计清单</span>
-            <span class="badge badge-blue" style="font-size: 9px;">org</span><span class="badge badge-purple" style="font-size: 9px;">team</span>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
-            <p class="text-micro" style="color: var(--text-secondary);">□ 是否区分 Fatal / Transient / Retryable / Degraded 四级？<span class="badge badge-blue" style="font-size: 8px; margin-left: 4px;">组织基线</span></p>
-            <p class="text-micro" style="color: var(--text-secondary);">□ Fatal 是否为红色脉冲 + 八边形警告图标？<span class="badge badge-blue" style="font-size: 8px; margin-left: 4px;">组织基线</span></p>
-            <p class="text-micro" style="color: var(--text-secondary);">□ Transient 是否为灰色加载 + 旋转图标？<span class="badge badge-blue" style="font-size: 8px; margin-left: 4px;">组织基线</span></p>
-            <p class="text-micro" style="color: var(--text-secondary);">□ Retryable 是否为黄色 + 时钟图标？<span class="badge badge-blue" style="font-size: 8px; margin-left: 4px;">组织基线</span></p>
-            <p class="text-micro" style="color: var(--text-secondary);">□ Degraded 是否为蓝色 + 信息图标？<span class="badge badge-blue" style="font-size: 8px; margin-left: 4px;">组织基线</span></p>
-            <p class="text-micro" style="color: var(--text-secondary);">□ Degraded 是否显式列出可用功能清单？<span class="badge badge-purple" style="font-size: 8px; margin-left: 4px;">团队扩展</span></p>
-            <p class="text-micro" style="color: var(--text-secondary);">□ 是否避免"部分失败"等模糊表述？<span class="badge badge-purple" style="font-size: 8px; margin-left: 4px;">团队扩展</span></p>
-            <p class="text-micro" style="color: var(--text-secondary);">□ 每级是否提供明确的用户行动指引？<span class="badge badge-blue" style="font-size: 8px; margin-left: 4px;">组织基线</span></p>
-            <p class="text-micro" style="color: var(--text-secondary);">□ 是否禁止所有错误共用同一种红色？<span class="badge badge-blue" style="font-size: 8px; margin-left: 4px;">组织基线</span></p>
-          </div>
-          <div style="background: #0d0d0d; border-radius: 6px; padding: 10px;">
-            <p class="text-micro" style="color: var(--text-tertiary); line-height: 1.8;">📅 审计日期：2026-07-12 14:00<br>👤 审计人：李四（DesignOps）<br>📋 审计版本：ERR-001 v1.1.0 + frontend v2.0.1<br>✅ 通过项：7/9 · 待确认项：2/9（团队扩展）</p>
-          </div>
+        <!-- CI -->
+        <div class="pv" id="pv-ci">
+          <div class="text-caption" style="margin-bottom:6px;"><b style="color:#f5a623;">⚙️ 研发效能</b> · CI 校验规则 <span class="badge b-blue">org</span> <span class="badge b-purple">team</span></div>
+          <div class="code-block"><span class="c"># CI 校验规则（前端团队合并版）</span>
+<span class="c"># 基线：规范评审组 v1.1.0</span>
+<span class="c"># 扩展：前端团队 v2.0.1</span>
+<span class="k">rules</span>:
+  <span class="k">error-severity-color</span>:
+    <span class="k">selector</span>: <span class="s">"[data-severity]"</span>
+    <span class="k">mapping</span>:
+      <span class="k">fatal</span>: {<span class="k">color</span>: <span class="r">"#cf1322"</span>}
+      <span class="k">transient</span>: {<span class="k">color</span>: <span class="s">"#a0a0a0"</span>}
+      <span class="k">retryable</span>: {<span class="k">color</span>: <span class="w">"#f5a623"</span>}
+      <span class="k">degraded</span>: {<span class="k">color</span>: <span class="k">"#4a9eff"</span>}
+    <span class="r">forbidden</span>: {<span class="k">color</span>: <span class="r">"#cf1322"</span>}  <span class="c"># 禁止统一红</span>
+  <span class="p">degraded-clarity</span>:  <span class="c"># [frontend-team]</span>
+    <span class="k">selector</span>: <span class="s">"[data-severity='degraded']"</span>
+    <span class="k">required_text</span>: [<span class="s">"可用功能"</span>, <span class="s">"仍然有效"</span>]
+    <span class="r">forbidden_text</span>: [<span class="r">"部分失败"</span>, <span class="r">"服务异常"</span>]</div>
         </div>
-      </div>
 
-      <!-- 研发效能产物 -->
-      <div id="pv-ci" style="display:none;" class="fade">
-        <div style="background: var(--surface); border: 1px solid rgba(168,85,247,0.35); border-radius: var(--radius-sm); padding: 12px;">
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
-            <span class="badge badge-purple" style="font-size: 10px;">🔧 CI 校验规则</span>
-            <span class="badge badge-blue" style="font-size: 9px;">org</span><span class="badge badge-purple" style="font-size: 9px;">team</span>
-          </div>
-          <div class="code-block"><pre># 基线：规范评审组 v1.1.0 · 扩展：前端团队 v2.0.1
-rules:
-  error-severity-color:
-    selector: "[data-severity]"
-    mapping:
-      fatal: "#cf1322"  transient: "#a0a0a0"
-      retryable: "#f5a623"  degraded: "#4a9eff"
-    forbidden: { color: "#cf1322" }
-  degraded-clarity:  # [frontend-team]
-    selector: "[data-severity='degraded']"
-    required_text: ["可用功能", "仍然有效"]
-    forbidden_text: ["部分失败", "服务异常"]</pre></div>
-        </div>
       </div>
     </div>
   </div>
 
-  <!-- 4 四角色产物说明 -->
-  <div class="card" style="margin-bottom: 16px;">
-    <div style="padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-        <span class="badge badge-green">4</span>
-        <h2 class="text-h2">四角色产物说明</h2>
+  <!-- 3 产物说明 -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-legend')">
+      <div>
+        <div class="text-label">Role Legend · 语义翻译设计师设计唯一事实来源，4 个消费者各取所需</div>
+        <div class="text-h2" style="margin-top:2px;">3 1 个生产者 × 4 个消费者 · 产物说明</div>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
-        <div style="background: var(--surface); border: 1px solid rgba(22,119,255,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
-          <p style="font-size: 18px;">🤖</p><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">AI 工程师 · Prompt 前缀</p>
-          <p class="text-micro" style="color: var(--text-tertiary);">注入 AI system message</p>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-legend" class="collapsible-content">
+      <div style="padding:0 14px 14px;">
+        <div class="surface" style="margin-bottom:8px;border-left:3px solid #34d399;">
+          <div class="text-body" style="font-weight:600;color:#7ee8c7;">🎨 语义翻译设计师 <span class="badge b-green">生产者</span></div>
+          <div class="text-caption">设计并维护唯一事实来源 → <b>YAML 源契约（唯一事实来源）</b></div>
         </div>
-        <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
-          <p style="font-size: 18px;">💻</p><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">前端工程师 · JSON Schema</p>
-          <p class="text-micro" style="color: var(--text-tertiary);">Props 类型定义与运行时校验</p>
+        <div class="surface" style="margin-bottom:8px;border-left:3px solid #52c41a;">
+          <div class="text-body" style="font-weight:600;color:#6abe4a;">📋 DesignOps <span class="badge b-gray">消费者</span></div>
+          <div class="text-caption">审计清单，标注来源与记录 → <b>Checklist（审计）</b></div>
         </div>
-        <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
-          <p style="font-size: 18px;">📋</p><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">DesignOps · Checklist</p>
-          <p class="text-micro" style="color: var(--text-tertiary);">审计清单，标注来源与记录</p>
+        <div class="surface" style="margin-bottom:8px;border-left:3px solid #a855f7;">
+          <div class="text-body" style="font-weight:600;color:#c084fc;">✨ AI 工程师 <span class="badge b-gray">消费者</span></div>
+          <div class="text-caption">Prompt 前缀，注入 AI 系统消息 → <b>Prompt 前缀</b></div>
         </div>
-        <div style="background: var(--surface); border: 1px solid rgba(168,85,247,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;">
-          <p style="font-size: 18px;">🔧</p><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">研发效能 · CI 规则</p>
-          <p class="text-micro" style="color: var(--text-tertiary);">流水线自动校验规则</p>
+        <div class="surface" style="margin-bottom:8px;border-left:3px solid #4a9eff;">
+          <div class="text-body" style="font-weight:600;color:#4a9eff;">💻 前端 <span class="badge b-gray">消费者</span></div>
+          <div class="text-caption">组件 Props 类型约束 → <b>JSON Schema</b></div>
         </div>
-      </div>
-      <div style="background: rgba(22,119,255,0.08); border: 1px solid rgba(22,119,255,0.25); border-radius: var(--radius-sm); padding: 12px;">
-        <p class="text-label" style="color: #4a9eff; margin-bottom: 4px;">单一来源多目标输出</p>
-        <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">
-          同一份 YAML 作为唯一事实来源，编译为四种产物，每种保留与源契约的映射关系——源契约更新时全部同步迭代。<span style="color: #a855f7; font-weight: 700;">团队级扩展（紫色标记）仅在相关角色的产物中显化</span>，不影响其他角色。
-        </p>
+        <div class="surface" style="margin-bottom:10px;border-left:3px solid #f5a623;">
+          <div class="text-body" style="font-weight:600;color:#f5a623;">⚙️ 研发效能 <span class="badge b-gray">消费者</span></div>
+          <div class="text-caption">流水线自动校验规则 → <b>CI 规则</b></div>
+        </div>
+        <div class="quote"><b>单一来源多目标输出：</b>同一份 YAML 语义契约作为单一来源，经编译后输出为四种不同格式的产物。每种产物都保留了与源契约的映射关系，确保当源契约更新时，所有消费格式的产物都能同步迭代。<span style="color:#c084fc;">团队级扩展规则（紫色标记）</span>仅在相关角色的产物中显化，不影响其他角色的消费格式。</div>
+        <div class="quote" style="border-color:#a855f7;background:rgba(168,85,247,.06);">✨ <b style="color:#c084fc;">AI 工程师</b>消费的 Prompt 前缀直接注入 AI 工具的 system message，让 AI 在生成界面前自动遵守语义约束。</div>
       </div>
     </div>
   </div>
 
-  <!-- 总结卡 -->
-  <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(22,119,255,0.12), rgba(54,207,201,0.08)); border: 1px solid rgba(22,119,255,0.3);">
-    <div style="padding: 20px; text-align: center;">
-      <p class="text-h2" style="color: var(--text-primary); margin-bottom: 8px;">"只消费编译产物，不直接消费 YAML"</p>
-      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">
-        产物层差异演示完毕<br>
-        Schema-As-Code 三阶段流水线：Guard → Contract → Verify
-      </p>
-    </div>
+  <div class="card" style="text-align:center;border-color:rgba(22,119,255,.3);">
+    <div class="text-h2 gradient-text">产物层差异演示完毕</div>
+    <div class="text-caption" style="margin-top:6px;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</div>
+    <div class="text-micro" style="margin-top:8px;">Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束</div>
   </div>
 
 </div>
 
-<!-- 底部导航 -->
-<div class="bottom-nav">
-  <div class="nav-item active" onclick="location.href='./产物层差异演示_v3mob.html'">
-    <div class="nav-icon">📘</div>
-    <div class="nav-label">主题</div>
-  </div>
-  <div class="nav-item" onclick="location.href='./case_contract_diff.html'">
-    <div class="nav-icon">🔍</div>
-    <div class="nav-label">案例</div>
-  </div>
-  <div class="nav-item" onclick="location.href='./constraint_validation.html'">
-    <div class="nav-icon">✓</div>
-    <div class="nav-label">验证</div>
-  </div>
-</div>
+<nav class="bottom-nav">
+  <a class="nav-item active" href="./artifact-layer-diff_最终版(1)mob.html"><span class="ni">🧩</span>主题</a>
+  <a class="nav-item" href="./case_contract_diff.html"><span class="ni">📊</span>案例</a>
+  <a class="nav-item" href="./constraint_validation.html"><span class="ni">✅</span>验证</a>
+</nav>
 
 <script>
-const CFG = {
-  ai:  { tab: 'on-ai',  bg: 'rgba(22,119,255,0.08)',  bd: 'rgba(22,119,255,0.3)',
-    scene: '<span style="color:#4a9eff;font-weight:700;">AI 工程师视角：</span>Prompt 前缀注入 Cursor / Claude Code 的 system message，让 AI 在生成错误状态界面前自动遵守语义约束。团队扩展项自动追加到 Prompt 末尾。' },
-  fe:  { tab: 'on-fe',  bg: 'rgba(82,196,26,0.08)',  bd: 'rgba(82,196,26,0.3)',
-    scene: '<span style="color:#6abe4a;font-weight:700;">前端工程师视角：</span>JSON Schema 约束组件 Props——severity 枚举四级 + 颜色映射 + actions 至少一项，编码时非法值直接标红。' },
-  ops: { tab: 'on-ops', bg: 'rgba(245,158,11,0.08)', bd: 'rgba(245,158,11,0.3)',
-    scene: '<span style="color:#f5a623;font-weight:700;">DesignOps 视角：</span>Checklist 审计清单，逐项标注来源（组织基线 / 团队扩展），附审计人、版本与通过记录（7/9 通过）。' },
-  ci:  { tab: 'on-ci',  bg: 'rgba(168,85,247,0.08)', bd: 'rgba(168,85,247,0.3)',
-    scene: '<span style="color:#a855f7;font-weight:700;">研发效能视角：</span>CI 校验规则（前端团队合并版），PR 合并前自动执行——颜色映射 + degraded 文案双规则同时生效。' }
+function toggleCollapse(id){
+  var el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+var ROLES = ['prod','ops','ai','fe','ci'];
+var CFG = {
+  prod:{tab:'on-prod', bg:'rgba(107,230,190,.08)', bd:'rgba(107,230,190,.3)', scene:'<span style="color:#7ee8c7;font-weight:700;">语义翻译设计师视角：</span>不消费任何编译产物——ta 设计的是唯一事实来源 ERR-001.yaml 本身'},
+  ops:{tab:'on-ops', bg:'rgba(82,196,26,.08)', bd:'rgba(82,196,26,.3)', scene:'<span style="color:#6abe4a;font-weight:700;">DesignOps 视角：</span>消费审计 Checklist——9 项逐条走查，7 项组织基线 + 2 项团队扩展，附审计记录'},
+  ai:{tab:'on-ai', bg:'rgba(168,85,247,.08)', bd:'rgba(168,85,247,.3)', scene:'<span style="color:#c084fc;font-weight:700;">AI 工程师视角：</span>消费 Prompt 前缀——注入 AI 工具的 system message，生成界面前自动遵守语义约束'},
+  fe:{tab:'on-fe', bg:'rgba(74,158,255,.08)', bd:'rgba(74,158,255,.3)', scene:'<span style="color:#4a9eff;font-weight:700;">前端工程师视角：</span>消费 JSON Schema——组件 Props 类型约束，severity 枚举非法值直接被拒绝'},
+  ci:{tab:'on-ci', bg:'rgba(245,166,35,.08)', bd:'rgba(245,166,35,.3)', scene:'<span style="color:#f5a623;font-weight:700;">研发效能视角：</span>消费 CI 规则——流水线自动校验颜色映射与文案清晰度，违规则阻断合并'}
 };
-const ROLES = ['ai', 'fe', 'ops', 'ci'];
-function switchRole(r) {
-  ROLES.forEach(k => {
-    document.getElementById('pv-' + k).style.display = k === r ? 'block' : 'none';
-    document.getElementById('rt-' + k).className = 'role-tab' + (k === r ? ' ' + CFG[k].tab : '');
-    document.getElementById('mr-' + k).classList.toggle('hl', k === r);
+function switchRole(r){
+  ROLES.forEach(function(k){
+    var pv = document.getElementById('pv-'+k);
+    if(pv) pv.className = 'pv' + (k===r ? ' show' : '');
+    var rt = document.getElementById('rt-'+k);
+    if(rt) rt.className = 'role-tab' + (k===r ? ' ' + CFG[k].tab : '');
   });
-  const sc = document.getElementById('role-scene');
-  sc.style.background = CFG[r].bg; sc.style.borderColor = CFG[r].bd;
-  document.getElementById('role-scene-text').innerHTML = CFG[r].scene;
+  var sc = document.getElementById('role-scene');
+  if(sc){ sc.style.background = CFG[r].bg; sc.style.borderColor = CFG[r].bd; }
+  var st = document.getElementById('role-scene-text');
+  if(st) st.innerHTML = CFG[r].scene;
+  var sv = document.getElementById('sec-view');
+  if(sv && !sv.classList.contains('open')) sv.classList.add('open');
 }
-function toggleCollapse(id) {
-  const c = document.getElementById('content-' + id);
-  const ch = document.getElementById('chevron-' + id);
-  c.classList.toggle('open'); ch.classList.toggle('rotated');
+function hlMap(r){
+  ['ai','fe','ops','ci'].forEach(function(k){
+    var el = document.getElementById('mr-'+k);
+    if(el) el.className = 'map-row' + (k===r ? ' hl' : '');
+  });
 }
-document.addEventListener('touchstart', () => {}, { passive: true });
+document.addEventListener('touchstart', function(){}, {passive:true});
 </script>
-
 </body>
 </html>

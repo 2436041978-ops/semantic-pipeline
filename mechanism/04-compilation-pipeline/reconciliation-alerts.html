@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Schema-As-Code · 契约消费追踪演示</title>
+<title>Schema-As-Code · 双重闭环验证演示</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -52,6 +52,7 @@
     font-weight: 700;
     font-size: 18px;
     color: var(--text-primary);
+    cursor: pointer;
     text-decoration: none;
   }
   .nav-brand-icon {
@@ -156,6 +157,7 @@
     text-decoration: none;
     font-size: 14px;
     transition: color 0.3s;
+    cursor: pointer;
     font-weight: 600;
   }
   .footer-links a:hover { color: var(--primary); }
@@ -168,294 +170,404 @@
     .nav-center { display: none; }
   }
 
-  /* ===== Stage Card ===== */
-  .stage {
+  /* === Step Card === */
+  .step-card {
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 32px;
+    padding: 28px;
     margin-bottom: 24px;
-    position: relative;
-    overflow: hidden;
+    transition: border-color 0.3s;
   }
-  .stage-num {
-    position: absolute;
-    top: 20px;
-    right: 24px;
-    font-size: 64px;
-    font-weight: 800;
-    color: rgba(255,255,255,0.03);
-    line-height: 1;
-    user-select: none;
+  .step-card:hover {
+    border-color: #3a3a3e;
   }
-  .stage-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(22,119,255,0.12);
-    border: 1px solid rgba(22,119,255,0.25);
-    color: var(--primary);
-    padding: 4px 12px;
-    border-radius: 100px;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
-  }
-  .stage-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-  }
-  .stage-desc {
-    font-size: 14px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    margin-bottom: 24px;
-    max-width: 700px;
-  }
-
-  /* ===== Action Button ===== */
-  .action-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 24px;
-    border-radius: 8px;
-    background: var(--primary);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .action-btn:hover {
-    background: var(--primary-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(22,119,255,0.3);
-  }
-  .action-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-  .action-btn.secondary {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-  }
-  .action-btn.secondary:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: rgba(22,119,255,0.05);
-  }
-
-  /* ===== Split Screen ===== */
-  .split-screen {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px;
-    background: var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    min-height: 400px;
-  }
-  .split-pane {
-    background: var(--card-bg);
-    padding: 24px;
-    position: relative;
-    transition: all 0.4s ease;
-  }
-  .split-pane.dim {
-    opacity: 0.4;
-    filter: grayscale(0.6);
-  }
-  .split-pane-header {
+  .step-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    margin-bottom: 20px;
   }
-  .split-pane-icon {
-    width: 36px; height: 36px;
-    border-radius: 10px;
+  .step-num {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1677ff, #36cfc9);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+    flex-shrink: 0;
   }
-  .split-pane-icon.frontend { background: rgba(22,119,255,0.15); }
-  .split-pane-icon.payment { background: rgba(82,196,26,0.15); }
-  .split-pane-icon.internal { background: rgba(212,136,6,0.15); }
-  .split-pane-icon.design { background: rgba(236,72,153,0.15); }
-  .split-pane-title {
-    font-size: 15px;
+  .step-title {
+    font-size: 16px;
     font-weight: 700;
     color: var(--text-primary);
   }
-  .split-pane-subtitle {
-    font-size: 12px;
+  .step-subtitle {
+    font-size: 13px;
     color: var(--text-tertiary);
     font-weight: 500;
   }
-  .split-divider {
-    position: absolute;
-    top: 0; bottom: 0;
-    left: 50%;
-    width: 2px;
-    background: var(--border);
-    z-index: 2;
-  }
-  .split-divider::after {
-    content: '🔒';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    width: 32px; height: 32px;
-    display: flex;
+
+  /* === Source Pills === */
+  .source-pill {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    font-size: 14px;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .source-pill.org {
+    background: rgba(22,119,255,0.12);
+    color: #4a9eff;
+    border: 1px solid rgba(22,119,255,0.25);
+  }
+  .source-pill.team {
+    background: rgba(168,85,247,0.12);
+    color: #a855f7;
+    border: 1px solid rgba(168,85,247,0.25);
   }
 
-  /* ===== Consumption Item ===== */
-  .cp-item {
+  /* === Governance Bar === */
+  .governance-bar {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: 16px;
+    padding: 10px 16px;
+    background: rgba(22,119,255,0.05);
+    border: 1px solid rgba(22,119,255,0.15);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .governance-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .gov-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .gov-dot.green { background: #52c41a; }
+  .gov-dot.purple { background: #a855f7; }
+  .gov-dot.yellow { background: #f5a623; }
+  .gov-dot.red { background: #cf1322; }
+
+  /* === Six-Layer Validation Bar === */
+  .validation-bar {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .validation-cell {
     background: #16161a;
     border: 1px solid var(--border);
     border-radius: 8px;
-    margin-bottom: 8px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
     transition: all 0.2s;
+    position: relative;
   }
-  .cp-item:hover {
-    border-color: rgba(255,255,255,0.1);
+  .validation-cell:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
   }
-  .cp-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
+  .validation-cell.active {
+    border-color: var(--primary);
+    background: rgba(22,119,255,0.08);
   }
-  .cp-dot.synced { background: #52c41a; box-shadow: 0 0 0 3px rgba(82,196,26,0.2); }
-  .cp-dot.lagged { background: #f5a623; box-shadow: 0 0 0 3px rgba(245,158,11,0.2); }
-  .cp-dot.broken { background: #cf1322; box-shadow: 0 0 0 3px rgba(207,19,34,0.2); }
-  .cp-name {
-    font-size: 13px;
-    font-weight: 600;
+  .validation-cell .v-icon {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+  .validation-cell .v-label {
+    font-size: 11px;
+    font-weight: 700;
     color: var(--text-primary);
-    flex: 1;
+    margin-bottom: 2px;
   }
-  .cp-meta {
+  .validation-cell .v-status {
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .validation-cell .v-status.ok { color: #52c41a; }
+  .validation-cell .v-status.warn { color: #f5a623; }
+  .validation-cell .v-status.fail { color: #cf1322; }
+
+  /* === Pipeline Flow === */
+  .pipeline-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 24px 0;
+    padding: 20px;
+    background: #16161a;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .flow-node {
+    flex: 1;
+    text-align: center;
+    padding: 14px 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .flow-node:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(22,119,255,0.15);
+  }
+  .flow-node.active {
+    border-color: var(--primary);
+    background: rgba(22,119,255,0.08);
+  }
+  .flow-node .flow-icon {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .flow-node .flow-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .flow-node .flow-meta {
     font-size: 11px;
     color: var(--text-tertiary);
     font-weight: 500;
+    margin-top: 2px;
   }
-  .cp-badge {
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-weight: 700;
-  }
-  .cp-badge.ok {
-    background: rgba(82,196,26,0.12);
-    color: #52c41a;
-  }
-  .cp-badge.warn {
-    background: rgba(212,136,6,0.12);
-    color: #f5a623;
-  }
-
-  /* ===== Alert Animation ===== */
-  .alert-bubble {
-    position: absolute;
-    background: #cf1322;
-    color: #fff;
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.5s ease;
-    z-index: 10;
-    box-shadow: 0 4px 12px rgba(207,19,34,0.3);
-  }
-  .alert-bubble.show {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  .alert-bubble::after {
-    content: '';
-    position: absolute;
-    bottom: -6px;
-    left: 20px;
-    width: 0; height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 6px solid #cf1322;
-  }
-
-  /* ===== Matrix ===== */
-  .matrix-simple {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-    gap: 1px;
-    background: var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .matrix-cell {
-    background: var(--card-bg);
-    padding: 12px 14px;
-    font-size: 13px;
-    font-weight: 500;
+  .flow-arrow {
+    width: 32px;
     display: flex;
     align-items: center;
-  }
-  .matrix-cell.header {
-    background: #16161a;
+    justify-content: center;
+    color: var(--text-tertiary);
+    font-size: 16px;
     font-weight: 700;
-    color: var(--text-primary);
+  }
+  .flow-detail-panel {
+    display: none;
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    animation: slideDown 0.3s ease;
+  }
+  .flow-detail-panel.show {
+    display: block;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* === Comparison Table === */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .compare-table th {
+    text-align: left;
+    padding: 10px 12px;
+    background: #16161a;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-tertiary);
+    font-weight: 600;
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
-  .matrix-cell.my-col {
-    background: rgba(22,119,255,0.04);
+  .compare-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-weight: 500;
   }
-  .matrix-cell .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    margin-right: 8px;
-    flex-shrink: 0;
+  .compare-table tr:hover td {
+    background: rgba(255,255,255,0.02);
+  }
+  .compare-table .cell-match {
+    color: #52c41a;
+    font-weight: 700;
+  }
+  .compare-table .cell-mismatch {
+    color: #cf1322;
+    font-weight: 700;
+  }
+  .compare-table .cell-partial {
+    color: #f5a623;
+    font-weight: 700;
   }
 
-  /* ===== Stat Card ===== */
-  .stat-card {
+  /* === Heatmap Grid === */
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: 140px repeat(4, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border-radius: 8px;
+    padding: 2px;
+    overflow: hidden;
+  }
+  .heatmap-cell {
+    background: #16161a;
+    padding: 12px 8px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .heatmap-cell:hover {
+    filter: brightness(1.2);
+  }
+  .heatmap-cell.header {
+    background: #1a1a1e;
+    color: var(--text-tertiary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 11px;
+  }
+  .heatmap-cell.row-header {
+    background: #1a1a1e;
+    color: var(--text-secondary);
+    text-align: left;
+    font-weight: 700;
+  }
+  .heatmap-cell.ok {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+  }
+  .heatmap-cell.warn {
+    background: rgba(245,166,35,0.15);
+    color: #f5a623;
+  }
+  .heatmap-cell.fail {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+  }
+  .heatmap-cell.na {
+    background: #1e1e22;
+    color: #555;
+  }
+
+  /* === AB Test Panel === */
+  .ab-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .ab-card {
     background: #16161a;
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ab-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+  .ab-card.control::before { background: #cf1322; }
+  .ab-card.treatment::before { background: #52c41a; }
+  .ab-header {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .ab-card.control .ab-header { color: #cf1322; }
+  .ab-card.treatment .ab-header { color: #52c41a; }
+  .ab-input {
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .ab-output {
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    min-height: 80px;
+  }
+  .ab-verdict {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .ab-verdict.fail {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+  .ab-verdict.ok {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+
+  /* === Stats Cards === */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
     text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .stat-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
   }
   .stat-value {
-    font-size: 36px;
+    font-size: 28px;
     font-weight: 800;
-    line-height: 1;
-    margin-bottom: 6px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    transition: color 0.3s;
+  }
+  .stat-card:hover .stat-value {
+    color: var(--primary);
   }
   .stat-label {
     font-size: 12px;
@@ -463,96 +575,397 @@
     font-weight: 600;
   }
 
-  /* ===== Org Panel ===== */
-  .org-panel {
-    background: linear-gradient(135deg, rgba(22,119,255,0.05), rgba(54,207,201,0.03));
-    border: 1px dashed rgba(22,119,255,0.3);
-    border-radius: 12px;
-    padding: 20px;
-    margin-top: 16px;
-    display: none;
-  }
-  .org-panel.show {
-    display: block;
-    animation: slideDown 0.4s ease;
-  }
-
-  /* ===== Principle Card ===== */
-  .principle-card {
+  /* === Alert Workbench === */
+  .alert-item {
     background: #16161a;
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 24px;
-    position: relative;
-    overflow: hidden;
+    padding: 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
   }
-  .principle-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 3px;
+  .alert-item:hover {
+    border-color: var(--primary);
   }
-  .principle-card.p1::before { background: #4a9eff; }
-  .principle-card.p2::before { background: #a855f7; }
-  .principle-card.p3::before { background: #52c41a; }
-  .principle-num {
-    font-size: 48px;
-    font-weight: 800;
-    color: rgba(255,255,255,0.04);
-    position: absolute;
-    top: 10px;
-    right: 16px;
-    line-height: 1;
+  .alert-item.expanded {
+    border-color: var(--primary);
+    background: rgba(22,119,255,0.04);
   }
-  .principle-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text-primary);
+  .alert-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 8px;
   }
-  .principle-desc {
+  .alert-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .alert-meta {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+  }
+  .alert-desc {
     font-size: 13px;
     color: var(--text-secondary);
     font-weight: 500;
-    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .alert-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .alert-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #16161a;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .alert-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .alert-btn.primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .alert-btn.primary:hover {
+    background: var(--primary-hover);
+  }
+  .alert-detail {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .alert-detail.show {
+    display: block;
+    animation: slideDown 0.25s ease;
+  }
+  .alert-timeline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .alert-tl-step {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .alert-tl-step.done { color: #52c41a; }
+  .alert-tl-step.current { color: var(--primary); }
+  .alert-tl-step.pending { color: var(--text-tertiary); }
+  .alert-tl-arrow {
+    color: var(--text-tertiary);
+    font-size: 12px;
+  }
+  .alert-countdown {
+    font-size: 12px;
+    color: #f5a623;
+    font-weight: 600;
+    margin-top: 8px;
   }
 
-  /* ===== Animations ===== */
-  @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-12px); }
-    to { opacity: 1; transform: translateY(0); }
+  /* === Progress === */
+  .progress-wrap {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .progress-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .progress-value {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .progress-track {
+    width: 100%;
+    background: #2a2a2e;
+    border-radius: 100px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 1s ease;
+  }
+  .progress-note {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+    margin-top: 6px;
+  }
+
+  /* === Status Pills === */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-pill.ok {
+    background: rgba(82,196,26,0.15);
+    color: #52c41a;
+    border: 1px solid rgba(82,196,26,0.3);
+  }
+  .status-pill.warn {
+    background: rgba(212,136,6,0.15);
+    color: #f5a623;
+    border: 1px solid rgba(212,136,6,0.3);
+  }
+  .status-pill.fail {
+    background: rgba(207,19,34,0.15);
+    color: #cf1322;
+    border: 1px solid rgba(207,19,34,0.3);
+  }
+
+  /* === CTA === */
+  .cta-bar {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* === Tooltip === */
+  .has-tooltip {
+    position: relative;
+  }
+  .has-tooltip .tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1e;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .has-tooltip:hover .tooltip {
+    opacity: 1;
+  }
+
+  /* === Diff Cards === */
+  .diff-card {
+    background: #16161a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .diff-card:hover {
+    border-color: #3a3a3e;
+  }
+  .diff-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+  .diff-card.org::before { background: #4a9eff; }
+  .diff-card.team::before { background: #a855f7; }
+  .diff-card.merge::before { background: linear-gradient(180deg, #4a9eff, #a855f7); }
+  .diff-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .diff-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .diff-consumer {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+  }
+
+  /* === Tabs === */
+  .fmt-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .fmt-tab {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .fmt-tab:hover { color: var(--primary); }
+  .fmt-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+  .fmt-content {
+    display: none;
+  }
+  .fmt-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
   }
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
   }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-  .animate-pulse {
-    animation: pulse 2s infinite;
-  }
-
-  /* ===== Hidden states ===== */
-  .hidden { display: none !important; }
-  .fade-in {
-    animation: fadeIn 0.5s ease;
-  }
 
   @media (max-width: 768px) {
-    .split-screen {
-      grid-template-columns: 1fr;
-    }
-    .split-divider {
-      display: none;
-    }
-    .matrix-simple {
-      grid-template-columns: 1fr 1fr;
-    }
+    .validation-bar { grid-template-columns: repeat(3, 1fr); }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .ab-panel { grid-template-columns: 1fr; }
+    .pipeline-flow { flex-wrap: wrap; }
   }
 </style>
-<base target="_blank">
+
+<style>
+/* ============================================ */
+/* 交互强化层：不改变视觉与内容，仅增强可视逻辑      */
+/* ============================================ */
+
+/* 1. 滚动联动：验证条激活态呼吸 */
+.validation-cell { transition: all 0.25s; }
+.validation-cell.spy-active {
+  border-color: var(--primary) !important;
+  background: rgba(22,119,255,0.08) !important;
+  box-shadow: 0 0 0 1px rgba(22,119,255,0.25);
+}
+
+/* 2. 闭环巡航：播放按钮 */
+.loop-play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 100px;
+  border: 1px solid rgba(22,119,255,0.35);
+  background: rgba(22,119,255,0.08);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.loop-play-btn:hover { background: rgba(22,119,255,0.16); }
+.loop-play-btn.playing {
+  border-color: rgba(82,196,26,0.4);
+  background: rgba(82,196,26,0.1);
+  color: #52c41a;
+}
+
+/* 巡航中的节点脉冲 */
+.flow-node.touring {
+  border-color: var(--primary);
+  background: rgba(22,119,255,0.08);
+  animation: tourPulse 1s ease infinite;
+}
+@keyframes tourPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22,119,255,0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(22,119,255,0); }
+}
+/* 巡航进度提示 */
+.tour-progress {
+  display: none;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  text-align: center;
+}
+.tour-progress.show { display: block; }
+.tour-progress .tour-dot { color: var(--primary); }
+
+/* 3. 结构比对表：行悬停高亮 */
+.compare-table tbody tr { transition: background 0.15s; cursor: default; }
+.compare-table tbody tr:hover { background: rgba(22,119,255,0.06); }
+
+/* 4. 热力图：就地详情面板 */
+.heatmap-cell { transition: all 0.2s; }
+.heatmap-cell.ok, .heatmap-cell.warn, .heatmap-cell.fail { cursor: pointer; }
+.heatmap-cell.ok:hover, .heatmap-cell.warn:hover, .heatmap-cell.fail:hover {
+  transform: scale(1.06);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  z-index: 2;
+  position: relative;
+}
+.heatmap-cell.cell-selected {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+.cell-info-panel {
+  margin-top: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #16161a;
+  padding: 14px 16px;
+  display: none;
+}
+.cell-info-panel.show { display: block; animation: ciFade 0.25s ease; }
+@keyframes ciFade { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.cell-info-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.cell-info-body { font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.8; white-space: pre-line; font-family: 'SF Mono', monospace; }
+
+/* 5. 进入视口动画：进度条与仪表盘 */
+.progress-fill { transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1); }
+.progress-fill.pre-anim { width: 0 !important; }
+.donut-arc { transition: stroke-dasharray 1.2s cubic-bezier(0.22, 1, 0.36, 1); }
+.step-card.reveal { animation: cardReveal 0.45s ease; }
+@keyframes cardReveal { from { opacity: 0.4; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* 6. 告警时间线步骤可点按反馈 */
+.alert-tl-step { transition: all 0.2s; cursor: default; }
+.alert-tl-step:hover { transform: translateY(-1px); }
+</style>
 </head>
 <body>
 
@@ -591,496 +1004,782 @@
       <span>←</span> Schema-As-Code
     </a>
     <span style="color: var(--text-tertiary); margin: 0 8px; font-weight: 600;">/</span>
-    <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">契约消费追踪演示</span>
+    <span style="font-size: 14px; color: var(--text-primary); font-weight: 700;">双重闭环验证演示</span>
   </div>
 
   <!-- Hero -->
-  <div style="margin-bottom: 40px;">
+  <div style="margin-bottom: 32px;">
     <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(22,119,255,0.15); border: 1px solid rgba(22,119,255,0.3); padding: 5px 14px; border-radius: 100px; font-size: 14px; color: var(--primary); margin-bottom: 20px; font-weight: 600;">
       <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--primary);"></span>
-      <span>阶段二 · 契约消费追踪 · 版本与下游消费面自动对齐</span>
+      <span>阶段三 · 双重闭环验证 · 机器闭环 + 角色闭环</span>
     </div>
-    <h1 style="font-size: 36px; font-weight: 800; color: var(--text-primary); margin-bottom: 10px; letter-spacing: -0.02em;">契约消费追踪演示</h1>
-    <p style="font-size: 16px; color: var(--text-secondary); max-width: 700px; line-height: 1.8; margin-bottom: 24px; font-weight: 500;">
-      消费点按团队身份注册、分别追踪、分别对账、分别告警。<br>
-      团队间数据不互通，组织级视角由系统自动聚合。
+    <h1 style="font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">双重闭环验证演示 <span style="font-size: 20px; color: var(--text-tertiary); font-weight: 500;">Dual Closed-Loop Verification</span></h1>
+    <p style="font-size: 15px; color: var(--text-secondary); max-width: 900px; line-height: 1.8; margin-bottom: 20px; font-weight: 500;">
+      契约不是写完就结束，必须证明它被消费、被拦截、被迭代。<br>
+      机器闭环验证：结构一致性 → 消费有效性 → 拦截有效性。<br>
+      角色闭环验证：规则生产者 → 规则消费者 → 规则迭代。
     </p>
-  </div>
 
-  <!-- ==================== STAGE 1: Registration ==================== -->
-  <div class="stage" id="stage-1">
-    <div class="stage-num">01</div>
-    <div class="stage-label">Step 1 · 消费点注册</div>
-    <div class="stage-title">单团队 → 多团队，消费点如何分裂？</div>
-    <div class="stage-desc">单团队时消费点清单只有一份。当组织里多个团队同时消费同一份契约库时，每条记录强制携带 team 字段，分别注册、分别追踪。</div>
-
-    <div id="stage1-single">
-      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px; max-width: 500px; margin: 0 auto 20px;">
-        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">单团队消费点注册表</p>
-        <div class="cp-item">
-          <div class="cp-dot synced"></div>
-          <span class="cp-name">service-prompt</span>
-          <span class="cp-meta">Prompt前缀</span>
-          <span class="cp-badge ok">v1.1.0</span>
-        </div>
-        <div class="cp-item">
-          <div class="cp-dot synced"></div>
-          <span class="cp-name">alert-validator</span>
-          <span class="cp-meta">组件校验</span>
-          <span class="cp-badge ok">v1.1.0</span>
-        </div>
-        <div class="cp-item">
-          <div class="cp-dot synced"></div>
-          <span class="cp-name">ci-stylelint</span>
-          <span class="cp-meta">CI规则</span>
-          <span class="cp-badge ok">v1.1.0</span>
-        </div>
-        <div class="cp-item">
-          <div class="cp-dot synced"></div>
-          <span class="cp-name">schema-check</span>
-          <span class="cp-meta">JSON Schema</span>
-          <span class="cp-badge ok">v1.1.0</span>
-        </div>
+    <!-- Six-Layer Validation Bar -->
+    <div class="validation-bar">
+      <div class="validation-cell active" onclick="scrollToStep('machine-struct')">
+        <div class="v-icon">🔍</div>
+        <div class="v-label">结构一致</div>
+        <div class="v-status ok">✓ 通过</div>
       </div>
-      <div style="text-align: center;">
-        <button class="action-btn" onclick="showMultiTeam()">
-          <span>⚡</span> 加入更多团队 →
-        </button>
+      <div class="validation-cell" onclick="scrollToStep('machine-consume')">
+        <div class="v-icon">📊</div>
+        <div class="v-label">消费有效</div>
+        <div class="v-status warn">⚠ 1滞后</div>
+      </div>
+      <div class="validation-cell" onclick="scrollToStep('machine-intercept')">
+        <div class="v-icon">🛡️</div>
+        <div class="v-label">拦截有效</div>
+        <div class="v-status ok">✓ 95%</div>
+      </div>
+      <div class="validation-cell" onclick="scrollToStep('role-produce')">
+        <div class="v-icon">✏️</div>
+        <div class="v-label">生产持续</div>
+        <div class="v-status ok">✓ 正常</div>
+      </div>
+      <div class="validation-cell" onclick="scrollToStep('role-consume')">
+        <div class="v-icon">👁️</div>
+        <div class="v-label">消费真实</div>
+        <div class="v-status ok">✓ 75%</div>
+      </div>
+      <div class="validation-cell" onclick="scrollToStep('role-iterate')">
+        <div class="v-icon">🔄</div>
+        <div class="v-label">迭代闭环</div>
+        <div class="v-status warn">⚠ 1待处理</div>
       </div>
     </div>
 
-    <div id="stage1-multi" class="hidden">
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
-        <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 10px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(22,119,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟦</div>
-            <span style="font-size: 14px; font-weight: 700; color: #4a9eff;">前端团队</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(22,119,255,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">frontend-service-prompt</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(22,119,255,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">frontend-alert-validator</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(22,119,255,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">frontend-ci-stylelint</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(22,119,255,0.15);">
-            <div class="cp-dot lagged"></div>
-            <span class="cp-name" style="font-size: 12px;">frontend-schema-check</span>
-          </div>
-        </div>
-        <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 10px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(82,196,26,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟩</div>
-            <span style="font-size: 14px; font-weight: 700; color: #52c41a;">支付团队</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(82,196,26,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">payment-service-prompt</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(82,196,26,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">payment-alert-validator</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(82,196,26,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">payment-ci-rule</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(82,196,26,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">payment-schema-check</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(82,196,26,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">payment-checklist</span>
-          </div>
-        </div>
-        <div style="background: rgba(212,136,6,0.05); border: 1px solid rgba(212,136,6,0.2); border-radius: 10px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(212,136,6,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟨</div>
-            <span style="font-size: 14px; font-weight: 700; color: #f5a623;">内部工具</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(212,136,6,0.15);">
-            <div class="cp-dot lagged"></div>
-            <span class="cp-name" style="font-size: 12px;">internal-service-prompt</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(212,136,6,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">internal-alert-validator</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(212,136,6,0.15);">
-            <div class="cp-dot lagged"></div>
-            <span class="cp-name" style="font-size: 12px;">internal-ci-rule</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(212,136,6,0.15);">
-            <div class="cp-dot lagged"></div>
-            <span class="cp-name" style="font-size: 12px;">internal-schema-check</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(212,136,6,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">internal-checklist</span>
-          </div>
-        </div>
-        <div style="background: rgba(236,72,153,0.05); border: 1px solid rgba(236,72,153,0.2); border-radius: 10px; padding: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(236,72,153,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟪</div>
-            <span style="font-size: 14px; font-weight: 700; color: #ec4899;">设计团队</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(236,72,153,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">design-service-prompt</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(236,72,153,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">design-alert-validator</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(236,72,153,0.15);">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name" style="font-size: 12px;">design-checklist</span>
-          </div>
-          <div class="cp-item" style="background: transparent; border-color: rgba(236,72,153,0.15);">
-            <div class="cp-dot lagged"></div>
-            <span class="cp-name" style="font-size: 12px;">design-schema-check</span>
-          </div>
-        </div>
+    <!-- Governance Status Bar -->
+    <div class="governance-bar">
+      <div class="governance-item">
+        <div class="gov-dot green"></div>
+        <span style="color: #52c41a;">机器闭环 3/3</span>
       </div>
-      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 14px 18px;">
-        <p style="font-size: 13px; color: var(--primary); font-weight: 600; line-height: 1.7;">
-          <span style="font-size: 16px;">💡</span> 关键变化：同一份契约 ERR-001.yaml，被 4 个团队分别消费。每个团队的消费点是独立记录，即使消费的是同一格式（如 Prompt 前缀），也分别追踪、分别对账。
-        </p>
+      <div class="governance-item">
+        <div class="gov-dot green"></div>
+        <span style="color: #52c41a;">角色闭环 3/3</span>
+      </div>
+      <div class="governance-item">
+        <span style="color: var(--text-secondary);">组织级基线 v1.1.0</span>
+      </div>
+      <div class="governance-item">
+        <span style="color: var(--text-tertiary);">覆盖 3 个业务团队 · 12 个活跃消费者</span>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="status-pill ok">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>
+          双重闭环运行中
+        </span>
       </div>
     </div>
   </div>
 
-  <!-- ==================== STAGE 2: Team Isolation ==================== -->
-  <div class="stage" id="stage-2">
-    <div class="stage-num">02</div>
-    <div class="stage-label">Step 2 · 团队隔离追踪</div>
-    <div class="stage-title">前端团队登录后，能看到内部工具团队的消费点吗？</div>
-    <div class="stage-desc">点击"切换团队视角"，体验团队间数据不互通。每个团队只能看到自己的消费点清单，其他团队的数据完全不可见。</div>
-
-    <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;">
-      <button class="action-btn" id="btn-frontend" onclick="switchTeamView('frontend')">
-        <span>🟦</span> 前端团队视角
-      </button>
-      <button class="action-btn secondary" id="btn-internal" onclick="switchTeamView('internal')">
-        <span>🟨</span> 内部工具团队视角
-      </button>
+  <!-- ==================== STEP 0: Dual Loop Overview ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">0</div>
+      <div>
+        <div class="step-title">双重闭环架构全景</div>
+        <div class="step-subtitle">Dual Loop Architecture · 点击节点查看闭环阶段详情 · 或启动自动巡航</div>
+      </div>
+      <button class="loop-play-btn" id="loop-play-btn" onclick="toggleLoopTour()">▶ 闭环巡航</button>
     </div>
 
-    <div class="split-screen" id="split-view">
-      <!-- Left Pane -->
-      <div class="split-pane" id="pane-left">
-        <div class="split-pane-header">
-          <div class="split-pane-icon frontend" id="left-icon">🟦</div>
-          <div>
-            <div class="split-pane-title" id="left-title">前端团队</div>
-            <div class="split-pane-subtitle" id="left-subtitle">4 个消费点 · 覆盖率 92%</div>
-          </div>
-        </div>
-        <div id="left-content">
-          <div class="cp-item">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name">frontend-service-prompt</span>
-            <span class="cp-badge ok">v1.1.0</span>
-          </div>
-          <div class="cp-item">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name">frontend-alert-validator</span>
-            <span class="cp-badge ok">v1.1.0</span>
-          </div>
-          <div class="cp-item">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name">frontend-ci-stylelint</span>
-            <span class="cp-badge ok">v1.1.0</span>
-          </div>
-          <div class="cp-item">
-            <div class="cp-dot lagged"></div>
-            <span class="cp-name">frontend-schema-check</span>
-            <span class="cp-badge warn">v1.0.0 滞后</span>
-          </div>
-        </div>
-        <div style="margin-top: 16px; padding: 12px; background: rgba(22,119,255,0.05); border-radius: 8px;">
-          <p style="font-size: 12px; color: #4a9eff; font-weight: 600;">🟦 这是你的团队。你只能看到这 4 个消费点。</p>
-        </div>
-      </div>
-
-      <div class="split-divider"></div>
-
-      <!-- Right Pane -->
-      <div class="split-pane dim" id="pane-right">
-        <div class="split-pane-header">
-          <div class="split-pane-icon internal" id="right-icon">🟨</div>
-          <div>
-            <div class="split-pane-title" id="right-title">内部工具团队</div>
-            <div class="split-pane-subtitle" id="right-subtitle">5 个消费点 · 覆盖率 40%</div>
-          </div>
-        </div>
-        <div id="right-content" style="filter: blur(4px); opacity: 0.5;">
-          <div class="cp-item">
-            <div class="cp-dot lagged"></div>
-            <span class="cp-name">internal-service-prompt</span>
-            <span class="cp-badge warn">v1.0.0</span>
-          </div>
-          <div class="cp-item">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name">internal-alert-validator</span>
-            <span class="cp-badge ok">v1.1.0</span>
-          </div>
-          <div class="cp-item">
-            <div class="cp-dot lagged"></div>
-            <span class="cp-name">internal-ci-rule</span>
-            <span class="cp-badge warn">v1.0.0</span>
-          </div>
-          <div class="cp-item">
-            <div class="cp-dot lagged"></div>
-            <span class="cp-name">internal-schema-check</span>
-            <span class="cp-badge warn">v1.0.0</span>
-          </div>
-          <div class="cp-item">
-            <div class="cp-dot synced"></div>
-            <span class="cp-name">internal-checklist</span>
-            <span class="cp-badge ok">v1.1.0</span>
-          </div>
-        </div>
-        <div style="margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center;">
-          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">🔒 其他团队数据已隔离，你无法查看</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== STAGE 3: Reconciliation & Alert ==================== -->
-  <div class="stage" id="stage-3">
-    <div class="stage-num">03</div>
-    <div class="stage-label">Step 3 · 对账与告警</div>
-    <div class="stage-title">内部工具团队滞后了，告警发给谁？</div>
-    <div class="stage-desc">系统执行对账，发现内部工具团队 3 个消费点仍使用 v1.0.0。点击"执行对账"，观察告警如何定向路由——只发给滞后团队，不广播。</div>
-
-    <div style="text-align: center; margin-bottom: 20px;">
-      <button class="action-btn" id="btn-reconcile" onclick="runReconcile()">
-        <span>🔍</span> 执行对账
-      </button>
-    </div>
-
-    <div id="reconcile-result" style="display: none;">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <!-- Left: Frontend sees nothing -->
-        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(22,119,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟦</div>
-            <span style="font-size: 14px; font-weight: 700; color: #4a9eff;">前端团队通知中心</span>
-          </div>
-          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 16px; text-align: center;">
-            <p style="font-size: 32px; margin-bottom: 8px;">✓</p>
-            <p style="font-size: 14px; font-weight: 700; color: #52c41a;">无新告警</p>
-            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 4px;">你的团队消费点全部正常</p>
-          </div>
-          <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; margin-top: 12px; text-align: center;">
-            内部工具团队的滞后告警不会出现在这里
-          </p>
-        </div>
-
-        <!-- Right: Internal Tools gets alert -->
-        <div style="background: #16161a; border: 1px solid rgba(245,158,11,0.3); border-radius: 10px; padding: 20px; position: relative;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-            <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(212,136,6,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟨</div>
-            <span style="font-size: 14px; font-weight: 700; color: #f5a623;">内部工具团队通知中心</span>
-            <span style="margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: rgba(245,158,11,0.15); color: #f5a623; font-weight: 700;">3条新告警</span>
-          </div>
-          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 14px; margin-bottom: 10px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="font-size: 16px;">⚠</span>
-              <span style="font-size: 13px; font-weight: 700; color: #f5a623;">消费版本滞后</span>
-            </div>
-            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
-              消费点 <strong style="color:var(--text-primary);">internal-service-prompt</strong> 仍使用 v1.0.0<br>
-              组织级基线已升级至 v1.1.0<br>
-              责任人：李四（团队治理接口人）
-            </p>
-          </div>
-          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 14px; margin-bottom: 10px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="font-size: 16px;">⚠</span>
-              <span style="font-size: 13px; font-weight: 700; color: #f5a623;">消费版本滞后</span>
-            </div>
-            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
-              消费点 <strong style="color:var(--text-primary);">internal-ci-rule</strong> 仍使用 v1.0.0<br>
-              组织级基线已升级至 v1.1.0<br>
-              责任人：李四（团队治理接口人）
-            </p>
-          </div>
-          <div style="background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 14px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="font-size: 16px;">⚠</span>
-              <span style="font-size: 13px; font-weight: 700; color: #f5a623;">消费版本滞后</span>
-            </div>
-            <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.6;">
-              消费点 <strong style="color:var(--text-primary);">internal-schema-check</strong> 仍使用 v1.0.0<br>
-              组织级基线已升级至 v1.1.0<br>
-              责任人：李四（团队治理接口人）
-            </p>
-          </div>
-        </div>
-      </div>
-      <div style="margin-top: 16px; background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 8px; padding: 14px 18px;">
-        <p style="font-size: 13px; color: var(--primary); font-weight: 600; line-height: 1.7;">
-          <span style="font-size: 16px;">🔒</span> 告警路由原则：版本滞后、链路断点、沉默规则的告警，一律发给该消费点所属团队的消费点管理员（owner 字段），不广播。支付团队的消费断点，5分钟内只有支付团队的管理员收到通知。
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== STAGE 4: Attribution ==================== -->
-  <div class="stage" id="stage-4">
-    <div class="stage-num">04</div>
-    <div class="stage-label">Step 4 · 拦截归因</div>
-    <div class="stage-title">每个团队只看到自己的拦截和收益</div>
-    <div class="stage-desc">组织级视角由系统自动聚合各团队数据，消费覆盖率按团队分列、滞后清单按团队分组、拦截归因可按团队切片。汇总只读、不可回写。</div>
-
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-      <div style="background: rgba(22,119,255,0.05); border: 1px solid rgba(22,119,255,0.2); border-radius: 10px; padding: 20px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 20px;">
+      <!-- Machine Loop -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px;">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-          <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(22,119,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟦</div>
-          <span style="font-size: 14px; font-weight: 700; color: #4a9eff;">前端团队归因</span>
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #4a9eff;"></div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">机器闭环</p>
+          <span class="status-pill ok" style="margin-left: auto;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>3/3 通过</span>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
-          <div class="stat-card">
-            <div class="stat-value" style="color: #4a9eff;">18</div>
-            <div class="stat-label">本月拦截</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="trace-item consumed" style="margin-bottom: 0; cursor: default;">
+            <p class="trace-label">结构一致性验证</p>
+            <p class="trace-desc">Prompt / JSON Schema / Checklist / CI 规则 四种格式说的是同一件事</p>
+            <p class="trace-status" style="color: #52c41a;">✓ 通过 · 语义令牌引用一致率 100%</p>
           </div>
-          <div class="stat-card">
-            <div class="stat-value" style="color: #52c41a;">15h</div>
-            <div class="stat-label">避免返工</div>
+          <div class="trace-item team-consumed" style="margin-bottom: 0; cursor: default;">
+            <p class="trace-label">消费有效性验证</p>
+            <p class="trace-desc">被消费端真实加载了吗？版本滞后吗？断点在哪里？</p>
+            <p class="trace-status" style="color: #f5a623;">⚠ 1 项滞后 · JSON Schema 项目 B 引用 v1.0.0</p>
+          </div>
+          <div class="trace-item consumed" style="margin-bottom: 0; cursor: default;">
+            <p class="trace-label">拦截有效性验证</p>
+            <p class="trace-desc">加载后真的拦住了语义漂移吗？A/B 测试对比验证</p>
+            <p class="trace-status" style="color: #52c41a;">✓ 通过 · 对抗用例通过率 95%（12/12）</p>
           </div>
         </div>
-        <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
-          ERR-001: 10次 · PRO-001: 5次 · ACT-001: 3次<br>
-          Prompt前缀: 10次 · CI规则: 8次
-        </p>
       </div>
-      <div style="background: rgba(212,136,6,0.05); border: 1px solid rgba(212,136,6,0.2); border-radius: 10px; padding: 20px;">
+
+      <!-- Role Loop -->
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px;">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-          <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(212,136,6,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">🟨</div>
-          <span style="font-size: 14px; font-weight: 700; color: #f5a623;">内部工具团队归因</span>
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #a855f7;"></div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">角色闭环</p>
+          <span class="status-pill ok" style="margin-left: auto;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>3/3 运行中</span>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
-          <div class="stat-card">
-            <div class="stat-value" style="color: #f5a623;">5</div>
-            <div class="stat-label">本月拦截</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div class="trace-item consumed" style="margin-bottom: 0; cursor: default;">
+            <p class="trace-label">规则生产者验证</p>
+            <p class="trace-desc">语义规则负责人持续产出规则吗？人均产出趋势如何？</p>
+            <p class="trace-status" style="color: #52c41a;">✓ 正常 · 人均每月 1.2 条修订 · 每季度新增 2 个模式</p>
           </div>
-          <div class="stat-card">
-            <div class="stat-value" style="color: #52c41a;">4h</div>
-            <div class="stat-label">避免返工</div>
+          <div class="trace-item consumed" style="margin-bottom: 0; cursor: default;">
+            <p class="trace-label">规则消费者验证</p>
+            <p class="trace-desc">真实消费率 ≥80% 吗？有没有"注册但未引用"的假消费？</p>
+            <p class="trace-status" style="color: #52c41a;">✓ 通过 · 真实消费率 75%（9/12）· 假引用 1 项</p>
+          </div>
+          <div class="trace-item pending" style="margin-bottom: 0; cursor: default;">
+            <p class="trace-label">规则迭代验证</p>
+            <p class="trace-desc">告警被发出 → 被查看 → 被处理 → 被验证，链条在运转吗？</p>
+            <p class="trace-status" style="color: #f5a623;">⚠ 1 条告警待处理 · PRO-001 沉默规则 30 天零消费</p>
           </div>
         </div>
-        <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.8;">
-          ERR-001: 3次 · PRO-001: 2次<br>
-          组件校验: 3次 · CI规则: 2次
-        </p>
       </div>
     </div>
 
-    <div style="text-align: center; margin-bottom: 16px;">
-      <button class="action-btn secondary" id="btn-org-view" onclick="toggleOrgView()">
-        <span>🔧</span> DesignOps 登录 · 查看组织级汇总
-      </button>
+    <div class="pipeline-flow">
+      <div class="flow-node active" onclick="showFlowDetail('produce')">
+        <div class="flow-icon">✏️</div>
+        <div class="flow-label">规则生产</div>
+        <div class="flow-meta">语义规则负责人</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" onclick="showFlowDetail('consume')">
+        <div class="flow-icon">📥</div>
+        <div class="flow-label">规则消费</div>
+        <div class="flow-meta">Prompt/Schema/CI</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" onclick="showFlowDetail('drift')">
+        <div class="flow-icon">⚠️</div>
+        <div class="flow-label">语义漂移</div>
+        <div class="flow-meta">被拦截或漏过</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" onclick="showFlowDetail('alert')">
+        <div class="flow-icon">🔔</div>
+        <div class="flow-label">告警触发</div>
+        <div class="flow-meta">沉默/滞后/断点</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" onclick="showFlowDetail('iterate')">
+        <div class="flow-icon">🔄</div>
+        <div class="flow-label">规则迭代</div>
+        <div class="flow-meta">修订/归档/升级</div>
+      </div>
     </div>
 
-    <div class="org-panel" id="org-panel">
-      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-        <span style="font-size: 18px;">🔧</span>
-        <span style="font-size: 15px; font-weight: 700; color: var(--primary);">组织级汇总视图（只读 · 不可回写）</span>
-      </div>
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
-        <div class="stat-card">
-          <div class="stat-value" style="color: #4a9eff;">18</div>
-          <div class="stat-label">前端团队</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" style="color: #52c41a;">25</div>
-          <div class="stat-label">支付团队</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" style="color: #f5a623;">5</div>
-          <div class="stat-label">内部工具</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" style="color: #ec4899;">10</div>
-          <div class="stat-label">设计团队</div>
-        </div>
-      </div>
-      <div class="matrix-simple">
-        <div class="matrix-cell header">消费点</div>
-        <div class="matrix-cell header my-col">🟦 前端</div>
-        <div class="matrix-cell header">🟩 支付</div>
-        <div class="matrix-cell header">🟨 内部工具</div>
-        <div class="matrix-cell header">🟪 设计</div>
+    <div id="flow-detail-produce" class="flow-detail-panel show">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">✏️ 规则生产阶段</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        语义规则负责人（规范评审组 / 团队治理接口人）持续产出 YAML 契约。人均产出趋势、修订频率、模式新增量构成生产持续性的度量指标。
+      </p>
+    </div>
+    <div id="flow-detail-consume" class="flow-detail-panel">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">📥 规则消费阶段</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        契约被编译为四种消费格式（Prompt 前缀、JSON Schema、Checklist、CI 规则），分别被 AI 生成工具、组件校验器、设计师走查、研发效能流水线加载使用。
+      </p>
+    </div>
+    <div id="flow-detail-drift" class="flow-detail-panel">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">⚠️ 语义漂移阶段</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        AI 生成内容是否出现语义漂移？有约束组与无约束组的 A/B 测试对比，验证契约是否真正拦截了漂移。
+      </p>
+    </div>
+    <div id="flow-detail-alert" class="flow-detail-panel">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">🔔 告警触发阶段</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        系统发现异常：沉默规则（30天零消费）、版本滞后（消费端加载旧版本）、消费断点（注册但未引用）。告警自动发出并进入处理流转。
+      </p>
+    </div>
+    <div id="flow-detail-iterate" class="flow-detail-panel">
+      <p style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">🔄 规则迭代阶段</p>
+      <p style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">
+        告警被查看 → 被处理（修订/归档/申请规则变更）→ 被验证（确认修复有效）。7 天未处理自动升级责任人。
+      </p>
+    </div>
+    <div class="tour-progress" id="tour-progress">巡航中 · <span class="tour-dot" id="tour-step-name">规则生产</span> · 点击任意节点可接管</div>
+  </div>
 
-        <div class="matrix-cell">service-prompt</div>
-        <div class="matrix-cell my-col"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
-        <div class="matrix-cell"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
-        <div class="matrix-cell"><span class="dot" style="background:#f5a623;"></span>v1.0.0</div>
-        <div class="matrix-cell"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
-
-        <div class="matrix-cell">ci-stylelint</div>
-        <div class="matrix-cell my-col"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
-        <div class="matrix-cell"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
-        <div class="matrix-cell"><span class="dot" style="background:#f5a623;"></span>v1.0.0</div>
-        <div class="matrix-cell"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
-
-        <div class="matrix-cell">schema-check</div>
-        <div class="matrix-cell my-col"><span class="dot" style="background:#f5a623;"></span>v1.0.0</div>
-        <div class="matrix-cell"><span class="dot" style="background:#52c41a;"></span>v1.1.0</div>
-        <div class="matrix-cell"><span class="dot" style="background:#f5a623;"></span>v1.0.0</div>
-        <div class="matrix-cell"><span class="dot" style="background:#f5a623;"></span>v1.0.0</div>
+  <!-- ==================== STEP 1: Machine Loop — 结构一致性 ==================== -->
+  <div class="step-card" id="machine-struct">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">机器闭环 · 结构一致性验证</div>
+        <div class="step-subtitle">Structure Consistency · 四种格式说的是同一件事吗？</div>
       </div>
-      <div style="margin-top: 12px; background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 6px; padding: 10px 14px;">
-        <p style="font-size: 12px; color: #f5a623; font-weight: 600;">⚠ 汇总只读、不可回写 · 用于判断"哪个团队需要支持" · 不用于跨团队改数据</p>
+      <div style="margin-left: auto;">
+        <span class="status-pill ok"><span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>通过</span>
+      </div>
+    </div>
+
+    <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 16px;">
+      验证标准：语义令牌引用一致率 100% · 约束条款无遗漏 · 颜色/行动/文案映射一一对应
+    </p>
+
+    <div style="overflow-x: auto;">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>比对项</th>
+            <th>Prompt 前缀</th>
+            <th>JSON Schema</th>
+            <th>Checklist</th>
+            <th>CI 规则</th>
+            <th>结果</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color: var(--text-primary); font-weight: 700;">fatal 语义令牌</td>
+            <td>"致命错误"</td>
+            <td><code>enum: ["fatal"]</code></td>
+            <td>"□ 是否区分四级"</td>
+            <td><code>severity !== "critical"</code></td>
+            <td class="cell-match">✓ 一致</td>
+          </tr>
+          <tr>
+            <td style="color: var(--text-primary); font-weight: 700;">颜色约束</td>
+            <td>"必须使用红色脉冲"</td>
+            <td><code>color_token: "status.critical"</code></td>
+            <td>"□ 是否红色脉冲"</td>
+            <td><code>color === "status.critical"</code></td>
+            <td class="cell-match">✓ 一致</td>
+          </tr>
+          <tr>
+            <td style="color: var(--text-primary); font-weight: 700;">行动约束</td>
+            <td>"必须提供刷新/导出"</td>
+            <td><code>recovery_action: {minItems: 1}</code></td>
+            <td>"□ 是否提供恢复路径"</td>
+            <td><code>actions.length >= 1</code></td>
+            <td class="cell-match">✓ 一致</td>
+          </tr>
+          <tr>
+            <td style="color: var(--text-primary); font-weight: 700;">degraded 文案</td>
+            <td>"禁止模糊表述"</td>
+            <td><code>forbidden_text: ["部分失败"]</code></td>
+            <td>"□ 是否避免模糊表述"</td>
+            <td><code>!text.match(/部分失败/)</code></td>
+            <td class="cell-match">✓ 一致</td>
+          </tr>
+          <tr style="background: rgba(82,196,26,0.05);">
+            <td colspan="6" style="text-align: center; color: #52c41a; font-weight: 700; padding: 12px;">
+              ✓ 结构一致性验证通过 · 4 项比对全部一致 · 语义令牌引用一致率 100%
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 2: Machine Loop — 消费有效性 ==================== -->
+  <div class="step-card" id="machine-consume">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">机器闭环 · 消费有效性验证</div>
+        <div class="step-subtitle">Consumption Validity · 被消费端真实加载了吗？版本滞后吗？</div>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="status-pill warn"><span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>1 项滞后</span>
+      </div>
+    </div>
+
+    <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 16px;">
+      验证标准：真实消费率 ≥80% · 版本同步率 100% · 无消费断点
+    </p>
+
+    <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px;">
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">消费热力图（悬停查看详情）</p>
+        <div class="heatmap-grid">
+          <div class="heatmap-cell header"></div>
+          <div class="heatmap-cell header">Prompt 前缀</div>
+          <div class="heatmap-cell header">JSON Schema</div>
+          <div class="heatmap-cell header">Checklist</div>
+          <div class="heatmap-cell header">CI 规则</div>
+
+          <div class="heatmap-cell row-header">项目 A（前端）</div>
+          <div class="heatmap-cell ok" onclick="showCellInfo(this)" data-info="项目 A · Prompt 前缀
+版本: v1.1.0
+最后加载: 2026-07-12 12:30
+加载次数: 1,240/天">v1.1.0 ✓</div>
+          <div class="heatmap-cell warn" onclick="showCellInfo(this)" data-info="项目 A · JSON Schema
+版本: v1.0.0 ⚠ 滞后
+最后加载: 2026-07-01 10:00
+建议: 24 小时内升级至 v1.1.0">v1.0.0 ⚠</div>
+          <div class="heatmap-cell ok" onclick="showCellInfo(this)" data-info="项目 A · Checklist
+版本: v1.1.0
+最后加载: 2026-07-12 09:00
+使用频率: 每周 3 次">v1.1.0 ✓</div>
+          <div class="heatmap-cell ok" onclick="showCellInfo(this)" data-info="项目 A · CI 规则
+版本: v1.1.0
+最后执行: 2026-07-12 10:00
+阻断次数: 2/周">v1.1.0 ✓</div>
+
+          <div class="heatmap-cell row-header">项目 B（AI）</div>
+          <div class="heatmap-cell ok" onclick="showCellInfo(this)" data-info="项目 B · Prompt 前缀
+版本: v1.1.0
+最后加载: 2026-07-12 13:15
+加载次数: 890/天">v1.1.0 ✓</div>
+          <div class="heatmap-cell fail" onclick="showCellInfo(this)" data-info="项目 B · JSON Schema
+状态: 未配置 ❌
+说明: 该项目未接入 JSON Schema 校验
+建议: 联系工程支持团队配置">未配置 ✗</div>
+          <div class="heatmap-cell ok" onclick="showCellInfo(this)" data-info="项目 B · Checklist
+版本: v1.1.0
+最后加载: 2026-07-12 11:00">v1.1.0 ✓</div>
+          <div class="heatmap-cell na">—</div>
+
+          <div class="heatmap-cell row-header">项目 C（设计）</div>
+          <div class="heatmap-cell na">—</div>
+          <div class="heatmap-cell na">—</div>
+          <div class="heatmap-cell ok" onclick="showCellInfo(this)" data-info="项目 C · Checklist
+版本: v1.1.0
+最后加载: 2026-07-12 14:00
+使用频率: 每次走查">v1.1.0 ✓</div>
+          <div class="heatmap-cell na">—</div>
+        </div>
+        <div class="cell-info-panel" id="cell-info-panel">
+          <div class="cell-info-title" id="cell-info-title"></div>
+          <div class="cell-info-body" id="cell-info-body"></div>
+        </div>
+      </div>
+
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">覆盖率统计</p>
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span class="progress-title">真实消费率</span>
+            <span class="progress-value" style="color: #52c41a;">75%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width: 75%; background: #52c41a;"></div></div>
+          <p class="progress-note">9/12 消费点真实加载（3 个注册但未引用）</p>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span class="progress-title">版本同步率</span>
+            <span class="progress-value" style="color: #f5a623;">83%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width: 83%; background: #f5a623;"></div></div>
+          <p class="progress-note">10/12 消费点版本同步（1 项滞后 + 1 项未配置）</p>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span class="progress-title">消费断点</span>
+            <span class="progress-value" style="color: #cf1322;">1 项</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width: 8%; background: #cf1322;"></div></div>
+          <p class="progress-note">项目 B 的 JSON Schema 未配置，属于消费断点</p>
+        </div>
+        <div style="background: rgba(245,166,35,0.05); border: 1px solid rgba(245,166,35,0.2); border-radius: 8px; padding: 12px 16px;">
+          <p style="font-size: 13px; color: #f5a623; font-weight: 600; margin-bottom: 4px;">⚠ 消费有效性异常</p>
+          <p style="font-size: 12px; color: var(--text-secondary); font-weight: 500;">项目 A 的 JSON Schema 引用 v1.0.0，滞后于契约库 v1.1.0。建议 24 小时内升级。</p>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- ==================== STAGE 5: Principles ==================== -->
-  <div class="stage" id="stage-5">
-    <div class="stage-num">05</div>
-    <div class="stage-label">Step 5 · 治理原则</div>
-    <div class="stage-title">团队隔离的三层信息架构</div>
-    <div class="stage-desc">组织级语义治理不是独立模块，而是像水印一样渗透在现有工作流中。每层信息架构各司其职，互不干扰。</div>
+  <!-- ==================== STEP 3: Machine Loop — 拦截有效性 ==================== -->
+  <div class="step-card" id="machine-intercept">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">机器闭环 · 拦截有效性验证</div>
+        <div class="step-subtitle">Intercept Validity · 加载后真的拦住了语义漂移吗？</div>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="status-pill ok"><span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>95% 通过</span>
+      </div>
+    </div>
 
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-      <div class="principle-card p1">
-        <div class="principle-num">01</div>
-        <div class="principle-title">本团队视角（默认）</div>
-        <div class="principle-desc">
-          所有用户默认只看到本团队消费点。其他团队消费数据完全不可见。告警只显示本团队定向通知。按 SSO 身份自动识别，无需手动选择团队。
+    <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 16px;">
+      验证标准：对抗用例通过率 ≥90% · 有约束组合规率 vs 无约束组差异显著
+    </p>
+
+    <div class="ab-panel">
+      <div class="ab-card control">
+        <div class="ab-header">❌ 无约束组（纯 Prompt）</div>
+        <div class="ab-input">输入："生成删除账户按钮"</div>
+        <div class="ab-output">
+          <p style="color: var(--text-secondary); margin-bottom: 8px;">AI 输出：</p>
+          <div style="padding: 8px; background: rgba(207,19,34,0.1); border: 1px solid rgba(207,19,34,0.2); border-radius: 6px; margin-bottom: 8px;">
+            <p style="color: #cf1322; font-weight: 700;">蓝色实心"确认"按钮</p>
+            <p style="color: var(--text-tertiary); font-size: 12px;">无二次确认 · 无风险提示</p>
+          </div>
+        </div>
+        <div class="ab-verdict fail">❌ 语义漂移 · 高危操作未约束</div>
+      </div>
+      <div class="ab-card treatment">
+        <div class="ab-header">✅ 有约束组（Prompt + ACT-001 契约）</div>
+        <div class="ab-input">输入："生成删除账户按钮"<br>+ ACT-001 Prompt 前缀约束</div>
+        <div class="ab-output">
+          <p style="color: var(--text-secondary); margin-bottom: 8px;">AI 输出：</p>
+          <div style="padding: 8px; background: rgba(82,196,26,0.1); border: 1px solid rgba(82,196,26,0.2); border-radius: 6px; margin-bottom: 8px;">
+            <p style="color: #52c41a; font-weight: 700;">红色空心"删除账户"按钮</p>
+            <p style="color: var(--text-tertiary); font-size: 12px;">带二次确认弹窗 · 明确提示"不可恢复"</p>
+          </div>
+        </div>
+        <div class="ab-verdict ok">✅ 语义合规 · 约束生效</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+        <div style="font-size: 28px; font-weight: 800; color: #52c41a;">95%</div>
+        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">对抗用例通过率</div>
+        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-top: 4px;">12/12 通过</div>
+      </div>
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+        <div style="font-size: 28px; font-weight: 800; color: #52c41a;">95%</div>
+        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">有约束组合规率</div>
+        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-top: 4px;">语义一致性达标</div>
+      </div>
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center;">
+        <div style="font-size: 28px; font-weight: 800; color: #cf1322;">20%</div>
+        <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">无约束组合规率</div>
+        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-top: 4px;">语义漂移严重</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 4: Role Loop — 规则生产者 ==================== -->
+  <div class="step-card" id="role-produce">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">角色闭环 · 规则生产者验证</div>
+        <div class="step-subtitle">Rule Producer · 语义规则负责人持续产出规则吗？</div>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="status-pill ok"><span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>正常</span>
+      </div>
+    </div>
+
+    <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 16px;">
+      验证标准：人均每月 ≥1 条修订 · 每季度新增 ≥1 个漂移模式
+    </p>
+
+    <div class="stats-grid">
+      <div class="stat-card has-tooltip">
+        <div class="stat-value" style="color: #4a9eff;">1.2</div>
+        <div class="stat-label">人均月修订数</div>
+        <div class="tooltip">规范评审组 3 人 + 团队治理接口人 5 人，月均产出 9.6 条修订</div>
+      </div>
+      <div class="stat-card has-tooltip">
+        <div class="stat-value">2</div>
+        <div class="stat-label">本季度新增模式</div>
+        <div class="tooltip">Q3 新增 PRO-002（过程状态细化）和 ALR-002（告警权重校准）</div>
+      </div>
+      <div class="stat-card has-tooltip">
+        <div class="stat-value" style="color: #52c41a;">8</div>
+        <div class="stat-label">活跃规则负责人</div>
+        <div class="tooltip">规范评审组 3 人 + 前端/后端/设计团队治理接口人各 1-2 人</div>
+      </div>
+      <div class="stat-card has-tooltip">
+        <div class="stat-value">14</div>
+        <div class="stat-label">总契约数</div>
+        <div class="tooltip">6 个组织级基线 + 8 个团队级扩展规则</div>
+      </div>
+    </div>
+
+    <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+      <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">规则负责人活跃度</p>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600; min-width: 120px;">规范评审组 · 张三</span>
+          <div style="flex: 1; background: #2a2a2e; border-radius: 100px; height: 8px; overflow: hidden;">
+            <div style="width: 92%; height: 100%; background: #4a9eff; border-radius: 100px;"></div>
+          </div>
+          <span style="font-size: 12px; color: #4a9eff; font-weight: 700;">92%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600; min-width: 120px;">规范评审组 · 李四</span>
+          <div style="flex: 1; background: #2a2a2e; border-radius: 100px; height: 8px; overflow: hidden;">
+            <div style="width: 85%; height: 100%; background: #4a9eff; border-radius: 100px;"></div>
+          </div>
+          <span style="font-size: 12px; color: #4a9eff; font-weight: 700;">85%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600; min-width: 120px;">前端团队 · 王五</span>
+          <div style="flex: 1; background: #2a2a2e; border-radius: 100px; height: 8px; overflow: hidden;">
+            <div style="width: 78%; height: 100%; background: #a855f7; border-radius: 100px;"></div>
+          </div>
+          <span style="font-size: 12px; color: #a855f7; font-weight: 700;">78%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600; min-width: 120px;">后端团队 · 赵六</span>
+          <div style="flex: 1; background: #2a2a2e; border-radius: 100px; height: 8px; overflow: hidden;">
+            <div style="width: 65%; height: 100%; background: #a855f7; border-radius: 100px;"></div>
+          </div>
+          <span style="font-size: 12px; color: #a855f7; font-weight: 700;">65%</span>
         </div>
       </div>
-      <div class="principle-card p2">
-        <div class="principle-num">02</div>
-        <div class="principle-title">组织级汇总（DesignOps）</div>
-        <div class="principle-desc">
-          仅 DesignOps / 规范评审组可查看组织级汇总。团队分列展示，不平均、不掩盖。汇总用于判断"哪个团队需要支持"，不用于跨团队改数据。
+    </div>
+  </div>
+
+  <!-- ==================== STEP 5: Role Loop — 规则消费者 ==================== -->
+  <div class="step-card" id="role-consume">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">角色闭环 · 规则消费者验证</div>
+        <div class="step-subtitle">Rule Consumer · 真实消费率 ≥80% 吗？有没有假消费？</div>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="status-pill ok"><span style="width: 6px; height: 6px; border-radius: 50%; background: #52c41a;"></span>75%</span>
+      </div>
+    </div>
+
+    <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 16px;">
+      验证标准：真实消费率 ≥80% · 假引用（注册但未引用）= 0
+    </p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">真实消费率仪表盘</p>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center;">
+          <div style="position: relative; width: 160px; height: 160px; margin: 0 auto 16px;">
+            <svg width="160" height="160" viewBox="0 0 160 160">
+              <circle cx="80" cy="80" r="70" fill="none" stroke="#2a2a2e" stroke-width="12"/>
+              <circle class="donut-arc" data-target="330 440" cx="80" cy="80" r="70" fill="none" stroke="#52c41a" stroke-width="12" stroke-dasharray="330 440" stroke-linecap="round" transform="rotate(-90 80 80)"/>
+              <circle class="donut-arc" data-target="55 440" cx="80" cy="80" r="70" fill="none" stroke="#cf1322" stroke-width="12" stroke-dasharray="55 440" stroke-dashoffset="-330" stroke-linecap="round" transform="rotate(-90 80 80)"/>
+            </svg>
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+              <div style="font-size: 32px; font-weight: 800; color: var(--text-primary);">75%</div>
+              <div style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">真实消费率</div>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: center; gap: 24px;">
+            <div style="text-align: center;">
+              <div style="font-size: 20px; font-weight: 800; color: #52c41a;">9</div>
+              <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">真实加载</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 20px; font-weight: 800; color: #cf1322;">1</div>
+              <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">假引用</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 20px; font-weight: 800; color: var(--text-tertiary);">2</div>
+              <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">未配置</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="principle-card p3">
-        <div class="principle-num">03</div>
-        <div class="principle-title">告警路由（定向通知）</div>
-        <div class="principle-desc">
-          每条告警自带路由路径，明确显示"发给谁"。版本滞后、链路断点、沉默规则的告警一律发给该消费点所属团队的管理员。5分钟内只有对应团队收到通知。
+
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">假引用检测（Lint 扫描）</p>
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 16px;">
+          <div class="alert-item" style="margin-bottom: 8px; cursor: default;">
+            <div class="alert-header">
+              <span class="alert-title">项目 D · 注册但未引用</span>
+              <span class="status-pill fail" style="font-size: 11px;">假引用</span>
+            </div>
+            <p class="alert-desc">该项目在规则仓库目录结构中注册了 Checklist 消费点，但 Lint 扫描发现最近 30 天内零次引用</p>
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500;">注册时间：2026-06-01 · 最后引用：2026-06-15 · 建议：确认是否已弃用，若弃用则申请归档</p>
+          </div>
+          <div style="background: rgba(82,196,26,0.05); border: 1px solid rgba(82,196,26,0.2); border-radius: 8px; padding: 12px;">
+            <p style="font-size: 13px; color: #52c41a; font-weight: 600;">✓ 其余 8 个消费点均通过 Lint 扫描，真实引用频率正常</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 6: Role Loop — 规则迭代 ==================== -->
+  <div class="step-card" id="role-iterate">
+    <div class="step-header">
+      <div class="step-num">6</div>
+      <div>
+        <div class="step-title">角色闭环 · 规则迭代验证</div>
+        <div class="step-subtitle">Rule Iteration · 告警被发出 → 被查看 → 被处理 → 被验证</div>
+      </div>
+      <div style="margin-left: auto;">
+        <span class="status-pill warn"><span style="width: 6px; height: 6px; border-radius: 50%; background: #f5a623;"></span>1 待处理</span>
+      </div>
+    </div>
+
+    <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500; margin-bottom: 16px;">
+      验证标准：告警处理时效 ≤7 天 · 处理按钮必须人来按 · 系统强制留痕
+    </p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">告警处理工作台（点击展开详情）</p>
+
+        <div class="alert-item" onclick="toggleAlert(this)">
+          <div class="alert-header">
+            <span class="alert-title">⚠️ PRO-001 沉默规则（30 天零消费）</span>
+            <span class="status-pill warn" style="font-size: 11px;">已查看</span>
+          </div>
+          <p class="alert-desc">过程状态认知阶段未显化（PRO-001）已连续 30 天无消费端加载，可能已被团队弃用或存在替代规则</p>
+          <div class="alert-timeline">
+            <span class="alert-tl-step done">✓ 已发出</span>
+            <span class="alert-tl-arrow">→</span>
+            <span class="alert-tl-step current">● 已查看</span>
+            <span class="alert-tl-arrow">→</span>
+            <span class="alert-tl-step pending">○ 待处理</span>
+            <span class="alert-tl-arrow">→</span>
+            <span class="alert-tl-step pending">○ 待验证</span>
+          </div>
+          <div class="alert-actions">
+            <button class="alert-btn primary" onclick="event.stopPropagation();alert('已标记为处理中，需提交修订说明')">标记已处理</button>
+            <button class="alert-btn" onclick="event.stopPropagation();alert('已跳转至规则变更申请流程')">提交修订申请</button>
+            <button class="alert-btn" onclick="event.stopPropagation();alert('已提交归档申请，待规范评审组审批')">申请归档</button>
+          </div>
+          <div class="alert-countdown">⏰ 剩余 4 天自动升级至团队 TL</div>
+          <div class="alert-detail">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; line-height: 1.7;">
+              告警发出时间：2026-07-01 09:00<br>
+              查看时间：2026-07-05 14:00 · 查看人：王五<br>
+              责任人：王五（前端团队语义规则负责人）<br>
+              建议操作：确认 PRO-001 是否被 PRO-002 替代，若已替代则申请归档；若仍在使用则排查消费端配置
+            </p>
+          </div>
+        </div>
+
+        <div class="alert-item" onclick="toggleAlert(this)">
+          <div class="alert-header">
+            <span class="alert-title">✅ ERR-001 版本滞后已修复</span>
+            <span class="status-pill ok" style="font-size: 11px;">已验证</span>
+          </div>
+          <p class="alert-desc">项目 A 的 JSON Schema 引用 v1.0.0 滞后于契约库 v1.1.0，已升级并验证通过</p>
+          <div class="alert-timeline">
+            <span class="alert-tl-step done">✓ 已发出</span>
+            <span class="alert-tl-arrow">→</span>
+            <span class="alert-tl-step done">✓ 已查看</span>
+            <span class="alert-tl-arrow">→</span>
+            <span class="alert-tl-step done">✓ 已处理</span>
+            <span class="alert-tl-arrow">→</span>
+            <span class="alert-tl-step done">✓ 已验证</span>
+          </div>
+          <div class="alert-actions">
+            <button class="alert-btn" onclick="event.stopPropagation();alert('查看处理详情')">查看详情</button>
+          </div>
+          <div class="alert-detail">
+            <p style="font-size: 12px; color: var(--text-tertiary); font-weight: 500; line-height: 1.7;">
+              告警发出时间：2026-07-08 10:00<br>
+              处理时间：2026-07-09 16:00 · 处理人：王五<br>
+              验证时间：2026-07-10 09:00 · 验证人：张三（规范评审组）<br>
+              处理结果：JSON Schema 已升级至 v1.1.0，消费端加载测试通过
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">告警处理统计</p>
+        <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr);">
+          <div class="stat-card">
+            <div class="stat-value">12</div>
+            <div class="stat-label">本月告警总数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color: #52c41a;">10</div>
+            <div class="stat-label">已闭环处理</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color: #f5a623;">1</div>
+            <div class="stat-label">处理中</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="color: #cf1322;">1</div>
+            <div class="stat-label">待查看</div>
+          </div>
+        </div>
+
+        <div style="background: #16161a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 12px;">
+          <p style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">自动升级机制</p>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 12px; color: var(--text-tertiary); font-weight: 600; min-width: 80px;">Day 0-3</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">责任人：语义规则负责人</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 12px; color: #f5a623; font-weight: 600; min-width: 80px;">Day 4-5</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">升级至：团队 TL</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 12px; color: #f5a623; font-weight: 600; min-width: 80px;">Day 6</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">升级至：DesignOps</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 12px; color: #cf1322; font-weight: 600; min-width: 80px;">Day 7+</span>
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">升级至：规范评审组</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== STEP 7: Governance Legend ==================== -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num">7</div>
+      <div>
+        <div class="step-title">双重闭环验证设计原则</div>
+        <div class="step-subtitle">Governance Principles · 组织级语义治理的验证层嵌入规范</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #4a9eff;"></div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">机器闭环三定律</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+            <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 2px;">1. 结构一致性</p>
+            四种格式必须一一对应，语义令牌引用一致率 100%。如果 Prompt 说"红色"而 CI 规则校验"蓝色"，闭环在第一步就断裂。
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+            <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 2px;">2. 消费有效性</p>
+            被消费端真实加载，版本同步。注册消费点不等于真实消费，Lint 扫描识别假引用。
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+            <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 2px;">3. 拦截有效性</p>
+            加载后真的拦住了语义漂移。A/B 测试对比：有约束组 vs 无约束组，合规率差异必须显著。
+          </div>
+        </div>
+      </div>
+      <div style="background: #16161a; border: 1px solid var(--border); border-radius: 10px; padding: 20px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: #a855f7;"></div>
+          <p style="font-size: 14px; font-weight: 700; color: var(--text-primary);">角色闭环三原则</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+            <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 2px;">1. 生产持续</p>
+            语义规则负责人必须持续产出。人均每月 ≥1 条修订，每季度新增 ≥1 个漂移模式。产出停滞 = 规则腐烂。
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+            <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 2px;">2. 消费真实</p>
+            真实消费率 ≥80%。注册消费点但零引用 = 假消费。Lint 扫描 + 加载日志双重验证。
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500; line-height: 1.7;">
+            <p style="color: var(--text-primary); font-weight: 600; margin-bottom: 2px;">3. 迭代闭环</p>
+            告警必须被处理。7 天未处理自动升级责任人。处理按钮必须人来按，但系统强制留痕，防止"假装处理"。
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Bottom CTA -->
-  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; align-items: center; justify-content: space-between;">
+  <div class="cta-bar">
     <div>
-      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">契约消费追踪演示完毕</p>
+      <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">双重闭环验证演示完毕</p>
       <p style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</p>
     </div>
     <a href="https://2436041978-ops.github.io/semantic-pipeline/" style="padding: 10px 24px; border-radius: 8px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block;">
@@ -1101,137 +1800,157 @@
 </div>
 
 <script>
-// Stage 1: Show multi-team
-function showMultiTeam() {
-  document.getElementById('stage1-single').classList.add('hidden');
-  document.getElementById('stage1-multi').classList.remove('hidden');
-  document.getElementById('stage1-multi').classList.add('fade-in');
+function showFlowDetail(id) {
+  document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.flow-detail-panel').forEach(p => p.classList.remove('show'));
+  document.getElementById('flow-detail-' + id).classList.add('show');
 }
 
-// Stage 2: Switch team view
-const teamData = {
-  frontend: {
-    left: { icon: '🟦', title: '前端团队', subtitle: '4 个消费点 · 覆盖率 92%', iconClass: 'frontend',
-      items: [
-        { dot: 'synced', name: 'frontend-service-prompt', badge: 'ok', badgeText: 'v1.1.0' },
-        { dot: 'synced', name: 'frontend-alert-validator', badge: 'ok', badgeText: 'v1.1.0' },
-        { dot: 'synced', name: 'frontend-ci-stylelint', badge: 'ok', badgeText: 'v1.1.0' },
-        { dot: 'lagged', name: 'frontend-schema-check', badge: 'warn', badgeText: 'v1.0.0 滞后' }
-      ],
-      msg: '🟦 这是你的团队。你只能看到这 4 个消费点。',
-      msgColor: '#4a9eff', msgBg: 'rgba(22,119,255,0.05)'
-    },
-    right: { icon: '🟨', title: '内部工具团队', subtitle: '5 个消费点 · 覆盖率 40%', iconClass: 'internal',
-      items: [
-        { dot: 'lagged', name: 'internal-service-prompt', badge: 'warn', badgeText: 'v1.0.0' },
-        { dot: 'synced', name: 'internal-alert-validator', badge: 'ok', badgeText: 'v1.1.0' },
-        { dot: 'lagged', name: 'internal-ci-rule', badge: 'warn', badgeText: 'v1.0.0' },
-        { dot: 'lagged', name: 'internal-schema-check', badge: 'warn', badgeText: 'v1.0.0' },
-        { dot: 'synced', name: 'internal-checklist', badge: 'ok', badgeText: 'v1.1.0' }
-      ],
-      msg: '🔒 其他团队数据已隔离，你无法查看',
-      msgColor: 'var(--text-tertiary)', msgBg: 'rgba(255,255,255,0.03)'
-    }
-  },
-  internal: {
-    left: { icon: '🟨', title: '内部工具团队', subtitle: '5 个消费点 · 覆盖率 40%', iconClass: 'internal',
-      items: [
-        { dot: 'lagged', name: 'internal-service-prompt', badge: 'warn', badgeText: 'v1.0.0' },
-        { dot: 'synced', name: 'internal-alert-validator', badge: 'ok', badgeText: 'v1.1.0' },
-        { dot: 'lagged', name: 'internal-ci-rule', badge: 'warn', badgeText: 'v1.0.0' },
-        { dot: 'lagged', name: 'internal-schema-check', badge: 'warn', badgeText: 'v1.0.0' },
-        { dot: 'synced', name: 'internal-checklist', badge: 'ok', badgeText: 'v1.1.0' }
-      ],
-      msg: '🟨 这是你的团队。你只能看到这 5 个消费点。',
-      msgColor: '#f5a623', msgBg: 'rgba(212,136,6,0.05)'
-    },
-    right: { icon: '🟦', title: '前端团队', subtitle: '4 个消费点 · 覆盖率 92%', iconClass: 'frontend',
-      items: [
-        { dot: 'synced', name: 'frontend-service-prompt', badge: 'ok', badgeText: 'v1.1.0' },
-        { dot: 'synced', name: 'frontend-alert-validator', badge: 'ok', badgeText: 'v1.1.0' },
-        { dot: 'synced', name: 'frontend-ci-stylelint', badge: 'ok', badgeText: 'v1.1.0' },
-        { dot: 'lagged', name: 'frontend-schema-check', badge: 'warn', badgeText: 'v1.0.0 滞后' }
-      ],
-      msg: '🔒 其他团队数据已隔离，你无法查看',
-      msgColor: 'var(--text-tertiary)', msgBg: 'rgba(255,255,255,0.03)'
-    }
-  }
-};
-
-function switchTeamView(team) {
-  const data = teamData[team];
-  const leftPane = document.getElementById('pane-left');
-  const rightPane = document.getElementById('pane-right');
-
-  // Update buttons
-  document.getElementById('btn-frontend').className = team === 'frontend' ? 'action-btn' : 'action-btn secondary';
-  document.getElementById('btn-internal').className = team === 'internal' ? 'action-btn' : 'action-btn secondary';
-
-  // Update left pane (active)
-  leftPane.classList.remove('dim');
-  document.getElementById('left-icon').textContent = data.left.icon;
-  document.getElementById('left-icon').className = 'split-pane-icon ' + data.left.iconClass;
-  document.getElementById('left-title').textContent = data.left.title;
-  document.getElementById('left-subtitle').textContent = data.left.subtitle;
-  document.getElementById('left-content').innerHTML = data.left.items.map(item => `
-    <div class="cp-item">
-      <div class="cp-dot ${item.dot}"></div>
-      <span class="cp-name">${item.name}</span>
-      <span class="cp-badge ${item.badge}">${item.badgeText}</span>
-    </div>
-  `).join('');
-  leftPane.querySelector('.split-pane-header').nextElementSibling.nextElementSibling.innerHTML = `
-    <p style="font-size: 12px; color: ${data.left.msgColor}; font-weight: 600;">${data.left.msg}</p>
-  `;
-  leftPane.querySelector('.split-pane-header').nextElementSibling.nextElementSibling.style.background = data.left.msgBg;
-
-  // Update right pane (dimmed/blurred)
-  rightPane.classList.add('dim');
-  document.getElementById('right-icon').textContent = data.right.icon;
-  document.getElementById('right-icon').className = 'split-pane-icon ' + data.right.iconClass;
-  document.getElementById('right-title').textContent = data.right.title;
-  document.getElementById('right-subtitle').textContent = data.right.subtitle;
-  document.getElementById('right-content').innerHTML = data.right.items.map(item => `
-    <div class="cp-item">
-      <div class="cp-dot ${item.dot}"></div>
-      <span class="cp-name">${item.name}</span>
-      <span class="cp-badge ${item.badge}">${item.badgeText}</span>
-    </div>
-  `).join('');
-  rightPane.querySelector('.split-pane-header').nextElementSibling.nextElementSibling.innerHTML = `
-    <p style="font-size: 12px; color: ${data.right.msgColor}; font-weight: 600;">${data.right.msg}</p>
-  `;
-  rightPane.querySelector('.split-pane-header').nextElementSibling.nextElementSibling.style.background = data.right.msgBg;
+function scrollToStep(id) {
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelectorAll('.validation-cell').forEach(c => c.classList.remove('active'));
+  event.currentTarget.classList.add('active');
 }
 
-// Stage 3: Run reconcile
-function runReconcile() {
-  const btn = document.getElementById('btn-reconcile');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="animate-pulse">🔍</span> 对账中...';
-
-  setTimeout(() => {
-    btn.innerHTML = '<span>✓</span> 对账完成';
-    document.getElementById('reconcile-result').style.display = 'block';
-    document.getElementById('reconcile-result').classList.add('fade-in');
-  }, 1200);
-}
-
-// Stage 4: Toggle org view
-function toggleOrgView() {
-  const panel = document.getElementById('org-panel');
-  const btn = document.getElementById('btn-org-view');
-
-  if (panel.classList.contains('show')) {
-    panel.classList.remove('show');
-    btn.innerHTML = '<span>🔧</span> DesignOps 登录 · 查看组织级汇总';
-    btn.classList.remove('active');
-  } else {
-    panel.classList.add('show');
-    btn.innerHTML = '<span>✓</span> 已登录 · 隐藏组织级汇总';
+function toggleAlert(item) {
+  const detail = item.querySelector('.alert-detail');
+  const isExpanded = item.classList.contains('expanded');
+  document.querySelectorAll('.alert-item').forEach(a => {
+    a.classList.remove('expanded');
+    const d = a.querySelector('.alert-detail');
+    if (d) d.classList.remove('show');
+  });
+  if (!isExpanded) {
+    item.classList.add('expanded');
+    if (detail) detail.classList.add('show');
   }
 }
 </script>
 
+
+<script>
+// ============================================
+// 交互强化层：滚动联动 / 闭环巡航 / 热力图面板 / 入视图动画
+// ============================================
+
+// 4. 热力图：就地详情面板
+function showCellInfo(cell) {
+  const panel = document.getElementById('cell-info-panel');
+  const title = document.getElementById('cell-info-title');
+  const body = document.getElementById('cell-info-body');
+  const info = cell.dataset.info || '';
+  const firstLine = info.split('\n')[0];
+  const isSame = panel.classList.contains('show') && title.textContent === firstLine;
+  document.querySelectorAll('.heatmap-cell').forEach(c => c.classList.remove('cell-selected'));
+  if (isSame) {
+    panel.classList.remove('show');
+    return;
+  }
+  title.textContent = firstLine;
+  body.textContent = info.split('\n').slice(1).join('\n');
+  panel.classList.add('show');
+  cell.classList.add('cell-selected');
+}
+
+// 2. 闭环自动巡航
+const tourSteps = [
+  { id: 'produce', name: '规则生产' },
+  { id: 'consume', name: '规则消费' },
+  { id: 'drift', name: '语义漂移' },
+  { id: 'alert', name: '告警触发' },
+  { id: 'iterate', name: '规则迭代' }
+];
+let tourTimer = null, tourIdx = 0;
+
+function tourShow(step) {
+  document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('active', 'touring'));
+  const nodes = document.querySelectorAll('.pipeline-flow .flow-node');
+  const idx = tourSteps.findIndex(s => s.id === step.id);
+  if (nodes[idx]) nodes[idx].classList.add('active', 'touring');
+  document.querySelectorAll('.flow-detail-panel').forEach(p => p.classList.remove('show'));
+  document.getElementById('flow-detail-' + step.id).classList.add('show');
+  document.getElementById('tour-step-name').textContent = step.name;
+}
+
+function toggleLoopTour() {
+  const btn = document.getElementById('loop-play-btn');
+  const progress = document.getElementById('tour-progress');
+  if (tourTimer) {
+    stopLoopTour();
+    return;
+  }
+  btn.classList.add('playing');
+  btn.textContent = '⏸ 停止巡航';
+  progress.classList.add('show');
+  tourIdx = 0;
+  tourShow(tourSteps[0]);
+  tourTimer = setInterval(() => {
+    tourIdx = (tourIdx + 1) % tourSteps.length;
+    tourShow(tourSteps[tourIdx]);
+  }, 2200);
+}
+
+function stopLoopTour() {
+  clearInterval(tourTimer);
+  tourTimer = null;
+  const btn = document.getElementById('loop-play-btn');
+  btn.classList.remove('playing');
+  btn.textContent = '▶ 闭环巡航';
+  document.getElementById('tour-progress').classList.remove('show');
+  document.querySelectorAll('.flow-node').forEach(n => n.classList.remove('touring'));
+}
+
+// 点击任意节点 = 接管（停止巡航）
+document.querySelectorAll('.pipeline-flow .flow-node').forEach(n => {
+  n.addEventListener('click', () => { if (tourTimer) stopLoopTour(); });
+});
+
+// 1. 滚动联动：验证条跟随当前视口环节 + 卡片入场动画
+window.addEventListener('DOMContentLoaded', () => {
+  const stepIds = ['machine-struct', 'machine-consume', 'machine-intercept', 'role-produce', 'role-consume', 'role-iterate'];
+  const cells = document.querySelectorAll('.validation-cell');
+
+  // 进度条预置 0 宽，入视图再展开
+  document.querySelectorAll('.progress-fill').forEach(f => f.classList.add('pre-anim'));
+  const donutCard = document.getElementById('role-consume');
+  document.querySelectorAll('.donut-arc').forEach(c => c.setAttribute('stroke-dasharray', '0 440'));
+
+  // 持续联动：验证条跟随当前视口环节
+  const spy = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const idx = stepIds.indexOf(e.target.id);
+      if (idx >= 0 && cells[idx]) {
+        cells.forEach(c => c.classList.remove('spy-active'));
+        cells[idx].classList.add('spy-active');
+      }
+    });
+  }, { threshold: 0.35 });
+  stepIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) spy.observe(el);
+  });
+
+  // 一次性：入场动画 / 进度条展开 / 仪表盘加载
+  const once = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add('reveal');
+      e.target.querySelectorAll('.progress-fill').forEach(f => f.classList.remove('pre-anim'));
+      if (e.target === donutCard) {
+        e.target.querySelectorAll('.donut-arc').forEach(c => {
+          c.setAttribute('stroke-dasharray', c.dataset.target);
+        });
+      }
+      once.unobserve(e.target);
+    });
+  }, { threshold: 0.2 });
+  stepIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) once.observe(el);
+  });
+});
+</script>
 </body>
 </html>

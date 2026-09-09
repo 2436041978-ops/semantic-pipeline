@@ -2,373 +2,556 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Schema-As-Code · 契约消费追踪演示</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>双重闭环验证演示 · Schema-As-Code</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  :root {
-    --primary: #1677ff; --bg: #0f0f12; --card-bg: #1a1a1e;
-    --surface: #16161a; --text-primary: rgba(255,255,255,0.92); --text-secondary: rgba(255,255,255,0.65);
-    --text-tertiary: rgba(255,255,255,0.45); --border: #2a2a2e; --border-light: #3a3a3e;
-    --radius: 12px; --radius-sm: 8px; --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-top: env(safe-area-inset-top, 0px);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-  body { background: var(--bg); min-height: 100vh; padding-bottom: calc(80px + var(--safe-bottom)); overflow-x: hidden; }
-  .text-display { font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; }
-  .text-h1 { font-size: 20px; font-weight: 700; line-height: 1.3; }
-  .text-h2 { font-size: 17px; font-weight: 700; line-height: 1.35; }
-  .text-body { font-size: 15px; font-weight: 500; line-height: 1.6; }
-  .text-caption { font-size: 13px; font-weight: 500; line-height: 1.5; }
-  .text-label { font-size: 12px; font-weight: 600; line-height: 1.4; letter-spacing: 0.02em; }
-  .text-micro { font-size: 11px; font-weight: 600; line-height: 1.4; }
-  .sticky-header { position: sticky; top: 0; z-index: 100; background: rgba(15,15,18,0.92); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-bottom: 1px solid var(--border); padding-top: var(--safe-top); }
-  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-  .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease; opacity: 0; }
-  .collapsible-content.open { max-height: 9000px; opacity: 1; }
-  .chevron { transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
-  .chevron.rotated { transform: rotate(180deg); }
-  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: rgba(15,15,18,0.95); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); border-top: 1px solid var(--border); padding-bottom: var(--safe-bottom); display: flex; justify-content: space-around; align-items: center; height: 64px; }
-  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 16px; border-radius: 10px; color: var(--text-tertiary); cursor: pointer; user-select: none; }
-  .nav-item.active { color: var(--primary); }
-  .nav-item .nav-icon { font-size: 18px; font-weight: 700; }
-  .nav-item .nav-label { font-size: 10px; font-weight: 600; }
-  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-  .badge-red { background: rgba(207,19,34,0.15); color: #cf1322; border: 1px solid rgba(207,19,34,0.3); }
-  .badge-amber { background: rgba(245,158,11,0.15); color: #f5a623; border: 1px solid rgba(245,158,11,0.3); }
-  .badge-blue { background: rgba(22,119,255,0.15); color: #4a9eff; border: 1px solid rgba(22,119,255,0.3); }
-  .badge-green { background: rgba(82,196,26,0.15); color: #6abe4a; border: 1px solid rgba(82,196,26,0.3); }
-  .badge-purple { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
-  .badge-gray { background: #1e1e22; color: #a0a0a0; border: 1px solid #3a3a3e; }
-  .gradient-text { background: linear-gradient(135deg, #1677ff, #36cfc9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .divider { height: 1px; background: var(--border); margin: 16px 0; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; transition: transform 0.15s ease, opacity 0.2s; user-select: none; }
-  .btn:active { transform: scale(0.96); }
-  .btn-primary { background: var(--primary); color: #fff; }
-  .btn-ghost { background: var(--surface); color: var(--text-secondary); border: 1px solid var(--border); }
-  .tab { padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; background: var(--surface); color: var(--text-tertiary); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; user-select: none; }
-  .tab.on { background: rgba(22,119,255,0.15); color: #4a9eff; border-color: rgba(22,119,255,0.4); }
-  .cp { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 5px; }
-  .cp-name { font-size: 11px; font-weight: 700; color: var(--text-primary); font-family: 'SF Mono', monospace; }
-  .v-ok { font-size: 10px; font-weight: 700; color: #6abe4a; }
-  .v-lag { font-size: 10px; font-weight: 700; color: #f5a623; }
-  .fade { animation: fadeIn 0.3s ease; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-  .alert { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 6px; }
-  .grid-table { display: grid; grid-template-columns: 92px repeat(4, 1fr); gap: 3px; font-size: 10px; }
-  .gt-cell { border-radius: 5px; padding: 7px 4px; text-align: center; background: #16161a; border: 1px solid var(--border); color: var(--text-secondary); font-weight: 600; }
-  .gt-head { color: var(--text-tertiary); font-weight: 700; display: flex; align-items: center; justify-content: center; }
-  .gt-ok { color: #6abe4a; } .gt-lag { color: #f5a623; border-color: rgba(245,158,11,0.35); }
+:root{
+  --bg:#0f0f12; --card-bg:#1a1a1e; --surface:#16161a;
+  --primary:#1677ff; --success:#52c41a; --success2:#6abe4a; --warn:#f5a623; --error:#cf1322;
+  --info:#4a9eff; --purple:#a855f7; --cyan:#36cfc9;
+  --radius:12px; --radius-sm:8px;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:#e8e8ea;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;font-size:15px;line-height:1.6;padding-bottom:calc(80px + var(--safe-bottom));}
+.wrap{padding:0 16px;}
+.text-display{font-size:24px;font-weight:800;line-height:1.3;}
+.text-h2{font-size:17px;font-weight:700;}
+.text-h3{font-size:15px;font-weight:700;}
+.text-caption{font-size:13px;color:#9a9aa2;}
+.text-label{font-size:12px;color:#8b8b93;}
+.text-micro{font-size:11px;color:#6d6d75;}
+.gradient-text{background:linear-gradient(90deg,#1677ff,#36cfc9);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.sticky-header{position:sticky;top:0;z-index:50;background:rgba(15,15,18,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:calc(10px + var(--safe-top)) 16px 10px;border-bottom:1px solid #26262c;}
+.card{background:var(--card-bg);border:1px solid #26262c;border-radius:var(--radius);padding:14px;margin:14px 0;}
+.surface{background:var(--surface);border:1px solid #232329;border-radius:var(--radius-sm);padding:12px;}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;line-height:1.6;}
+.b-red{background:rgba(207,19,34,.15);color:#ff6b74;border:1px solid rgba(207,19,34,.35);}
+.b-amber{background:rgba(245,166,35,.15);color:#f5a623;border:1px solid rgba(245,166,35,.35);}
+.b-blue{background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.35);}
+.b-green{background:rgba(82,196,26,.15);color:#6abe4a;border:1px solid rgba(82,196,26,.35);}
+.b-purple{background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.35);}
+.b-gray{background:rgba(255,255,255,.06);color:#9a9aa2;border:1px solid #33333a;}
+.code-block{background:#0d0d0d;border:1px solid #26262c;border-radius:var(--radius-sm);padding:12px;font-family:"SF Mono",Menlo,Consolas,monospace;font-size:11px;line-height:1.65;white-space:pre-wrap;word-break:break-all;color:#c9d1d9;margin:10px 0;}
+.collapse-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:14px;}
+.chevron{transition:transform .3s;color:#6d6d75;font-size:12px;}
+.collapsible-content{max-height:0;overflow:hidden;opacity:0;transition:max-height .5s ease,opacity .4s ease;}
+.collapsible-content.open{max-height:14000px;opacity:1;}
+.open>.collapse-head .chevron{transform:rotate(180deg);}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;height:calc(64px + var(--safe-bottom));padding-bottom:var(--safe-bottom);background:rgba(22,22,26,.92);backdrop-filter:blur(14px);border-top:1px solid #26262c;display:flex;z-index:60;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#8b8b93;text-decoration:none;font-size:11px;}
+.nav-item.active{color:var(--primary);}
+.nav-item .ni{font-size:18px;}
+.quote{border-left:3px solid var(--primary);background:rgba(22,119,255,.06);padding:10px 12px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin:10px 0;font-size:13px;color:#c9c9cf;}
+/* 状态宫格 */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.stat-cell{background:var(--surface);border:1px solid #232329;border-radius:var(--radius-sm);padding:10px;text-align:center;}
+.stat-cell .si{font-size:18px;}
+.stat-cell .sv{font-size:11px;font-weight:700;margin-top:2px;}
+/* 架构节点 */
+.loop-node{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid #2c2c34;border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:border-color .25s,background .25s;}
+.loop-node.hl{border-color:var(--primary);background:rgba(22,119,255,.1);box-shadow:0 0 0 1px rgba(22,119,255,.4);}
+.loop-node .li{font-size:18px;}
+.chain-node{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid #2c2c34;border-radius:var(--radius-sm);padding:12px;margin-bottom:6px;cursor:pointer;transition:border-color .25s,background .25s;}
+.chain-node.hl{border-color:var(--cyan);background:rgba(54,207,201,.08);}
+.chain-arrow{text-align:center;color:#4a9eff;font-size:12px;margin:2px 0;}
+.btn{display:inline-block;background:var(--primary);color:#fff;border:none;border-radius:99px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn.ghost{background:transparent;border:1px solid #33333a;color:#9a9aa2;}
+.btn.done{background:rgba(82,196,26,.15);color:#6abe4a;border:1px solid rgba(82,196,26,.4);}
+/* 表格 */
+.table-scroll{overflow-x:auto;margin:0 -16px;padding:0 16px;}
+.mobile-table{width:100%;min-width:560px;border-collapse:collapse;font-size:11px;}
+.mobile-table th{background:#0d0d0d;color:#8b8b93;font-weight:600;padding:8px;text-align:left;border-bottom:1px solid #26262c;white-space:nowrap;}
+.mobile-table td{padding:8px;border-bottom:1px solid #22222a;vertical-align:top;}
+.mobile-table tr:last-child td{border-bottom:none;}
+/* 热力图 */
+.heat{width:100%;border-collapse:collapse;font-size:11px;}
+.heat th{color:#8b8b93;padding:6px;text-align:left;font-weight:600;}
+.heat td{padding:6px;}
+.heat-cell{display:block;text-align:center;padding:7px 4px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;transition:transform .15s;}
+.heat-cell:active{transform:scale(.94);}
+.hc-ok{background:rgba(82,196,26,.15);color:#6abe4a;border:1px solid rgba(82,196,26,.35);}
+.hc-lag{background:rgba(245,166,35,.15);color:#f5a623;border:1px solid rgba(245,166,35,.4);}
+.hc-bad{background:rgba(207,19,34,.15);color:#ff6b74;border:1px solid rgba(207,19,34,.4);}
+.hc-na{background:rgba(255,255,255,.04);color:#5a5a62;border:1px solid #2a2a30;}
+.hc-sel{outline:2px solid var(--primary);}
+/* 进度条 */
+.progress-track{height:8px;background:#26262c;border-radius:99px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:99px;transition:width .6s ease;}
+/* AB 对比 */
+.ba-before{border:1px solid rgba(207,19,34,.35);background:rgba(207,19,34,.06);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;}
+.ba-after{border:1px solid rgba(82,196,26,.35);background:rgba(82,196,26,.06);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;}
+/* 步骤链 */
+.step-chain{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:11px;margin:8px 0;}
+.step{padding:4px 8px;border-radius:99px;border:1px solid #33333a;color:#6d6d75;font-weight:600;}
+.step.done{background:rgba(82,196,26,.12);border-color:rgba(82,196,26,.4);color:#6abe4a;}
+.step.cur{background:rgba(245,166,35,.12);border-color:rgba(245,166,35,.5);color:#f5a623;}
+.step-arr{color:#4a4a52;}
+/* 告警 */
+.alert-card{border:1px solid #2c2c34;border-radius:var(--radius-sm);background:var(--surface);margin-bottom:12px;overflow:hidden;}
+.alert-head{display:flex;align-items:center;justify-content:space-between;padding:12px;cursor:pointer;}
+.alert-body{display:none;padding:0 12px 12px;}
+.alert-card.open .alert-body{display:block;animation:fade .3s;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.act-btn{flex:1;padding:8px 4px;border-radius:8px;border:1px solid #33333a;background:#0d0d0d;color:#c9c9cf;font-size:12px;font-weight:600;cursor:pointer;text-align:center;}
+.act-btn.sel{border-color:var(--primary);color:#4a9eff;background:rgba(22,119,255,.1);}
+/* 时间线 */
+.timeline{position:relative;padding-left:20px;}
+.timeline:before{content:'';position:absolute;left:2px;top:6px;bottom:6px;width:2px;background:#2c2c34;}
+.tl-item{position:relative;padding-bottom:14px;}
+.tl-item:before{content:'';position:absolute;left:-21px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--primary);border:2px solid var(--bg);}
+.tl-item.tl-warn:before{background:var(--warn);}
+.tl-item.tl-err:before{background:var(--error);}
 </style>
 <base target="_blank">
 </head>
 <body>
 
-<!-- 粘性头部 -->
-<div class="sticky-header">
-  <div style="padding: 12px 16px;">
-    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-      <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #1677ff, #36cfc9); display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 800;">S</div>
-      <span class="text-caption" style="color: var(--text-tertiary);">Schema-As-Code · 阶段二 · 契约消费追踪</span>
+<header class="sticky-header">
+  <div class="text-label">← Schema-As-Code / 双重闭环验证演示</div>
+  <div class="text-h2" style="margin-top:4px;">双重闭环验证演示 <span class="badge b-purple" style="vertical-align:2px;">Dual Closed-Loop</span></div>
+</header>
+
+<div class="wrap">
+
+  <!-- 导语 + 状态宫格 -->
+  <div class="card">
+    <div class="text-caption" style="margin-bottom:8px;">阶段三 · 双重闭环验证 · 机器闭环 + 角色闭环</div>
+    <div class="text-display gradient-text" style="font-size:22px;">契约不是写完就结束，<br>必须证明它被消费、被拦截、被迭代</div>
+    <p class="text-body" style="margin-top:10px;color:#c9c9cf;">机器闭环：结构一致 → 消费有效 → 拦截有效。角色闭环：规则生产 → 规则消费 → 规则迭代。</p>
+    <div class="stat-grid" style="margin-top:12px;">
+      <div class="stat-cell"><div class="si">🔍</div><div class="text-micro">结构一致</div><div class="sv" style="color:#6abe4a;">✓ 通过</div></div>
+      <div class="stat-cell"><div class="si">📊</div><div class="text-micro">消费有效</div><div class="sv" style="color:#f5a623;">⚠ 1滞后</div></div>
+      <div class="stat-cell"><div class="si">🛡️</div><div class="text-micro">拦截有效</div><div class="sv" style="color:#6abe4a;">✓ 95%</div></div>
+      <div class="stat-cell"><div class="si">✏️</div><div class="text-micro">生产持续</div><div class="sv" style="color:#6abe4a;">✓ 正常</div></div>
+      <div class="stat-cell"><div class="si">👁️</div><div class="text-micro">消费真实</div><div class="sv" style="color:#6abe4a;">✓ 75%</div></div>
+      <div class="stat-cell"><div class="si">🔄</div><div class="text-micro">迭代闭环</div><div class="sv" style="color:#f5a623;">⚠ 1待处理</div></div>
     </div>
-    <h1 class="text-display" style="margin-bottom: 4px;"><span class="gradient-text">契约消费追踪演示</span></h1>
-    <p class="text-caption" style="color: var(--text-tertiary);">版本与下游消费面自动对齐 · 团队隔离追踪</p>
-  </div>
-</div>
-
-<div style="padding: 0 16px;">
-
-  <!-- 导语 -->
-  <div class="card" style="margin-top: 16px; margin-bottom: 12px; border-left: 3px solid var(--primary);">
-    <div style="padding: 16px;">
-      <p class="text-body" style="color: var(--text-secondary); line-height: 1.8;">
-        消费点按团队身份<span style="color: var(--text-primary); font-weight: 700;">注册、分别追踪、分别对账、分别告警</span>。团队间数据不互通，组织级视角由系统自动聚合。
-      </p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">
+      <span class="badge b-green">机器闭环 3/3</span><span class="badge b-green">角色闭环 3/3</span>
+      <span class="badge b-blue">组织级基线 v1.1.0</span><span class="badge b-gray">3 团队 · 12 活跃消费者</span>
     </div>
   </div>
 
-  <!-- Step 1 消费点注册 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-        <span class="badge badge-blue">01</span>
-        <h2 class="text-h2">Step 1 · 消费点注册</h2>
+  <!-- 0 双重闭环架构全景 -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-arch')">
+      <div>
+        <div class="text-label">Dual Loop Architecture · 点击节点查看阶段详情 · 或启动自动巡航</div>
+        <div class="text-h2" style="margin-top:2px;">0 双重闭环架构全景</div>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-bottom: 12px;">单团队 → 多团队，消费点如何分裂？每条记录强制携带 team 字段</p>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-arch" class="collapsible-content open">
+      <div style="padding:0 14px 14px;">
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+          <button class="btn" id="cruise-btn" onclick="startCruise()">▶ 闭环巡航</button>
+          <span class="text-micro" id="cruise-tip">巡航将依次点亮 5 个阶段</span>
+        </div>
 
-      <div id="s1-single">
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">单团队消费点注册表</p>
-        <div class="cp"><span class="cp-name">service-prompt</span><span class="v-ok">Prompt 前缀 · v1.1.0</span></div>
-        <div class="cp"><span class="cp-name">alert-validator</span><span class="v-ok">组件校验 · v1.1.0</span></div>
-        <div class="cp"><span class="cp-name">ci-stylelint</span><span class="v-ok">CI 规则 · v1.1.0</span></div>
-        <div class="cp"><span class="cp-name">schema-check</span><span class="v-ok">JSON Schema · v1.1.0</span></div>
-        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="s1split()">⚡ 加入更多团队 →</button>
+        <div class="text-h3" style="margin-bottom:8px;">🤖 机器闭环 <span class="badge b-green">3/3 通过</span></div>
+        <div class="loop-node" onclick="stageDetail('m1')"><span class="li">🔍</span><div style="flex:1;"><b class="text-body">结构一致性验证</b><div class="text-micro">四种格式说的是同一件事</div></div><span class="badge b-green">✓ 100%</span></div>
+        <div class="loop-node" onclick="stageDetail('m2')"><span class="li">📊</span><div style="flex:1;"><b class="text-body">消费有效性验证</b><div class="text-micro">真实加载了吗？版本滞后吗？</div></div><span class="badge b-amber">⚠ 1 滞后</span></div>
+        <div class="loop-node" onclick="stageDetail('m3')"><span class="li">🛡️</span><div style="flex:1;"><b class="text-body">拦截有效性验证</b><div class="text-micro">真的拦住了语义漂移吗？A/B 对比</div></div><span class="badge b-green">✓ 95%</span></div>
+
+        <div class="text-h3" style="margin:12px 0 8px;">👥 角色闭环 <span class="badge b-green">3/3 运行中</span></div>
+        <div class="loop-node" onclick="stageDetail('r1')"><span class="li">✏️</span><div style="flex:1;"><b class="text-body">规则生产者验证</b><div class="text-micro">持续产出吗？人均产出趋势？</div></div><span class="badge b-green">✓ 正常</span></div>
+        <div class="loop-node" onclick="stageDetail('r2')"><span class="li">👁️</span><div style="flex:1;"><b class="text-body">规则消费者验证</b><div class="text-micro">真实消费率 ≥80%？有假消费吗？</div></div><span class="badge b-green">✓ 75%</span></div>
+        <div class="loop-node" onclick="stageDetail('r3')"><span class="li">🔄</span><div style="flex:1;"><b class="text-body">规则迭代验证</b><div class="text-micro">告警 → 查看 → 处理 → 验证，链条在转吗？</div></div><span class="badge b-amber">⚠ 1 待处理</span></div>
+
+        <!-- 五阶段链（巡航目标） -->
+        <div class="text-h3" style="margin:14px 0 8px;">⛓ 闭环五阶段链</div>
+        <div class="chain-node" id="cn-0" onclick="chainDetail(0)"><span style="font-size:18px;">✏️</span><div><b class="text-body">规则生产</b><div class="text-micro">语义规则负责人</div></div></div>
+        <div class="chain-arrow">↓</div>
+        <div class="chain-node" id="cn-1" onclick="chainDetail(1)"><span style="font-size:18px;">📥</span><div><b class="text-body">规则消费</b><div class="text-micro">Prompt / Schema / CI</div></div></div>
+        <div class="chain-arrow">↓</div>
+        <div class="chain-node" id="cn-2" onclick="chainDetail(2)"><span style="font-size:18px;">⚠️</span><div><b class="text-body">语义漂移</b><div class="text-micro">被拦截或漏过</div></div></div>
+        <div class="chain-arrow">↓</div>
+        <div class="chain-node" id="cn-3" onclick="chainDetail(3)"><span style="font-size:18px;">🔔</span><div><b class="text-body">告警触发</b><div class="text-micro">沉默 / 滞后 / 断点</div></div></div>
+        <div class="chain-arrow">↓</div>
+        <div class="chain-node" id="cn-4" onclick="chainDetail(4)"><span style="font-size:18px;">🔄</span><div><b class="text-body">规则迭代</b><div class="text-micro">修订 / 归档 / 升级</div></div></div>
+        <div class="quote" id="chain-detail" style="display:none;"></div>
       </div>
+    </div>
+  </div>
 
-      <div id="s1-multi" style="display: none;">
-        <div class="fade">
-          <p class="text-label" style="color: #4a9eff; margin-bottom: 4px;">🟦 前端团队</p>
-          <div class="cp"><span class="cp-name">frontend-service-prompt</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">frontend-alert-validator</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">frontend-ci-stylelint</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">frontend-schema-check</span><span class="v-ok">v1.1.0</span></div>
-          <p class="text-label" style="color: #6abe4a; margin: 8px 0 4px;">🟩 支付团队</p>
-          <div class="cp"><span class="cp-name">payment-service-prompt</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">payment-alert-validator</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">payment-ci-rule</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">payment-schema-check</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">payment-checklist</span><span class="v-ok">v1.1.0</span></div>
-          <p class="text-label" style="color: #f5a623; margin: 8px 0 4px;">🟨 内部工具</p>
-          <div class="cp"><span class="cp-name">internal-service-prompt</span><span class="v-lag">v1.0.0</span></div>
-          <div class="cp"><span class="cp-name">internal-alert-validator</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">internal-ci-rule</span><span class="v-lag">v1.0.0</span></div>
-          <div class="cp"><span class="cp-name">internal-schema-check</span><span class="v-lag">v1.0.0</span></div>
-          <div class="cp"><span class="cp-name">internal-checklist</span><span class="v-ok">v1.1.0</span></div>
-          <p class="text-label" style="color: #a855f7; margin: 8px 0 4px;">🟪 设计团队</p>
-          <div class="cp"><span class="cp-name">design-service-prompt</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">design-alert-validator</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">design-checklist</span><span class="v-ok">v1.1.0</span></div>
-          <div class="cp"><span class="cp-name">design-schema-check</span><span class="v-lag">v1.0.0</span></div>
-          <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px; margin-top: 10px;">
-            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;"><span style="color: #f5a623; font-weight: 700;">💡 关键变化：</span>同一份 ERR-001.yaml 被 4 个团队分别消费。每个消费点是独立记录——即使消费同一格式，也分别追踪、分别对账。</p>
+  <!-- 1 结构一致性 -->
+  <div class="card" id="card-m1" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-struct')">
+      <div>
+        <div class="text-label">Structure Consistency · 四种格式说的是同一件事吗？</div>
+        <div class="text-h2" style="margin-top:2px;">1 机器闭环 · 结构一致性验证 <span class="badge b-green" style="vertical-align:2px;">通过</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-struct" class="collapsible-content">
+      <div style="padding:0 14px 14px;">
+        <div class="text-micro" style="margin-bottom:8px;">验证标准：语义令牌引用一致率 100% · 约束条款无遗漏 · 颜色/行动/文案映射一一对应</div>
+        <div class="table-scroll">
+          <table class="mobile-table">
+            <tr><th>比对项</th><th>Prompt 前缀</th><th>JSON Schema</th><th>Checklist</th><th>CI 规则</th><th>结果</th></tr>
+            <tr><td><b>fatal 语义令牌</b></td><td>"致命错误"</td><td>enum: ["fatal"]</td><td>"□ 是否区分四级"</td><td>severity !== "critical"</td><td><span class="badge b-green">✓ 一致</span></td></tr>
+            <tr><td><b>颜色约束</b></td><td>"必须使用红色脉冲"</td><td>color_token: "status.critical"</td><td>"□ 是否红色脉冲"</td><td>color === "status.critical"</td><td><span class="badge b-green">✓ 一致</span></td></tr>
+            <tr><td><b>行动约束</b></td><td>"必须提供刷新/导出"</td><td>recovery_action: {minItems: 1}</td><td>"□ 是否提供恢复路径"</td><td>actions.length &gt;= 1</td><td><span class="badge b-green">✓ 一致</span></td></tr>
+            <tr><td><b>degraded 文案</b></td><td>"禁止模糊表述"</td><td>forbidden_text: ["部分失败"]</td><td>"□ 是否避免模糊表述"</td><td>!text.match(/部分失败/)</td><td><span class="badge b-green">✓ 一致</span></td></tr>
+          </table>
+        </div>
+        <div class="surface" style="border-color:rgba(82,196,26,.35);background:rgba(82,196,26,.06);">✓ <b style="color:#6abe4a;">结构一致性验证通过</b> · 4 项比对全部一致 · 语义令牌引用一致率 100%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 消费有效性 -->
+  <div class="card" id="card-m2" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-consume')">
+      <div>
+        <div class="text-label">Consumption Validity · 被消费端真实加载了吗？版本滞后吗？</div>
+        <div class="text-h2" style="margin-top:2px;">2 机器闭环 · 消费有效性验证 <span class="badge b-amber" style="vertical-align:2px;">1 项滞后</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-consume" class="collapsible-content">
+      <div style="padding:0 14px 14px;">
+        <div class="text-micro" style="margin-bottom:8px;">验证标准：真实消费率 ≥80% · 版本同步率 100% · 无消费断点 · <b>点击热力图单元格查看详情</b></div>
+        <table class="heat">
+          <tr><th></th><th>Prompt</th><th>Schema</th><th>Checklist</th><th>CI</th></tr>
+          <tr><td><b>项目 A</b><span class="text-micro">（前端）</span></td>
+            <td><span class="heat-cell hc-ok" onclick="heatDetail(this,'项目 A · Prompt 前缀：v1.1.0 ✓ 与契约库同步')">v1.1.0 ✓</span></td>
+            <td><span class="heat-cell hc-lag" onclick="heatDetail(this,'项目 A · JSON Schema：v1.0.0 ⚠ 滞后于契约库 v1.1.0，建议 24 小时内升级')">v1.0.0 ⚠</span></td>
+            <td><span class="heat-cell hc-ok" onclick="heatDetail(this,'项目 A · Checklist：v1.1.0 ✓ 与契约库同步')">v1.1.0 ✓</span></td>
+            <td><span class="heat-cell hc-ok" onclick="heatDetail(this,'项目 A · CI 规则：v1.1.0 ✓ 与契约库同步')">v1.1.0 ✓</span></td></tr>
+          <tr><td><b>项目 B</b><span class="text-micro">（AI）</span></td>
+            <td><span class="heat-cell hc-ok" onclick="heatDetail(this,'项目 B · Prompt 前缀：v1.1.0 ✓ 与契约库同步')">v1.1.0 ✓</span></td>
+            <td><span class="heat-cell hc-bad" onclick="heatDetail(this,'项目 B · JSON Schema：未配置 ✗ 属于消费断点——注册了消费场景但从未接入 Schema 校验')">未配置 ✗</span></td>
+            <td><span class="heat-cell hc-ok" onclick="heatDetail(this,'项目 B · Checklist：v1.1.0 ✓ 与契约库同步')">v1.1.0 ✓</span></td>
+            <td><span class="heat-cell hc-na" onclick="heatDetail(this,'项目 B · CI 规则：— 不适用（AI 项目无前端流水线）')">—</span></td></tr>
+          <tr><td><b>项目 C</b><span class="text-micro">（设计）</span></td>
+            <td><span class="heat-cell hc-na" onclick="heatDetail(this,'项目 C · Prompt 前缀：— 不适用')">—</span></td>
+            <td><span class="heat-cell hc-na" onclick="heatDetail(this,'项目 C · JSON Schema：— 不适用')">—</span></td>
+            <td><span class="heat-cell hc-ok" onclick="heatDetail(this,'项目 C · Checklist：v1.1.0 ✓ 与契约库同步')">v1.1.0 ✓</span></td>
+            <td><span class="heat-cell hc-na" onclick="heatDetail(this,'项目 C · CI 规则：— 不适用')">—</span></td></tr>
+        </table>
+        <div class="quote" id="heat-tip" style="display:none;"></div>
+        <div class="stat-grid" style="margin-top:10px;">
+          <div class="stat-cell"><div class="text-h2" style="color:#6abe4a;">75%</div><div class="text-micro">真实消费率<br>9/12 真实加载</div></div>
+          <div class="stat-cell"><div class="text-h2" style="color:#f5a623;">83%</div><div class="text-micro">版本同步率<br>10/12 版本同步</div></div>
+          <div class="stat-cell"><div class="text-h2" style="color:#ff6b74;">1 项</div><div class="text-micro">消费断点<br>项目 B Schema 未配置</div></div>
+        </div>
+        <div class="surface" style="margin-top:10px;border-color:rgba(245,166,35,.4);background:rgba(245,166,35,.06);">⚠ <b style="color:#f5a623;">消费有效性异常：</b>项目 A 的 JSON Schema 引用 v1.0.0，滞后于契约库 v1.1.0。建议 24 小时内升级。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 拦截有效性 -->
+  <div class="card" id="card-m3" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-ab')">
+      <div>
+        <div class="text-label">Intercept Validity · 加载后真的拦住了语义漂移吗？</div>
+        <div class="text-h2" style="margin-top:2px;">3 机器闭环 · 拦截有效性验证 <span class="badge b-green" style="vertical-align:2px;">95% 通过</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-ab" class="collapsible-content">
+      <div style="padding:0 14px 14px;">
+        <div class="text-micro" style="margin-bottom:8px;">验证标准：对抗用例通过率 ≥90% · 有约束组合规率 vs 无约束组差异显著</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button class="btn" id="ab-btn-a" style="flex:1;" onclick="abView('a')">❌ 无约束组</button>
+          <button class="btn ghost" id="ab-btn-b" style="flex:1;" onclick="abView('b')">✅ 有约束组</button>
+        </div>
+        <div id="ab-a">
+          <div class="ba-before">
+            <div class="text-h3" style="color:#ff6b74;">❌ 无约束组（纯 Prompt）</div>
+            <div class="code-block">输入："生成删除账户按钮"
+
+AI 输出：蓝色实心"确认"按钮
+无二次确认 · 无风险提示</div>
+            <span class="badge b-red">❌ 语义漂移 · 高危操作未约束</span>
           </div>
-          <button class="btn btn-ghost" style="width: 100%; margin-top: 10px;" onclick="s1reset()">↺ 收起</button>
+        </div>
+        <div id="ab-b" style="display:none;">
+          <div class="ba-after">
+            <div class="text-h3" style="color:#6abe4a;">✅ 有约束组（Prompt + ACT-001 契约）</div>
+            <div class="code-block">输入："生成删除账户按钮"
++ ACT-001 Prompt 前缀约束
+
+AI 输出：红色空心"删除账户"按钮
+带二次确认弹窗 · 明确提示"不可恢复"</div>
+            <span class="badge b-green">✅ 语义合规 · 约束生效</span>
+          </div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-cell"><div class="text-h2" style="color:#6abe4a;">95%</div><div class="text-micro">对抗用例通过率<br>12/12 通过</div></div>
+          <div class="stat-cell"><div class="text-h2" style="color:#6abe4a;">95%</div><div class="text-micro">有约束组合规率<br>语义一致性达标</div></div>
+          <div class="stat-cell"><div class="text-h2" style="color:#ff6b74;">20%</div><div class="text-micro">无约束组合规率<br>语义漂移严重</div></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Step 2 团队隔离追踪 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-        <span class="badge badge-blue">02</span>
-        <h2 class="text-h2">Step 2 · 团队隔离追踪</h2>
+  <!-- 4 规则生产者 -->
+  <div class="card" id="card-r1" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-prod')">
+      <div>
+        <div class="text-label">Rule Producer · 语义规则负责人持续产出规则吗？</div>
+        <div class="text-h2" style="margin-top:2px;">4 角色闭环 · 规则生产者验证 <span class="badge b-green" style="vertical-align:2px;">正常</span></div>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-bottom: 12px;">前端团队登录后，能看到内部工具团队的消费点吗？</p>
-      <div style="display: flex; gap: 6px; margin-bottom: 10px;">
-        <div class="tab on" id="tab-fe" onclick="s2view('fe')">🟦 前端团队视角</div>
-        <div class="tab" id="tab-it" onclick="s2view('it')">🟨 内部工具团队视角</div>
-      </div>
-
-      <div id="s2-fe" class="fade">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-          <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🟦 前端团队</p>
-          <span class="badge badge-green" style="font-size: 9px;">4 个消费点 · 覆盖率 92%</span>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-prod" class="collapsible-content">
+      <div style="padding:0 14px 14px;">
+        <div class="text-micro" style="margin-bottom:8px;">验证标准：人均每月 ≥1 条修订 · 每季度新增 ≥1 个漂移模式</div>
+        <div class="stat-grid">
+          <div class="stat-cell"><div class="text-h2" style="color:#4a9eff;">1.2</div><div class="text-micro">人均月修订数<br>3+5 人月均 9.6 条</div></div>
+          <div class="stat-cell"><div class="text-h2" style="color:#c084fc;">2</div><div class="text-micro">本季新增模式<br>PRO-002 / ALR-002</div></div>
+          <div class="stat-cell"><div class="text-h2" style="color:#6abe4a;">8</div><div class="text-micro">活跃规则负责人<br>14 总契约数</div></div>
         </div>
-        <div class="cp"><span class="cp-name">frontend-service-prompt</span><span class="v-ok">v1.1.0</span></div>
-        <div class="cp"><span class="cp-name">frontend-alert-validator</span><span class="v-ok">v1.1.0</span></div>
-        <div class="cp"><span class="cp-name">frontend-ci-stylelint</span><span class="v-ok">v1.1.0</span></div>
-        <div class="cp"><span class="cp-name">frontend-schema-check</span><span class="v-lag">v1.0.0 滞后</span></div>
-        <p class="text-micro" style="color: #4a9eff; margin-top: 8px;">🟦 这是你的团队。你只能看到这 4 个消费点。</p>
-      </div>
-
-      <div id="s2-it" style="display: none;" class="fade">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-          <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🟨 内部工具团队</p>
-          <span class="badge badge-amber" style="font-size: 9px;">5 个消费点 · 覆盖率 40%</span>
+        <div class="text-h3" style="margin:12px 0 8px;">规则负责人活跃度</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div><div class="text-caption" style="margin-bottom:4px;">规范评审组 · 张三 <b style="color:#6abe4a;">92%</b></div><div class="progress-track"><div class="progress-fill" style="width:92%;background:#52c41a;"></div></div></div>
+          <div><div class="text-caption" style="margin-bottom:4px;">规范评审组 · 李四 <b style="color:#6abe4a;">85%</b></div><div class="progress-track"><div class="progress-fill" style="width:85%;background:#52c41a;"></div></div></div>
+          <div><div class="text-caption" style="margin-bottom:4px;">前端团队 · 王五 <b style="color:#4a9eff;">78%</b></div><div class="progress-track"><div class="progress-fill" style="width:78%;background:#4a9eff;"></div></div></div>
+          <div><div class="text-caption" style="margin-bottom:4px;">后端团队 · 赵六 <b style="color:#f5a623;">65%</b></div><div class="progress-track"><div class="progress-fill" style="width:65%;background:#f5a623;"></div></div></div>
         </div>
-        <div class="cp"><span class="cp-name">internal-service-prompt</span><span class="v-lag">v1.0.0</span></div>
-        <div class="cp"><span class="cp-name">internal-alert-validator</span><span class="v-ok">v1.1.0</span></div>
-        <div class="cp"><span class="cp-name">internal-ci-rule</span><span class="v-lag">v1.0.0</span></div>
-        <div class="cp"><span class="cp-name">internal-schema-check</span><span class="v-lag">v1.0.0</span></div>
-        <div class="cp"><span class="cp-name">internal-checklist</span><span class="v-ok">v1.1.0</span></div>
-        <p class="text-micro" style="color: #f5a623; margin-top: 8px;">🟨 这是你的团队。你只能看到这 5 个消费点。</p>
-      </div>
-
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-top: 10px;">
-        <p class="text-micro" style="color: var(--text-tertiary);">🔒 其他团队数据已隔离，你无法查看</p>
       </div>
     </div>
   </div>
 
-  <!-- Step 3 对账与告警 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-        <span class="badge badge-amber">03</span>
-        <h2 class="text-h2">Step 3 · 对账与告警</h2>
+  <!-- 5 规则消费者 -->
+  <div class="card" id="card-r2" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-real')">
+      <div>
+        <div class="text-label">Rule Consumer · 真实消费率 ≥80% 吗？有没有假消费？</div>
+        <div class="text-h2" style="margin-top:2px;">5 角色闭环 · 规则消费者验证 <span class="badge b-green" style="vertical-align:2px;">75%</span></div>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-bottom: 12px;">内部工具团队 3 个消费点仍在 v1.0.0——告警发给谁？</p>
-      <button class="btn btn-primary" style="width: 100%; margin-bottom: 10px;" id="s3btn" onclick="s3run()">🔍 执行对账</button>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-real" class="collapsible-content">
+      <div style="padding:0 14px 14px;">
+        <div class="text-micro" style="margin-bottom:8px;">验证标准：真实消费率 ≥80% · 假引用（注册但未引用）= 0</div>
+        <div class="surface" style="text-align:center;padding:16px;">
+          <div class="text-display" style="font-size:32px;color:#6abe4a;">75%</div>
+          <div class="text-caption">真实消费率</div>
+          <div style="display:flex;gap:6px;justify-content:center;margin-top:8px;">
+            <span class="badge b-green">9 真实加载</span><span class="badge b-amber">1 假引用</span><span class="badge b-red">2 未配置</span>
+          </div>
+        </div>
+        <div class="text-h3" style="margin:12px 0 8px;">假引用检测（Lint 扫描）</div>
+        <div class="surface" style="border-color:rgba(245,166,35,.4);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <b class="text-body">项目 D · 注册但未引用</b><span class="badge b-amber">假引用</span>
+          </div>
+          <div class="text-caption" style="margin-top:6px;">该项目在规则仓库目录结构中注册了 Checklist 消费点，但 Lint 扫描发现最近 30 天内<b style="color:#f5a623;">零次引用</b>。</div>
+          <div class="text-micro" style="margin-top:6px;">注册时间：2026-06-01 · 最后引用：2026-06-15<br>建议：确认是否已弃用，若弃用则申请归档</div>
+        </div>
+        <div class="surface" style="margin-top:8px;border-color:rgba(82,196,26,.3);">✓ 其余 8 个消费点均通过 Lint 扫描，真实引用频率正常</div>
+      </div>
+    </div>
+  </div>
 
-      <div id="s3-result" style="display: none;">
-        <div class="fade">
-          <div style="background: rgba(82,196,26,0.08); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🟦 前端团队通知中心</p>
-              <span class="badge badge-green" style="font-size: 9px;">✓ 无新告警</span>
+  <!-- 6 规则迭代 -->
+  <div class="card" id="card-r3" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-iter')">
+      <div>
+        <div class="text-label">Rule Iteration · 告警被发出 → 被查看 → 被处理 → 被验证</div>
+        <div class="text-h2" style="margin-top:2px;">6 角色闭环 · 规则迭代验证 <span class="badge b-amber" style="vertical-align:2px;">1 待处理</span></div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-iter" class="collapsible-content">
+      <div style="padding:0 14px 14px;">
+        <div class="text-micro" style="margin-bottom:8px;">验证标准：告警处理时效 ≤7 天 · 处理按钮必须人来按 · 系统强制留痕 · <b>点击告警展开详情</b></div>
+
+        <div class="alert-card open" id="alert-1">
+          <div class="alert-head" onclick="toggleAlert('alert-1')">
+            <div><b class="text-body">⚠️ PRO-001 沉默规则</b><div class="text-micro">30 天零消费</div></div>
+            <span class="badge b-amber">已查看</span>
+          </div>
+          <div class="alert-body">
+            <div class="text-caption">过程状态认知阶段未显化（PRO-001）已连续 30 天无消费端加载，可能已被团队弃用或存在替代规则。</div>
+            <div class="step-chain" id="chain-1">
+              <span class="step done">✓ 已发出</span><span class="step-arr">→</span>
+              <span class="step cur">● 已查看</span><span class="step-arr">→</span>
+              <span class="step" id="st-1-p">○ 待处理</span><span class="step-arr">→</span>
+              <span class="step" id="st-1-v">○ 待验证</span>
             </div>
-            <p class="text-micro" style="color: var(--text-secondary);">你的团队消费点全部正常<br><span style="color: var(--text-tertiary);">内部工具团队的滞后告警不会出现在这里</span></p>
-          </div>
-          <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-              <p class="text-caption" style="color: var(--text-primary); font-weight: 700;">🟨 内部工具团队通知中心</p>
-              <span class="badge badge-amber" style="font-size: 9px;">3 条新告警</span>
+            <div style="display:flex;gap:8px;margin:10px 0;">
+              <button class="act-btn" id="ab-1a" onclick="alertAction(1,'处理')">标记已处理</button>
+              <button class="act-btn" id="ab-1b" onclick="alertAction(1,'修订')">提交修订申请</button>
+              <button class="act-btn" id="ab-1c" onclick="alertAction(1,'归档')">申请归档</button>
             </div>
-            <div class="alert"><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">⚠ 消费版本滞后 · internal-service-prompt</p><p class="text-micro" style="color: var(--text-secondary);">仍使用 v1.0.0 · 组织级基线已升级至 v1.1.0 · 责任人：李四（团队治理接口人）</p></div>
-            <div class="alert"><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">⚠ 消费版本滞后 · internal-ci-rule</p><p class="text-micro" style="color: var(--text-secondary);">仍使用 v1.0.0 · 组织级基线已升级至 v1.1.0 · 责任人：李四（团队治理接口人）</p></div>
-            <div class="alert" style="margin-bottom: 0;"><p class="text-micro" style="color: var(--text-primary); font-weight: 700;">⚠ 消费版本滞后 · internal-schema-check</p><p class="text-micro" style="color: var(--text-secondary);">仍使用 v1.0.0 · 组织级基线已升级至 v1.1.0 · 责任人：李四（团队治理接口人）</p></div>
+            <div class="quote" id="alert-1-msg" style="display:none;"></div>
+            <div class="surface" style="border-color:rgba(245,166,35,.35);">
+              <div class="text-caption">⏰ <b style="color:#f5a623;">剩余 4 天</b>自动升级至团队 TL</div>
+              <div class="text-micro" style="margin-top:4px;">告警发出：2026-07-01 09:00<br>查看时间：2026-07-05 14:00 · 查看人：王五<br>责任人：王五（前端团队语义规则负责人）<br>建议：确认 PRO-001 是否被 PRO-002 替代，若已替代则申请归档；若仍在使用则排查消费端配置</div>
+            </div>
           </div>
-          <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-top: 8px;">
-            <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;"><span style="color: var(--text-primary); font-weight: 700;">🔒 告警路由原则：</span>版本滞后、链路断点、沉默规则的告警，一律发给该消费点所属团队的消费点管理员（owner 字段），不广播。支付团队的消费断点，5 分钟内只有支付团队的管理员收到通知。</p>
+        </div>
+
+        <div class="alert-card" id="alert-2">
+          <div class="alert-head" onclick="toggleAlert('alert-2')">
+            <div><b class="text-body">✅ ERR-001 版本滞后已修复</b><div class="text-micro">项目 A Schema v1.0.0 → v1.1.0</div></div>
+            <span class="badge b-green">已验证</span>
           </div>
+          <div class="alert-body">
+            <div class="text-caption">项目 A 的 JSON Schema 引用 v1.0.0 滞后于契约库 v1.1.0，已升级并验证通过。</div>
+            <div class="step-chain">
+              <span class="step done">✓ 已发出</span><span class="step-arr">→</span>
+              <span class="step done">✓ 已查看</span><span class="step-arr">→</span>
+              <span class="step done">✓ 已处理</span><span class="step-arr">→</span>
+              <span class="step done">✓ 已验证</span>
+            </div>
+            <div class="text-micro" style="margin-top:6px;">告警发出：2026-07-08 10:00<br>处理：2026-07-09 16:00 · 处理人：王五<br>验证：2026-07-10 09:00 · 验证人：张三（规范评审组）<br>结果：JSON Schema 已升级至 v1.1.0，消费端加载测试通过</div>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-cell"><div class="text-h2">12</div><div class="text-micro">本月告警总数</div></div>
+          <div class="stat-cell"><div class="text-h2" style="color:#6abe4a;">10</div><div class="text-micro">已闭环处理</div></div>
+          <div class="stat-cell"><div class="text-h2" style="color:#f5a623;">1<span style="font-size:12px;"> +1</span></div><div class="text-micro">处理中 / 待查看</div></div>
+        </div>
+
+        <div class="text-h3" style="margin:12px 0 8px;">自动升级机制</div>
+        <div class="timeline">
+          <div class="tl-item"><b class="text-caption">Day 0-3</b><div class="text-micro">责任人：语义规则负责人</div></div>
+          <div class="tl-item tl-warn"><b class="text-caption">Day 4-5</b><div class="text-micro">升级至：团队 TL</div></div>
+          <div class="tl-item tl-warn"><b class="text-caption">Day 6</b><div class="text-micro">升级至：DesignOps</div></div>
+          <div class="tl-item tl-err" style="padding-bottom:0;"><b class="text-caption">Day 7+</b><div class="text-micro">升级至：规范评审组</div></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Step 4 拦截归因 -->
-  <div class="card" style="margin-bottom: 12px;">
-    <div style="padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-        <span class="badge badge-purple">04</span>
-        <h2 class="text-h2">Step 4 · 拦截归因</h2>
+  <!-- 7 设计原则 -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="collapse-head" onclick="toggleCollapse('sec-prin')">
+      <div>
+        <div class="text-label">Governance Principles · 组织级语义治理的验证层嵌入规范</div>
+        <div class="text-h2" style="margin-top:2px;">7 双重闭环验证设计原则</div>
       </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-bottom: 12px;">每个团队只看到自己的拦截和收益 · 组织级汇总只读</p>
-      <div style="display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
-        <div class="tab on" id="tab-a1" onclick="s4view('a1')">🟦 前端团队</div>
-        <div class="tab" id="tab-a2" onclick="s4view('a2')">🟨 内部工具</div>
-        <div class="tab" id="tab-a3" onclick="s4view('a3')">🔧 DesignOps 汇总</div>
-      </div>
-
-      <div id="s4-a1" class="fade">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
-          <div style="background: var(--surface); border: 1px solid rgba(22,119,255,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
-            <p class="text-h1" style="color: #4a9eff;">18</p><p class="text-micro" style="color: var(--text-tertiary);">本月拦截</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
-            <p class="text-h1" style="color: #52c41a;">15h</p><p class="text-micro" style="color: var(--text-tertiary);">避免返工</p>
-          </div>
-        </div>
-        <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">按契约：ERR-001 ×10 · PRO-001 ×5 · ACT-001 ×3<br>按产物：Prompt 前缀 ×10 · CI 规则 ×8</p>
-      </div>
-
-      <div id="s4-a2" style="display: none;" class="fade">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
-          <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
-            <p class="text-h1" style="color: #f5a623;">5</p><p class="text-micro" style="color: var(--text-tertiary);">本月拦截</p>
-          </div>
-          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 12px; text-align: center;">
-            <p class="text-h1" style="color: #52c41a;">4h</p><p class="text-micro" style="color: var(--text-tertiary);">避免返工</p>
-          </div>
-        </div>
-        <p class="text-micro" style="color: var(--text-secondary); line-height: 1.8;">按契约：ERR-001 ×3 · PRO-001 ×2<br>按产物：组件校验 ×3 · CI 规则 ×2</p>
-      </div>
-
-      <div id="s4-a3" style="display: none;" class="fade">
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px;">
-          <div style="background: var(--surface); border: 1px solid rgba(22,119,255,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;"><p class="text-h2" style="color: #4a9eff;">18</p><p class="text-micro" style="color: var(--text-tertiary);">🟦 前端</p></div>
-          <div style="background: var(--surface); border: 1px solid rgba(82,196,26,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;"><p class="text-h2" style="color: #6abe4a;">25</p><p class="text-micro" style="color: var(--text-tertiary);">🟩 支付</p></div>
-          <div style="background: var(--surface); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;"><p class="text-h2" style="color: #f5a623;">5</p><p class="text-micro" style="color: var(--text-tertiary);">🟨 内部</p></div>
-          <div style="background: var(--surface); border: 1px solid rgba(168,85,247,0.3); border-radius: var(--radius-sm); padding: 10px; text-align: center;"><p class="text-h2" style="color: #a855f7;">10</p><p class="text-micro" style="color: var(--text-tertiary);">🟪 设计</p></div>
-        </div>
-        <p class="text-label" style="color: var(--text-tertiary); margin-bottom: 6px;">消费点 × 团队版本矩阵</p>
-        <div class="grid-table" style="margin-bottom: 10px;">
-          <div class="gt-head">消费点</div><div class="gt-head" style="color:#4a9eff;">🟦前端</div><div class="gt-head" style="color:#6abe4a;">🟩支付</div><div class="gt-head" style="color:#f5a623;">🟨内部</div><div class="gt-head" style="color:#a855f7;">🟪设计</div>
-          <div class="gt-cell" style="text-align:left; padding-left:8px;">service-prompt</div><div class="gt-cell gt-ok">v1.1.0</div><div class="gt-cell gt-ok">v1.1.0</div><div class="gt-cell gt-lag">v1.0.0</div><div class="gt-cell gt-ok">v1.1.0</div>
-          <div class="gt-cell" style="text-align:left; padding-left:8px;">ci-stylelint</div><div class="gt-cell gt-ok">v1.1.0</div><div class="gt-cell gt-ok">v1.1.0</div><div class="gt-cell gt-lag">v1.0.0</div><div class="gt-cell gt-ok">v1.1.0</div>
-          <div class="gt-cell" style="text-align:left; padding-left:8px;">schema-check</div><div class="gt-cell gt-lag">v1.0.0</div><div class="gt-cell gt-ok">v1.1.0</div><div class="gt-cell gt-lag">v1.0.0</div><div class="gt-cell gt-lag">v1.0.0</div>
-        </div>
-        <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 10px;">
-          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">⚠ 汇总只读、不可回写 · 用于判断"哪个团队需要支持" · 不用于跨团队改数据</p>
-        </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div id="sec-prin" class="collapsible-content">
+      <div style="padding:0 14px 14px;">
+        <div class="text-h3" style="margin-bottom:8px;">🤖 机器闭环三定律</div>
+        <div class="surface" style="margin-bottom:8px;"><b style="color:#4a9eff;">1. 结构一致性</b><div class="text-caption">四种格式必须一一对应，语义令牌引用一致率 100%。如果 Prompt 说"红色"而 CI 规则校验"蓝色"，闭环在第一步就断裂。</div></div>
+        <div class="surface" style="margin-bottom:8px;"><b style="color:#4a9eff;">2. 消费有效性</b><div class="text-caption">被消费端真实加载，版本同步。注册消费点 ≠ 真实消费，Lint 扫描识别假引用。</div></div>
+        <div class="surface" style="margin-bottom:12px;"><b style="color:#4a9eff;">3. 拦截有效性</b><div class="text-caption">加载后真的拦住了语义漂移。A/B 测试：有约束组 vs 无约束组，合规率差异必须显著。</div></div>
+        <div class="text-h3" style="margin-bottom:8px;">👥 角色闭环三原则</div>
+        <div class="surface" style="margin-bottom:8px;"><b style="color:#c084fc;">1. 生产持续</b><div class="text-caption">人均每月 ≥1 条修订，每季度新增 ≥1 个漂移模式。产出停滞 = 规则腐烂。</div></div>
+        <div class="surface" style="margin-bottom:8px;"><b style="color:#c084fc;">2. 消费真实</b><div class="text-caption">真实消费率 ≥80%。注册但零引用 = 假消费。Lint 扫描 + 加载日志双重验证。</div></div>
+        <div class="surface"><b style="color:#c084fc;">3. 迭代闭环</b><div class="text-caption">告警必须被处理。7 天未处理自动升级责任人。处理按钮必须人来按，但系统强制留痕，防止"假装处理"。</div></div>
       </div>
     </div>
   </div>
 
-  <!-- Step 5 治理原则 -->
-  <div class="card" style="margin-bottom: 16px;">
-    <div style="padding: 16px;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-        <span class="badge badge-green">05</span>
-        <h2 class="text-h2">Step 5 · 治理原则</h2>
-      </div>
-      <p class="text-caption" style="color: var(--text-tertiary); margin-bottom: 10px;">团队隔离的三层信息架构——像水印一样渗透在现有工作流中</p>
-      <div style="display: flex; flex-direction: column; gap: 6px;">
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 3px;">01 · 本团队视角（默认）</p>
-          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">所有用户默认只看到本团队消费点，其他团队数据完全不可见。告警只显示本团队定向通知。按 SSO 身份自动识别，无需手动选择团队。</p>
-        </div>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 3px;">02 · 组织级汇总（DesignOps）</p>
-          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">仅 DesignOps / 规范评审组可查看组织级汇总。团队分列展示，不平均、不掩盖。用于判断"哪个团队需要支持"，不用于跨团队改数据。</p>
-        </div>
-        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px;">
-          <p class="text-caption" style="color: var(--text-primary); font-weight: 700; margin-bottom: 3px;">03 · 告警路由（定向通知）</p>
-          <p class="text-micro" style="color: var(--text-secondary); line-height: 1.7;">每条告警自带路由路径，明确显示"发给谁"。版本滞后、链路断点、沉默规则的告警一律发给该消费点所属团队的管理员。5 分钟内只有对应团队收到通知。</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 总结卡 -->
-  <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(22,119,255,0.12), rgba(54,207,201,0.08)); border: 1px solid rgba(22,119,255,0.3);">
-    <div style="padding: 20px; text-align: center;">
-      <p class="text-h2" style="color: var(--text-primary); margin-bottom: 8px;">"分别追踪，定向告警，汇总只读"</p>
-      <p class="text-caption" style="color: var(--text-secondary); line-height: 1.8;">
-        契约消费追踪演示完毕<br>
-        Schema-As-Code 三阶段流水线：Guard → Contract → Verify
-      </p>
-    </div>
+  <div class="card" style="text-align:center;border-color:rgba(22,119,255,.3);">
+    <div class="text-h2 gradient-text">双重闭环验证演示完毕</div>
+    <div class="text-caption" style="margin-top:6px;">Schema-As-Code 三阶段流水线：Guard → Contract → Verify</div>
+    <div class="text-micro" style="margin-top:8px;">Schema-As-Code · 不是替代任何工具，是所有 AI 工具的上游约束</div>
   </div>
 
 </div>
 
-<!-- 底部导航 -->
-<div class="bottom-nav">
-  <div class="nav-item active" onclick="location.href='./契约消费追踪演示_v2mob.html'">
-    <div class="nav-icon">📘</div>
-    <div class="nav-label">主题</div>
-  </div>
-  <div class="nav-item" onclick="location.href='./case_contract_diff.html'">
-    <div class="nav-icon">🔍</div>
-    <div class="nav-label">案例</div>
-  </div>
-  <div class="nav-item" onclick="location.href='./constraint_validation.html'">
-    <div class="nav-icon">✓</div>
-    <div class="nav-label">验证</div>
-  </div>
-</div>
+<nav class="bottom-nav">
+  <a class="nav-item active" href="./双重闭环验证演示_交互强化版mob.html"><span class="ni">🔄</span>主题</a>
+  <a class="nav-item" href="./case_contract_diff.html"><span class="ni">📊</span>案例</a>
+  <a class="nav-item" href="./constraint_validation.html"><span class="ni">✅</span>验证</a>
+</nav>
 
 <script>
-function toggleCollapse(id) {
-  const c = document.getElementById('content-' + id);
-  const ch = document.getElementById('chevron-' + id);
-  c.classList.toggle('open'); ch.classList.toggle('rotated');
-}
-function s1split() {
-  document.getElementById('s1-single').style.display = 'none';
-  document.getElementById('s1-multi').style.display = 'block';
-}
-function s1reset() {
-  document.getElementById('s1-multi').style.display = 'none';
-  document.getElementById('s1-single').style.display = 'block';
-}
-function s2view(v) {
-  document.getElementById('s2-fe').style.display = v === 'fe' ? 'block' : 'none';
-  document.getElementById('s2-it').style.display = v === 'it' ? 'block' : 'none';
-  document.getElementById('tab-fe').classList.toggle('on', v === 'fe');
-  document.getElementById('tab-it').classList.toggle('on', v === 'it');
-}
-function s3run() {
-  document.getElementById('s3-result').style.display = 'block';
-  const b = document.getElementById('s3btn');
-  b.textContent = '✓ 对账完成 · 告警已定向路由';
-  b.className = 'btn btn-ghost';
-  b.onclick = null;
-}
-function s4view(v) {
-  ['a1','a2','a3'].forEach(k => {
-    document.getElementById('s4-' + k).style.display = k === v ? 'block' : 'none';
-    document.getElementById('tab-' + k).classList.toggle('on', k === v);
-  });
-}
-document.addEventListener('touchstart', () => {}, { passive: true });
-</script>
+function toggleCollapse(id){ document.getElementById(id).classList.toggle('open'); }
+function toggleAlert(id){ document.getElementById(id).classList.toggle('open'); }
 
+/* 阶段详情（机器/角色闭环节点） */
+var STAGE = {
+  m1:{sec:'sec-struct', tip:'→ 已定位到「1 结构一致性验证」'},
+  m2:{sec:'sec-consume', tip:'→ 已定位到「2 消费有效性验证」'},
+  m3:{sec:'sec-ab', tip:'→ 已定位到「3 拦截有效性验证」'},
+  r1:{sec:'sec-prod', tip:'→ 已定位到「4 规则生产者验证」'},
+  r2:{sec:'sec-real', tip:'→ 已定位到「5 规则消费者验证」'},
+  r3:{sec:'sec-iter', tip:'→ 已定位到「6 规则迭代验证」'}
+};
+function stageDetail(k){
+  var d = STAGE[k];
+  var el = document.getElementById(d.sec);
+  if(!el.classList.contains('open')) el.classList.add('open');
+  el.parentElement.scrollIntoView({behavior:'smooth'});
+}
+
+/* 五阶段链详情 */
+var CHAIN = [
+  '✏️ <b>规则生产阶段：</b>语义规则负责人（规范评审组 / 团队治理接口人）持续产出 YAML 契约。人均产出趋势、修订频率、模式新增量构成生产持续性的度量指标。',
+  '📥 <b>规则消费阶段：</b>契约被编译为四种消费格式（Prompt 前缀、JSON Schema、Checklist、CI 规则），分别被 AI 生成工具、组件校验器、设计师走查、研发效能流水线加载使用。',
+  '⚠️ <b>语义漂移阶段：</b>AI 生成内容是否出现语义漂移？有约束组与无约束组的 A/B 测试对比，验证契约是否真正拦截了漂移。',
+  '🔔 <b>告警触发阶段：</b>系统发现异常：沉默规则（30天零消费）、版本滞后（消费端加载旧版本）、消费断点（注册但未引用）。告警自动发出并进入处理流转。',
+  '🔄 <b>规则迭代阶段：</b>告警被查看 → 被处理（修订/归档/申请规则变更）→ 被验证（确认修复有效）。7 天未处理自动升级责任人。'
+];
+function chainDetail(i){
+  for(var j=0;j<5;j++) document.getElementById('cn-'+j).classList.toggle('hl', j===i);
+  var el = document.getElementById('chain-detail');
+  el.style.display = 'block';
+  el.innerHTML = CHAIN[i];
+}
+
+/* 闭环巡航 */
+var cruising = false;
+function startCruise(){
+  if(cruising) return;
+  cruising = true;
+  var btn = document.getElementById('cruise-btn');
+  var tip = document.getElementById('cruise-tip');
+  btn.className = 'btn ghost'; btn.textContent = '⏸ 巡航中…';
+  var i = 0;
+  var names = ['规则生产','规则消费','语义漂移','告警触发','规则迭代'];
+  (function next(){
+    if(i > 0) document.getElementById('cn-'+(i-1)).classList.remove('hl');
+    if(i >= 5){
+      btn.className = 'btn done'; btn.textContent = '✓ 巡航完成';
+      tip.textContent = '五阶段闭环完整运转 · 点击任意节点可查看详情';
+      chainDetail(4);
+      return;
+    }
+    document.getElementById('cn-'+i).classList.add('hl');
+    document.getElementById('cn-'+i).scrollIntoView({behavior:'smooth', block:'center'});
+    chainDetail(i);
+    tip.textContent = '巡航中 · ' + names[i] + ' · 点击任意节点可接管';
+    i++;
+    setTimeout(next, 1200);
+  })();
+}
+
+/* 热力图 */
+var lastHeat = null;
+function heatDetail(el, txt){
+  if(lastHeat) lastHeat.classList.remove('hc-sel');
+  el.classList.add('hc-sel'); lastHeat = el;
+  var tip = document.getElementById('heat-tip');
+  tip.style.display = 'block'; tip.textContent = txt;
+}
+
+/* A/B 切换 */
+function abView(v){
+  document.getElementById('ab-a').style.display = v==='a' ? 'block' : 'none';
+  document.getElementById('ab-b').style.display = v==='b' ? 'block' : 'none';
+  document.getElementById('ab-btn-a').className = 'btn' + (v==='a' ? '' : ' ghost');
+  document.getElementById('ab-btn-b').className = 'btn' + (v==='b' ? '' : ' ghost');
+}
+
+/* 告警操作 */
+function alertAction(n, act){
+  ['a','b','c'].forEach(function(s){ document.getElementById('ab-'+n+s).classList.remove('sel'); });
+  var map = {'处理':'ab-1a','修订':'ab-1b','归档':'ab-1c'};
+  document.getElementById(map[act]).classList.add('sel');
+  var st = document.getElementById('st-'+n+'-p');
+  st.className = 'step done'; st.textContent = '✓ 已处理';
+  var msg = document.getElementById('alert-'+n+'-msg');
+  msg.style.display = 'block';
+  msg.innerHTML = '✓ 已记录操作「' + act + '」 · 处理人：王五 · 系统强制留痕<br><span class="text-micro">等待规范评审组验证 → 验证通过后闭环完成</span>';
+  document.querySelector('#alert-1 .alert-head .badge').className = 'badge b-blue';
+  document.querySelector('#alert-1 .alert-head .badge').textContent = '待验证';
+}
+
+document.addEventListener('touchstart', function(){}, {passive:true});
+</script>
 </body>
 </html>
